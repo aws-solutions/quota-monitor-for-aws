@@ -14,7 +14,7 @@ import json
 def lambda_handler(event, context):
 	lambda_client = boto3.client('lambda', region_name=event['Region'])
 	for id in event['AccountList']:
-		print "do stuff here with AWS account "+id+"\n"
+		print "do stuff here with AWS account "+str(id)+"\n"
 		event['AccountId'] = id
 		eventbytes=json.dumps(event)
 		response = lambda_client.invoke(

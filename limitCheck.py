@@ -57,7 +57,7 @@ def ec2Alert(limit, usage, rgn):
 def rdsAlert(limit, usage, rgn):
 
 	# Complie the SNS message for rds alerts
-	rds_message = "RDS Limits"
+	rds_message = "\nRDS Limits"
 	rds_message += "\nRegion: " + rgn
 	rds_message += '\n------------------------'
 	rds_message += "\nInstance Limit: "
@@ -73,7 +73,7 @@ def rdsAlert(limit, usage, rgn):
 def cloudformationAlert(limit, usage, rgn):
 
 	# Complie the SNS message for cloudformation alerts
-	cfn_message = "Cloudformation Limits"
+	cfn_message = "\nCloudformation Limits"
 	cfn_message += "\nRegion: " + rgn
 	cfn_message += '\n------------------------'
 	cfn_message += "\nStack Limit: "
@@ -136,7 +136,7 @@ def assume_role(accountID, rgn, event):
                         limit_of_instances = att['AttributeValues'][0]['AttributeValue']
 			print"num of limit: "+limit_of_instances
 
-        response = ec2_client.describe_instances()
+        response = ec2_client.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values':['pending','running']}])
         reservation_list = response['Reservations']
 	num_of_instances = 0
 	for rsrv in reservation_list:
@@ -152,19 +152,50 @@ def assume_role(accountID, rgn, event):
 
 	###############
 	#cfn resource limit
-	###############	
+	###############
 	cfn_client = session.client('cloudformation', region_name=rgn)
-        stack_limit = cfn_client.describe_account_limits()
-	if  stack_limit['AccountLimits'][0]['Name'] == 'StackLimit':
-                limit_of_stacks = stack_limit['AccountLimits'][0]['Value']
-	
-        stacks = cfn_client.describe_stacks()
-        stack_list = stacks['Stacks']
-        num_of_stacks = len(stack_list)
+	# grabbing all stacks except for DELETE_COMPLETE
+	cfn_response = cfn_client.list_stacks(
+		StackStatusFilter=[
+			'CREATE_IN_PROGRESS','CREATE_FAILED','CREATE_COMPLETE',
+			'ROLLBACK_IN_PROGRESS','ROLLBACK_FAILED','ROLLBACK_COMPLETE',
+			'DELETE_IN_PROGRESS','DELETE_FAILED','UPDATE_IN_PROGRESS',
+			'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS','UPDATE_COMPLETE',
+			'UPDATE_ROLLBACK_IN_PROGRESS','UPDATE_ROLLBACK_FAILED',
+			'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+			'UPDATE_ROLLBACK_COMPLETE'
+		]
+	)
+	done = False
+	aggregated_results=[]
+	while not done:
+		aggregated_results=aggregated_results+cfn_response['StackSummaries']
+		next_token = cfn_response.get("NextToken", None)
+		if next_token is None:
+			done = True
+		else:
+			cfn_response = cfn_client.list_stacks(
+				StackStatusFilter=[
+					'CREATE_IN_PROGRESS','CREATE_FAILED','CREATE_COMPLETE',
+					'ROLLBACK_IN_PROGRESS','ROLLBACK_FAILED','ROLLBACK_COMPLETE',
+					'DELETE_IN_PROGRESS','DELETE_FAILED','UPDATE_IN_PROGRESS',
+					'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS','UPDATE_COMPLETE',
+					'UPDATE_ROLLBACK_IN_PROGRESS','UPDATE_ROLLBACK_FAILED',
+					'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+					'UPDATE_ROLLBACK_COMPLETE'
+				],
+				NextToken=next_token
+			)
 
-	if (float(num_of_stacks) / float(limit_of_stacks) >= 0.8):			
+	num_of_stacks = len(aggregated_results)
+	stack_limit = cfn_client.describe_account_limits()
+	if  stack_limit['AccountLimits'][0]['Name'] == 'StackLimit':
+		limit_of_stacks = stack_limit['AccountLimits'][0]['Value']
+
+	if (float(num_of_stacks) / float(limit_of_stacks)) >= 0.8:
 		cfn_message = cloudformationAlert(limit_of_stacks, num_of_stacks, rgn)
 		print cfn_message
+
 
 	################
 	#call RDS Limits for rgn
