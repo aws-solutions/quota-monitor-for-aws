@@ -141,7 +141,7 @@
 						}]
 					}
 				}]
-			},	
+			},
 			"Metadata" : {
 				"Comment": "Invocation role for the Lambda functions to use"
 			}
@@ -186,14 +186,14 @@
     			"Principal": "events.amazonaws.com",
     			"SourceArn": { "Fn::GetAtt" : ["Rule", "Arn"] }
   			}
-		}		
+		}
 	},
 	"Outputs": {
   		"CreateRole" : {
   			"Description" : "Run this in each sub-account you wish to monitor to create a role for the primary account to assume",
   			"Value" : {
-  				"Fn::Join": 
-  				["", 
+  				"Fn::Join":
+  				["",
   					[
   						"aws iam create-role --role-name ",
   						{"Ref" : "CheckRoleName"},
@@ -207,8 +207,8 @@
   		"AttachPolicy1" : {
   			"Description" : "Add Read Only Access",
   			"Value" : {
-  				"Fn::Join": 
-  				["", 
+  				"Fn::Join":
+  				["",
   					[
   						"aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess --role-name ",
   						{"Ref" : "CheckRoleName"}
@@ -219,8 +219,8 @@
   		"AttachPolicy2" : {
   			"Description" : "Add Support API for TrustedAdvisor access",
   			"Value" : {
-  				"Fn::Join": 
-  				["", 
+  				"Fn::Join":
+  				["",
   					[
   						"aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AWSSupportAccess --role-name ",
   						{"Ref" : "CheckRoleName"}
@@ -231,12 +231,12 @@
   		"AttachPolicy3" : {
   			"Description" : "Add Support API for TrustedAdvisor access",
   			"Value" : {
-  				"Fn::Join": 
-  				["", 
+  				"Fn::Join":
+  				["",
   					[
   						"aws iam put-role-policy --role-name ",
-  						{"Ref" : "CheckRoleName"}, 
-  						" --policy-name CloudFormationDescribe --policy-document '{\"Version\": \"2012-10-17\",\"Statement\": [{\"Sid\": \"Stmt1455149881000\",\"Effect\": \"Allow\",\"Action\": [\"cloudformation:DescribeAccountLimits\"],\"Resource\": [\"*\"]}]}'"		
+  						{"Ref" : "CheckRoleName"},
+  						" --policy-name CloudFormationDescribe --policy-document '{\"Version\": \"2012-10-17\",\"Statement\": [{\"Sid\": \"Stmt1455149881000\",\"Effect\": \"Allow\",\"Action\": [\"cloudformation:DescribeAccountLimits\"],\"Resource\": [\"*\"]}]}'"
   					]
   				]
   			}
