@@ -149,7 +149,7 @@
 		"Rule":	{
   			"Type" : "AWS::Events::Rule",
   			"Properties" : {
-    			"ScheduleExpression" : "cron(* 0 * * ? *)",
+    			"ScheduleExpression" : "cron(0 0 * * ? *)",
     			"State" : "ENABLED",
     			"Targets" : [{
     				"Arn": { "Fn::GetAtt" : ["MasterLambda", "Arn"] },
