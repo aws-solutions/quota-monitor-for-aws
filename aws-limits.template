@@ -1,0 +1,530 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "(SO0005) - AWS Limits Monitor - This templates creates and schedules Lambda functions to notify you of approaching limits",
+    "Parameters": {
+        "TopicEmail": {
+            "Default": "your.address@here.com",
+            "Description": "E-Mail address to subscribe to alerts",
+            "Type": "String"
+        },
+        "AccountList": {
+            "Default": "\"000000000000\",\"999999999999\"",
+            "Description": "Quote Encapsulated, Comma Delimited List of Account Numbers to Scan for Limits",
+            "Type": "String"
+        },
+        "SNSTopicName": {
+            "Default": "LimitCheckSNS",
+            "Description": "Name of the SNS Topic for E-Mail Alerts",
+            "Type": "String"
+        },
+        "CheckRoleName": {
+            "Default": "LimitCheckRole",
+            "Description": "Name of IAM Role created to check limits",
+            "Type": "String"
+        },
+        "SendAnonymousData": {
+            "Description": "Send anonymous data to AWS",
+            "Type": "String",
+            "Default": "Yes",
+            "AllowedValues": [
+                "Yes",
+                "No"
+            ]
+        }
+    },
+    "Resources": {
+        "SNSTopic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": "AWS Limits SNS",
+                "Subscription": [
+                    {
+                        "Endpoint": {
+                            "Ref": "TopicEmail"
+                        },
+                        "Protocol": "email"
+                    }
+                ],
+                "TopicName": {
+                    "Ref": "SNSTopicName"
+                }
+            },
+            "Metadata": {
+                "Comment": "Create an SNS Topic to Publish Alerts to, subscribe e-mail parameter"
+            }
+        },
+        "MasterLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "Function which evaluates list of accounts passed by the CloudWatch Event and calls the Child Lambda to scan each account",
+                "Code": {
+                    "S3Bucket": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "solutions-",
+                                {
+                                    "Ref": "AWS::Region"
+                                }
+                            ]
+                        ]
+                    },
+                    "S3Key": "limit-monitor/v1/limits.zip"
+                },
+                "Handler": "limit-master.lambda_handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "MasterRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python2.7",
+                "Timeout": "300"
+            },
+            "DependsOn": "MasterRole",
+            "Metadata": {
+                "Comment": "Function which evaluates list of accounts passed by the CloudWatch Event and calls the Child Lambda to scan each account"
+            }
+        },
+        "ChildLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "Function which assumes a role in each account to scan for approaching limits and sends an alert to the SNS topic",
+                "Code": {
+                    "S3Bucket": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "solutions-",
+                                {
+                                    "Ref": "AWS::Region"
+                                }
+                            ]
+                        ]
+                    },
+                    "S3Key": "limit-monitor/v1/limits.zip"
+                },
+                "Handler": "limit-check.lambda_handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "ChildRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python2.7",
+                "Timeout": "300"
+            },
+            "DependsOn": "ChildRole",
+            "Metadata": {
+                "Comment": "Function which assumes a role in each account to scan for approaching limits and sends an alert to the SNS topic"
+            }
+        },
+        "ConfigLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "Custom Resource Lambda to create the cross-account role assumed by the Child Lambda",
+                "Code": {
+                    "S3Bucket": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "solutions-",
+                                {
+                                    "Ref": "AWS::Region"
+                                }
+                            ]
+                        ]
+                    },
+                    "S3Key": "limit-monitor/v1/limits.zip"
+                },
+                "Handler": "configuration.lambda_handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "ConfigRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python2.7",
+                "Timeout": "300"
+            },
+            "DependsOn": "ConfigRole",
+            "Metadata": {
+                "Comment": "Custom Resource Lambda to create the cross-account role assumed by the Child Lambda"
+            }
+        },
+        "CheckRole": {
+            "Type": "Custom::CheckRole",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "ConfigLambda",
+                        "Arn"
+                    ]
+                },
+                "Region": {
+                    "Ref": "AWS::Region"
+                },
+                "CheckRoleName": {
+                    "Ref": "CheckRoleName"
+                },
+                "AccountNumber": {
+                    "Ref": "AWS::AccountId"
+                }
+            },
+            "Metadata": {
+                "Comment": "Invoke the Configuration Lambda Function with the specified parameters for creating the role to assume"
+            }
+        },
+        "ChildRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "Limits-AssumeRole",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "arn:aws:logs:*:*:log-group:/aws/lambda/*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "sns:Publish"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Ref": "SNSTopic"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "sts:AssumeRole"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:iam::*:role/",
+                                                    {
+                                                        "Ref": "CheckRoleName"
+                                                    }
+                                                ]
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ec2:DescribeRegions"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Metadata": {
+                "Comment": "Invocation role for the Lambda functions to use"
+            }
+        },
+        "MasterRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "Limits-AssumeRole",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "arn:aws:logs:*:*:log-group:/aws/lambda/*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "lambda:Invoke*"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::GetAtt": [
+                                                "ChildLambda",
+                                                "Arn"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Metadata": {
+                "Comment": "Invocation role for the Lambda functions to use"
+            }
+        },
+        "ConfigRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "lambda.amazonaws.com"
+                            },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "Limits-AssumeRole",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "arn:aws:logs:*:*:log-group:/aws/lambda/*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "iam:AttachRolePolicy",
+                                        "iam:DetachRolePolicy",
+                                        "iam:CreateRole",
+                                        "iam:DeleteRole",
+                                        "iam:PutRolePolicy",
+                                        "iam:DeleteRolePolicy"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:iam::",
+                                                    {
+                                                        "Ref": "AWS::AccountId"
+                                                    },
+                                                    ":role/",
+                                                    {
+                                                        "Ref": "CheckRoleName"
+                                                    }
+                                                ]
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Metadata": {
+                "Comment": "Invocation role for the Lambda functions to use"
+            }
+        },
+        "Rule": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+                "ScheduleExpression": "cron(0 0 * * ? *)",
+                "State": "ENABLED",
+                "Targets": [
+                    {
+                        "Arn": {
+                            "Fn::GetAtt": [
+                                "MasterLambda",
+                                "Arn"
+                            ]
+                        },
+                        "Id": "LimitsRule",
+                        "Input": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    "{\"CheckRoleName\":\"",
+                                    {
+                                        "Ref": "CheckRoleName"
+                                    },
+                                    "\",\"UUID\":\"",
+                                    {
+                                        "Fn::GetAtt": [
+                                            "CheckRole",
+                                            "UUID"
+                                        ]
+                                    },
+                                    "\",\"Region\":\"",
+                                    {
+                                        "Ref": "AWS::Region"
+                                    },
+                                    "\",\"AccountList\":[",
+                                    {
+                                        "Ref": "AccountList"
+                                    },
+                                    "],\"ChildLambda\":\"",
+                                    {
+                                        "Ref": "ChildLambda"
+                                    },
+                                    "\",\"SNSArn\":\"",
+                                    {
+                                        "Ref": "SNSTopic"
+                                    },
+                                    "\",\"SendAnonymousData\":\"",
+                                    {
+                                        "Ref": "SendAnonymousData"
+                                    },
+                                    "\"}"
+                                ]
+                            ]
+                        }
+                    }
+                ]
+            },
+            "DependsOn": "CheckRole"
+        },
+        "LambdaInvokePermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "FunctionName": {
+                    "Fn::GetAtt": [
+                        "MasterLambda",
+                        "Arn"
+                    ]
+                },
+                "Action": "lambda:InvokeFunction",
+                "Principal": "events.amazonaws.com",
+                "SourceArn": {
+                    "Fn::GetAtt": [
+                        "Rule",
+                        "Arn"
+                    ]
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "CreateRole": {
+            "Description": "Run this in each sub-account you wish to monitor to create a role for the primary account to assume",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "aws iam create-role --role-name ",
+                        {
+                            "Ref": "CheckRoleName"
+                        },
+                        " --assume-role-policy-document '{\"Version\": \"2012-10-17\",\"Statement\": [{\"Effect\": \"Allow\",\"Principal\": {\"AWS\": \"",
+                        {
+                            "Ref": "AWS::AccountId"
+                        },
+                        "\"},\"Action\": \"sts:AssumeRole\"}]}'"
+                    ]
+                ]
+            }
+        },
+        "AttachPolicy1": {
+            "Description": "Add Read Only Access",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess --role-name ",
+                        {
+                            "Ref": "CheckRoleName"
+                        }
+                    ]
+                ]
+            }
+        },
+        "AttachPolicy2": {
+            "Description": "Add Support API for TrustedAdvisor access",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AWSSupportAccess --role-name ",
+                        {
+                            "Ref": "CheckRoleName"
+                        }
+                    ]
+                ]
+            }
+        },
+        "AttachPolicy3": {
+            "Description": "Add Support API for TrustedAdvisor access",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "aws iam put-role-policy --role-name ",
+                        {
+                            "Ref": "CheckRoleName"
+                        },
+                        " --policy-name CloudFormationDescribe --policy-document '{\"Version\": \"2012-10-17\",\"Statement\": [{\"Sid\": \"Stmt1455149881000\",\"Effect\": \"Allow\",\"Action\": [\"cloudformation:DescribeAccountLimits\", \"dynamodb:DescribeLimits\"],\"Resource\": [\"*\"]}]}'"
+                    ]
+                ]
+            }
+        },
+        "UUID": {
+            "Description": "Newly created random UUID.",
+            "Value": {
+                "Fn::GetAtt": [
+                    "CheckRole",
+                    "UUID"
+                ]
+            }
+        }
+    }
+}
