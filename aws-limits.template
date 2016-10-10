@@ -69,7 +69,7 @@
                             ]
                         ]
                     },
-                    "S3Key": "limit-monitor/v1/limits.zip"
+                    "S3Key": "limit-monitor/v1/limits-v1-1.zip"
                 },
                 "Handler": "limit-master.lambda_handler",
                 "Role": {
@@ -102,7 +102,7 @@
                             ]
                         ]
                     },
-                    "S3Key": "limit-monitor/v1/limits.zip"
+                    "S3Key": "limit-monitor/v1/limits-v1-1.zip"
                 },
                 "Handler": "limit-check.lambda_handler",
                 "Role": {
@@ -135,7 +135,7 @@
                             ]
                         ]
                     },
-                    "S3Key": "limit-monitor/v1/limits.zip"
+                    "S3Key": "limit-monitor/v1/limits-v1-1.zip"
                 },
                 "Handler": "configuration.lambda_handler",
                 "Role": {

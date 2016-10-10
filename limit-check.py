@@ -149,6 +149,10 @@ def assume_role(account_id, rgn, event, alerts):
         flag_list = response['result']['flaggedResources']
         warn_list = []
         for flag_item in flag_list:
+            ### Solution for dash validation in case it's a default region     
+            for x in range(0, 5):       
+                if flag_item['metadata'][x] == "-":     
+                    flag_item['metadata'][x] = "us-east-1"
             if flag_item['metadata'][5] != "Green":
                 # if item is not Green, we add it to the warning list
                 warn_list.append(flag_item['metadata'][2]+'\n'+'Region: '+ \
