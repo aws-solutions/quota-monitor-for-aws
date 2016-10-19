@@ -149,9 +149,13 @@ def assume_role(account_id, rgn, event, alerts):
         flag_list = response['result']['flaggedResources']
         warn_list = []
         for flag_item in flag_list:
+            ### Solution for dash validation in case it's a default region     
+            for x in range(0, 5):       
+                if flag_item['metadata'][x] == "-":     
+                    flag_item['metadata'][x] = "global"
             if flag_item['metadata'][5] != "Green":
                 # if item is not Green, we add it to the warning list
-                warn_list.append(flag_item['metadata'][2]+'\n'+'Region: '+ \
+                warn_list.append(flag_item['metadata'][1]+' - '+flag_item['metadata'][2]+'\n'+'Region: '+ \
                     flag_item['metadata'][0]+ '\n-----------------------'+ \
                     '\nResource Limit: ' + flag_item['metadata'][3]+'\n'+ \
                     'Resource Usage: '+flag_item['metadata'][4]+'\n')
@@ -427,6 +431,8 @@ def lambda_handler(event, context):
     # initialize alerts
     for rgn in region_list['Regions']:
         alerts[rgn['RegionName']] = {}
+    # adding global key for IAM
+    alerts["global"] = {}
     # iterating through each
     for rgn in region_list['Regions']:
         response = assume_role(str(account_id), rgn['RegionName'], event, alerts)
