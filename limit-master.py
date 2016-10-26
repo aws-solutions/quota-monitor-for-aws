@@ -12,7 +12,7 @@ def lambda_handler(event, context):
     """
     lambda_client = client('lambda', region_name=event['Region'])
     for account_id in event['AccountList']:
-        print "do stuff here with AWS account "+str(account_id)+"\n"
+        print "Running as "+str(account_id)+"\n"
         event['AccountId'] = account_id
         eventbytes = dumps(event)
         response = lambda_client.invoke(

@@ -96,6 +96,7 @@ def assume_role(account_id, rgn, event, alerts):
     ec2_message = ""
     cfn_message = ""
     dynamodb_message = ""
+    header_message = ""
 
     # beginning the assume role process for account
     sts_client = client('sts')
@@ -124,20 +125,27 @@ def assume_role(account_id, rgn, event, alerts):
         )
 
         # now loop through till the check is complete
-        done = False
-        while not done:
-            print "Waiting for updated TA results..."
+        success = False
+        for i in range(1,120):
+            print str(i)+" - Waiting for updated TA results..."
             # calling Trusted Advisor to see if check is complete
             refresh_response = support_client.describe_trusted_advisor_check_refresh_statuses(
                 checkIds=[
                     'eW7HH0l7J9',
                 ]
             )
+            #print refresh_response
             # checking is the request is complete
             if refresh_response['statuses'][0]['status'] == 'success':
-                done = True
+                success = True
+                break
             # so we don't hammer the API
             sleep(1)
+        if success == False:
+            # TA check never succeeded so we need to append a message there
+            print "Unable to retrieve Trusted Advisor results. Some data may be from the previous report."
+            header_message="\nUnable to retrieve Trusted Advisor results. Some data may be from the previous report.\n"
+
         # getting results from TA check
         response = support_client.describe_trusted_advisor_check_result(
             checkId='eW7HH0l7J9',
@@ -375,7 +383,7 @@ def assume_role(account_id, rgn, event, alerts):
     print "Total number of limits near breach:\n" + dumps(alerts)
     print "Checks complete for "+account_id+" in region "+rgn+".\n-----------------------"
 
-    response = {'rgn_message':rgn_message, 'alerts':alerts}
+    response = {'rgn_message':rgn_message, 'alerts':alerts, 'header':header_message}
     return response
 
 def send_report(total_alerts, event):
@@ -419,7 +427,7 @@ def lambda_handler(event, context):
     print 'accountID: ' + str(account_id)
     header_message = "AWS account "+str(account_id)
     header_message += " has limits approaching their upper threshold."
-    header_message += "Please take action accordingly.\n"
+    header_message += "  Please take action accordingly.\n"
     sns_message = ""
     # this is the alerts object that will get passed through
     # each iteration
@@ -439,6 +447,7 @@ def lambda_handler(event, context):
         sns_message += response['rgn_message']
         # updating local alerts to be passed and updated by next iteration
         alerts = response['alerts']
+        header_message+=response['header']
     if sns_message == "" and TA_MESSAGE == "":
         print "All systems green!"
     else:
