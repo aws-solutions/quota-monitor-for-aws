@@ -23,8 +23,13 @@ When you have configured your test event you can test the Master Lambda function
 ## AWS CLI Deployment options
 
 Steps to deploy this application using the AWS CLI tools:
+
 1. edit the limit-monitor-parameters.json file to your needs (e.g. email, names, rate, etc...)
-2. perform the following command with authorized AWS access credentials (note: assumes default profile is set): `aws cloudformation create-stack --stack-name aws-limits-monitor --template-body file://limit-monitor.template --parameters file://limit-monitor-parameters.json --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM`
+
+2. perform the following command with authorized AWS access credentials (note: assumes default profile is set):
+
+`aws cloudformation create-stack --stack-name aws-limits-monitor --template-body file://limit-monitor.template --parameters file://limit-monitor-parameters.json --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM`
+
 3. Profit $$$
 
 ## License
