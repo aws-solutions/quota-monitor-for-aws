@@ -9,7 +9,7 @@
         },
         "AccountList": {
             "Default": "\"000000000000\",\"999999999999\"",
-            "Description": "Quote Encapsulated, Comma Delimited List of Account Numbers to Scan for Limits",
+            "Description": "Quote Encapsulated, Comma Delimited List of Account Numbers to Scan for Limits, if not changed the default will use your local account.",
             "Type": "String"
         },
         "SNSTopicName": {
@@ -22,6 +22,16 @@
             "Description": "Name of IAM Role created to check limits",
             "Type": "String"
         },
+        "CronSchedule": {
+            "Default": "rate(1 day)",
+            "Description": "Schedule to execute Lambda. e.g:.cron(* * * * *) or rate(1 hour/day/etc...). See: https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html",
+            "Type": "String"
+        },
+        "LambdaMemorySize": {
+            "Default": "128",
+            "Description": "Memory to allocate to the Master and Child Lambda's. In most cases, 128MB should be enough, but larger accounts may need more. Please increase this value if your lambda's are failing. https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html#cfn-lambda-function-memorysize",
+            "Type": "String"
+        },
         "SendAnonymousData": {
             "Description": "Send anonymous data to AWS",
             "Type": "String",
@@ -31,6 +41,9 @@
                 "No"
             ]
         }
+    },
+    "Conditions" : {
+      "DefaultAccount" : {"Fn::Equals" : [{"Ref" : "AccountList"}, "\"000000000000\",\"999999999999\""]}
     },
     "Resources": {
         "SNSTopic": {
@@ -79,6 +92,7 @@
                     ]
                 },
                 "Runtime": "python2.7",
+                "MemorySize": {"Ref": "LambdaMemorySize"},
                 "Timeout": "300"
             },
             "DependsOn": "MasterRole",
@@ -112,6 +126,7 @@
                     ]
                 },
                 "Runtime": "python2.7",
+                "MemorySize": {"Ref": "LambdaMemorySize"},
                 "Timeout": "300"
             },
             "DependsOn": "ChildRole",
@@ -379,7 +394,7 @@
         "Rule": {
             "Type": "AWS::Events::Rule",
             "Properties": {
-                "ScheduleExpression": "cron(0 0 * * ? *)",
+                "ScheduleExpression" : {"Ref" : "CronSchedule"},
                 "State": "ENABLED",
                 "Targets": [
                     {
@@ -410,9 +425,17 @@
                                         "Ref": "AWS::Region"
                                     },
                                     "\",\"AccountList\":[",
-                                    {
-                                        "Ref": "AccountList"
-                                    },
+                                      {"Fn::If" : [
+                                        "DefaultAccount",
+                                        {"Fn::Join": ["", [
+                                          "\"",
+                                          {"Ref": "AWS::AccountId"},
+                                          "\""
+                                        ]]},
+                                        {
+                                          "Ref" : "AccountList"
+                                        }
+                                    ]},
                                     "],\"ChildLambda\":\"",
                                     {
                                         "Ref": "ChildLambda"

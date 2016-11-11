@@ -4,7 +4,7 @@ This makes the solution easier to deploy, and adds checks such as DynamoDB.  The
 
 # LimitMonitor
 
-We have created a CloudFormation template that you can run to start receiving alerts with just a couple of clicks.  You can configure the LimitMonitor to alert you as you are approaching limits, all via Scheduled Lambda functions, so there is no additional infrastructure to monitor.  
+We have created a CloudFormation template that you can run to start receiving alerts with just a couple of clicks.  You can configure the LimitMonitor to alert you as you are approaching limits, all via Scheduled Lambda functions, so there is no additional infrastructure to monitor.
 
 ## Basic Configuration
 
@@ -19,6 +19,20 @@ You can test the function is working by running the limit check manually.  If yo
 When looking at the rule you will see the “Constant (JSON text)” field which we use to pass configuration information to the Lambda function.  If you copy this information and then open your Master Lambda Function in the console you can use this to run a test by configuring a test event under Actions for the function.  You can also edit the information in the CloudWatch Events Target to add/remove accounts as your needs change without having to relaunch the CloudFormation template.
 
 When you have configured your test event you can test the Master Lambda function which will run the check for each account and publish results to the SNS Topic.
+
+## AWS CLI Deployment options
+
+Steps to deploy this application using the AWS CLI tools:
+
+1. edit the limit-monitor-parameters.json file to your needs (e.g. email, names, rate, etc...)
+
+2. perform the following command with authorized AWS access credentials (note: assumes default profile is set):
+
+```
+aws cloudformation create-stack --stack-name aws-limits-monitor --template-body file://limit-monitor.template --parameters file://limit-monitor-parameters.json --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+```
+
+3. Profit $$$
 
 ## License
 

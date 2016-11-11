@@ -1,0 +1,30 @@
+[
+  {
+    "ParameterKey" : "TopicEmail",
+    "ParameterValue" : "your.address@here.com"
+  },
+  {
+    "ParameterKey" : "AccountList",
+    "ParameterValue" : "\"000000000000\",\"999999999999\""
+  },
+  {
+    "ParameterKey" : "SNSTopicName",
+    "ParameterValue" : "LimitCheckSNS"
+  },
+  {
+    "ParameterKey" : "CheckRoleName",
+    "ParameterValue" : "LimitCheckRole"
+  },
+  {
+    "ParameterKey" : "CronSchedule",
+    "ParameterValue" : "rate(1 day)"
+  },
+  {
+    "ParameterKey" : "LambdaMemorySize",
+    "ParameterValue" : "128"
+  },
+  {
+    "ParameterKey" : "SendAnonymousData",
+    "ParameterValue" : "Yes"
+  }
+]
