@@ -28,7 +28,7 @@ Steps to deploy this application using the AWS CLI tools:
 
 2. perform the following command with authorized AWS access credentials (note: assumes default profile is set):
 
-`aws cloudformation create-stack --stack-name aws-limits-monitor --template-body file://limit-monitor.template --parameters file://limit-monitor-parameters.json --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM`
+```aws cloudformation create-stack --stack-name aws-limits-monitor --template-body file://limit-monitor.template --parameters file://limit-monitor-parameters.json --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM```
 
 3. Profit $$$
 
