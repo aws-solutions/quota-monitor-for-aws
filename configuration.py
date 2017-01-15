@@ -51,6 +51,7 @@ def lambda_handler(event, context):
             putpolicyresponsero = iam_client.attach_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyArn='arn:aws:iam::aws:policy/ReadOnlyAccess')
             putpolicyresponsesupport = iam_client.attach_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyArn='arn:aws:iam::aws:policy/AWSSupportAccess')
             putpolicyresponsecfn = iam_client.put_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyName='CloudFormationDescribe', PolicyDocument='{"Version": "2012-10-17","Statement": [{"Sid": "Stmt1455149881000","Effect": "Allow","Action": ["cloudformation:DescribeAccountLimits", "dynamodb:DescribeLimits"],"Resource": ["*"]}]}')
+            putpolicyresponsemisc = iam_client.put_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyName='ChildLambdaPermissions', PolicyDocument='{"Version": "2012-10-17","Statement": [{"Sid": "Stmt1455149881000","Effect": "Allow","Action": ["events:DeleteRule", "events:PutRule", "events:PutTargets", "events:RemoveTargets", "lambda:AddPermission", "lambda:RemovePermission"],"Resource": ["*"]}]}')
         except:
             # Dump Response Data for troubleshooting
             print rolecreateresponse
