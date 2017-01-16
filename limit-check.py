@@ -15,7 +15,6 @@ from time import sleep
 from boto3 import Session
 from boto3 import client
 from os import environ
-from sys import exit
 
 
 
