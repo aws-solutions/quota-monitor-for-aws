@@ -1,13 +1,16 @@
 #!/usr/bin/python
 """
-poll the AWS Trusted Advisor for resource limits
-and posts an SNS message to a topic with AZ and resource information
+Kick off the TA report refresh and setup the CloudWatch Event that will poll
+every 5 minutes to see if refresh is complete.  If the account doesn't have
+AWS Premium Support, then invoke the RetrieveResults lambda manually
 """
 
 # Import the SDK
 from boto3 import Session
 from boto3 import client
 from os import environ
+import botocore
+from json import dumps
 
 def initiate_ta_refresh(account_id):
     """
@@ -32,9 +35,29 @@ def initiate_ta_refresh(account_id):
     support_client = session.client('support', region_name='us-east-1')
 
     # requesting a new check for TA
-    support_client.refresh_trusted_advisor_check(
-        checkId='eW7HH0l7J9'
-    )
+    try:
+        support_client.refresh_trusted_advisor_check(
+            checkId='eW7HH0l7J9'
+        )
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == "SubscriptionRequiredException":
+            print "This account doesn't have AWS Premium Support and can't access the support API.  Continuing with other limit checks"
+            payload={}
+            payload['AccountId'] = account_id
+            payload['Skip_TA'] = True
+            payloadbytes = dumps(payload)
+            # now we invoke the limit check lambda for the remaining services
+            lambda_client = client('lambda', region_name=environ['Region'])
+            lambda_client.invoke(
+                FunctionName=environ['RetrieveResultsLambda'],
+                InvocationType='Event',
+                Payload=payloadbytes
+            )
+            # no need to continue and create the cloudwatch event since TA check will never complete
+            # since it was never started
+            return account_id
+        else:
+            print(e)
     print "Initiated TA Report refresh"
     # create our CWE which will kick off the other lambda to retrieve
     # the report and check limits
@@ -62,7 +85,7 @@ def create_cwe(session, account_id):
             {
                 'Id': 'LimitCheck-Secondary-'+account_id,
                 'Arn': environ['RetrieveResultsLambda'],
-                'Input': '{"AccountId":'+account_id+'}'
+                'Input': '{"AccountId":'+account_id+', "Skip_TA":"False"}'
             },
         ]
     )

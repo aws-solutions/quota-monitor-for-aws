@@ -15,6 +15,9 @@ def lambda_handler(event, context):
     # convert pipe delimited AccountList string to list
     accountList = environ['AccountList'].split('|')
     for account_id in accountList:
+        # removing whitespace from account ID that may exist from copying
+        # otherwise the assume role will fail
+        account_id = account_id.strip()
         print "Running as "+str(account_id)+"\n"
         payload={}
         payload['AccountId'] = account_id
@@ -23,7 +26,6 @@ def lambda_handler(event, context):
         response = lambda_client.invoke(
             FunctionName=environ['InitiateCheckLambda'],
             InvocationType='Event',
-            ClientContext='string',
             Payload=payloadbytes
         )
         print response

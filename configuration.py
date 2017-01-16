@@ -26,6 +26,7 @@ def lambda_handler(event, context):
             detachpolicyresponsero = iam_client.detach_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyArn='arn:aws:iam::aws:policy/ReadOnlyAccess')
             detachpolicyresponsesupport = iam_client.detach_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyArn='arn:aws:iam::aws:policy/AWSSupportAccess')
             deletepolicyresponse = iam_client.delete_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyName='CloudFormationDescribe')
+            deletepolicyresponse = iam_client.delete_role_policy(RoleName=event['ResourceProperties']['CheckRoleName'], PolicyName='ChildLambdaPermissions')
             roledeleteresponse = iam_client.delete_role(RoleName=event['ResourceProperties']['CheckRoleName'])
         except:
             print detachpolicyresponsero

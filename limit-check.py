@@ -107,7 +107,7 @@ def ta_check(session, alerts):
     if refresh_response['statuses'][0]['status'] != 'success':
         # if not, exit program and we'll wait for check to complete
         print "TA Check was not complete for this account.  Exiting now and will check again in 5 minutes..."
-        exit(0)
+        return "NOT_COMPLETE"
 
 
     # getting results from TA check
@@ -355,7 +355,7 @@ def service_check(account_id, rgn, session, alerts):
     if rgn_message != '':
         print rgn_message
 
-    print "Total number of limits near breach:\n" + dumps(alerts)
+    print "Breakdown of limits near breach by region at this point:\n" + dumps(alerts)
     print "Checks complete for "+account_id+" in region "+rgn+".\n-----------------------"
 
     response = {'rgn_message':rgn_message, 'alerts':alerts}
@@ -439,12 +439,20 @@ def lambda_handler(event, context):
         alerts[rgn['RegionName']] = {}
     # adding global key for IAM
     alerts["global"] = {}
-    # starting with us-east-1 so we can identify if TA refresh is complete
-    # if refresh isn't complete, don't want users to get billed for wasted compute time
-    # since we will exit upon finding TA refresh isn't complete
-    east_session = assume_role(str(account_id), 'us-east-1')
-    # if our TA update is complete, we will be continuing on, otherwise we will bail here
-    ta_message = ta_check(east_session, alerts)
+    # check if we are doing TA refresh.  If the account doesn't have premium support, then
+    # continue on with regular services checks
+    if event['Skip_TA']=="False":
+        # starting with us-east-1 so we can identify if TA refresh is complete
+        # if refresh isn't complete, don't want users to get billed for wasted compute time
+        # since we will exit upon finding TA refresh isn't complete
+        east_session = assume_role(str(account_id), 'us-east-1')
+        # if our TA update is complete, we will be continuing on, otherwise we will bail here
+        ta_message = ta_check(east_session, alerts)
+        if ta_message == "NOT_COMPLETE":
+            # TA check is still going so bail
+            return account_id
+    else:
+        ta_message == "AWS Premium support is not enabled for this account.  As such, we were unable to retrieve Trusted Advisor results."
 
     # iterating through each
     for rgn in region_list['Regions']:
@@ -461,26 +469,27 @@ def lambda_handler(event, context):
         publish_sns(header_message + ta_message + sns_message, environ['SNSArn'], environ['Region'])
         if environ['SendAnonymousData'] == 'Yes':
             send_report(alerts, event)
-    # now that we have completed all check for this account, we need to delete the CWE we created
-    # in the initiate lambda to prevent this from firing every 5 minutes
-    cwe_client = east_session.client('events', region_name=environ['Region'])
-    # removing targets first
-    cwe_client.remove_targets(
-        Rule='LimitCheck-Secondary-'+str(account_id),
-        Ids=[
-            'LimitCheck-Secondary-'+str(account_id),
-        ]
-    )
-    # now we delete the rule
-    cwe_client.delete_rule(
-        Name='LimitCheck-Secondary-'+str(account_id)
-    )
+    if event['Skip_TA']=="False":
+        # now that we have completed all check for this account, we need to delete the CWE we created
+        # in the initiate lambda to prevent this from firing every 5 minutes
+        cwe_client = east_session.client('events', region_name=environ['Region'])
+        # removing targets first
+        cwe_client.remove_targets(
+            Rule='LimitCheck-Secondary-'+str(account_id),
+            Ids=[
+                'LimitCheck-Secondary-'+str(account_id),
+            ]
+        )
+        # now we delete the rule
+        cwe_client.delete_rule(
+            Name='LimitCheck-Secondary-'+str(account_id)
+        )
 
-    # also need to remove invoke lambda permission
-    lambda_client = east_session.client('lambda', region_name=environ['Region'])
-    lambda_client.remove_permission(
-        FunctionName=context.function_name,
-        StatementId='GivingCWEPermission'+str(account_id)
-    )
+        # also need to remove invoke lambda permission
+        lambda_client = east_session.client('lambda', region_name=environ['Region'])
+        lambda_client.remove_permission(
+            FunctionName=context.function_name,
+            StatementId='GivingCWEPermission'+str(account_id)
+        )
 
     return account_id
