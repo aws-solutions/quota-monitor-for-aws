@@ -14,10 +14,10 @@ from uuid import NAMESPACE_DNS
 from time import sleep
 from boto3 import Session
 from boto3 import client
+from os import environ
 
 
 
-TA_MESSAGE = ''
 
 def publish_sns(sns_message, sns_arn, rgn):
     """
@@ -74,6 +74,7 @@ def cloudformation_alert(limit, usage, rgn):
     cfn_message += "\n"
     #print cfn_message
     return cfn_message
+
 def dynamodb_alert(warn_list):
     """
     Complie the SNS message for cloudformation alerts
@@ -87,89 +88,70 @@ def dynamodb_alert(warn_list):
     #print dynamodb_message
     return dynamodb_message
 
-def assume_role(account_id, rgn, event, alerts):
+def ta_check(session, alerts):
     """
-    Assumes the specified role in account and runs checks limits
-    from Trusted Advisor, EC2, CloudFormation, and DynamoDB
+    Check Trusted Advisor for service limits
     """
+    # need to see if TA refresh is complete.
+    # if not, bail and wait for next CWE invocation
+    support_client = session.client('support', region_name='us-east-1')
 
+    # calling Trusted Advisor to see if check is complete
+    refresh_response = support_client.describe_trusted_advisor_check_refresh_statuses(
+        checkIds=[
+            'eW7HH0l7J9',
+        ]
+    )
+    # checking if the request is complete
+    if refresh_response['statuses'][0]['status'] != 'success':
+        # if not, exit program and we'll wait for check to complete
+        print "TA Check was not complete for this account.  Exiting now and will check again in 5 minutes..."
+        return "NOT_COMPLETE"
+
+
+    # getting results from TA check
+    response = support_client.describe_trusted_advisor_check_result(
+        checkId='eW7HH0l7J9',
+        language='en'
+    )
+    print "Contacting Trusted Advisor..."
+
+    # parse the json and find flagged resources that are in warning mode
+    flag_list = response['result']['flaggedResources']
+    warn_list = []
+    for flag_item in flag_list:
+        ### Solution for dash validation in case it's a default region     
+        for x in range(0, 5):       
+            if flag_item['metadata'][x] == "-":     
+                flag_item['metadata'][x] = "global"
+        if flag_item['metadata'][5] != "Green":
+            # if item is not Green, we add it to the warning list
+            warn_list.append(flag_item['metadata'][1]+' - '+flag_item['metadata'][2]+'\n'+'Region: '+ \
+                flag_item['metadata'][0]+ '\n-----------------------'+ \
+                '\nResource Limit: ' + flag_item['metadata'][3]+'\n'+ \
+                'Resource Usage: '+flag_item['metadata'][4]+'\n')
+            # flag_item['metadata'][0] is the region "us-west-2"
+            # flag_item['metadata'][1] is the service "VPC"
+            if flag_item['metadata'][1] in alerts[flag_item['metadata'][0]]:
+                alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] += 1
+            else:
+                alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] = 1
+
+    ta_message = ""
+    if not warn_list:
+        print "TA all green"
+    else:
+        ta_message = trusted_alert(warn_list)
+
+    return ta_message
+
+def service_check(account_id, rgn, session, alerts):
+    """
+    Runs checks limits from Trusted Advisor, EC2, CloudFormation, and DynamoDB
+    """
     ec2_message = ""
     cfn_message = ""
     dynamodb_message = ""
-
-    # beginning the assume role process for account
-    sts_client = client('sts')
-    response = sts_client.assume_role(
-        RoleArn='arn:aws:iam::'+account_id+':role/'+event['CheckRoleName'],
-        RoleSessionName='AWSLimits'
-    )
-    # storing STS credentials
-    session = Session(
-        aws_access_key_id=response['Credentials']['AccessKeyId'],
-        aws_secret_access_key=response['Credentials']['SecretAccessKey'],
-        aws_session_token=response['Credentials']['SessionToken'],
-        region_name=rgn
-    )
-    print "Assumed session for "+account_id+" in region "+rgn+". Beginning checks..."
-    ##############
-    # call trusted advisor for the limit checks
-    ##############
-    # we only want to run trusted advisor for us-east-1
-    if rgn == 'us-east-1':
-        support_client = session.client('support', region_name='us-east-1')
-
-        # requesting a new check for TA
-        support_client.refresh_trusted_advisor_check(
-            checkId='eW7HH0l7J9'
-        )
-
-        # now loop through till the check is complete
-        done = False
-        while not done:
-            print "Waiting for updated TA results..."
-            # calling Trusted Advisor to see if check is complete
-            refresh_response = support_client.describe_trusted_advisor_check_refresh_statuses(
-                checkIds=[
-                    'eW7HH0l7J9',
-                ]
-            )
-            # checking is the request is complete
-            if refresh_response['statuses'][0]['status'] == 'success':
-                done = True
-            # so we don't hammer the API
-            sleep(1)
-        # getting results from TA check
-        response = support_client.describe_trusted_advisor_check_result(
-            checkId='eW7HH0l7J9',
-            language='en'
-        )
-        print "Contacting Trusted Advisor..."
-
-        # parse the json and find flagged resources that are in warning mode
-        flag_list = response['result']['flaggedResources']
-        warn_list = []
-        for flag_item in flag_list:
-            ### Solution for dash validation in case it's a default region     
-            for x in range(0, 5):       
-                if flag_item['metadata'][x] == "-":     
-                    flag_item['metadata'][x] = "global"
-            if flag_item['metadata'][5] != "Green":
-                # if item is not Green, we add it to the warning list
-                warn_list.append(flag_item['metadata'][1]+' - '+flag_item['metadata'][2]+'\n'+'Region: '+ \
-                    flag_item['metadata'][0]+ '\n-----------------------'+ \
-                    '\nResource Limit: ' + flag_item['metadata'][3]+'\n'+ \
-                    'Resource Usage: '+flag_item['metadata'][4]+'\n')
-                # flag_item['metadata'][0] is the region "us-west-2"
-                # flag_item['metadata'][1] is the service "VPC"
-                if flag_item['metadata'][1] in alerts[flag_item['metadata'][0]]:
-                    alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] += 1
-                else:
-                    alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] = 1
-        if not warn_list:
-            print "TA all green"
-        else:
-            global TA_MESSAGE
-            TA_MESSAGE = trusted_alert(warn_list)
 
     ###############
     #call EC2 limits for rgn
@@ -372,11 +354,33 @@ def assume_role(account_id, rgn, event, alerts):
     if rgn_message != '':
         print rgn_message
 
-    print "Total number of limits near breach:\n" + dumps(alerts)
+    print "Breakdown of limits near breach by region at this point:\n" + dumps(alerts)
     print "Checks complete for "+account_id+" in region "+rgn+".\n-----------------------"
 
     response = {'rgn_message':rgn_message, 'alerts':alerts}
     return response
+
+def assume_role(account_id, rgn):
+    """
+    Assumes the specified role in account and returns a new session
+    """
+
+    # beginning the assume role process for account
+    sts_client = client('sts')
+    response = sts_client.assume_role(
+        RoleArn='arn:aws:iam::'+account_id+':role/'+environ['CheckRoleName'],
+        RoleSessionName='AWSLimits'
+    )
+    # storing STS credentials
+    session = Session(
+        aws_access_key_id=response['Credentials']['AccessKeyId'],
+        aws_secret_access_key=response['Credentials']['SecretAccessKey'],
+        aws_session_token=response['Credentials']['SessionToken'],
+        region_name=rgn
+    )
+    print "Assumed session for "+account_id+" in region "+rgn
+    
+    return session
 
 def send_report(total_alerts, event):
     """
@@ -387,7 +391,7 @@ def send_report(total_alerts, event):
     time_now = datetime.utcnow().isoformat()
     timestamp = str(time_now)
 
-    name = str(event['UUID']) + str(event['AccountId'])
+    name = str(environ['UUID']) + str(event['AccountId'])
     subuuid = uuid5(NAMESPACE_DNS, name)
 
     post_dict = {}
@@ -396,7 +400,7 @@ def send_report(total_alerts, event):
     post_dict['Data']['SubUUID'] = str(subuuid)
     post_dict['TimeStamp'] = timestamp
     post_dict['Solution'] = 'SO0005'
-    post_dict['UUID'] = event['UUID']
+    post_dict['UUID'] = environ['UUID']
 
     url = 'https://5as186uhg7.execute-api.us-east-1.amazonaws.com/prod/generic'
     data = dumps(post_dict)
@@ -414,13 +418,14 @@ def lambda_handler(event, context):
     Handles the initial firing and invokes the
     assume_role() for each region
     """
-
     account_id = event['AccountId']
     print 'accountID: ' + str(account_id)
     header_message = "AWS account "+str(account_id)
     header_message += " has limits approaching their upper threshold."
-    header_message += "Please take action accordingly.\n"
+    header_message += "  Please take action accordingly.\n"
     sns_message = ""
+    ta_message = ""
+
     # this is the alerts object that will get passed through
     # each iteration
     alerts = {}
@@ -433,17 +438,57 @@ def lambda_handler(event, context):
         alerts[rgn['RegionName']] = {}
     # adding global key for IAM
     alerts["global"] = {}
+    # check if we are doing TA refresh.  If the account doesn't have premium support, then
+    # continue on with regular services checks
+    if event['Skip_TA']=="False":
+        # starting with us-east-1 so we can identify if TA refresh is complete
+        # if refresh isn't complete, don't want users to get billed for wasted compute time
+        # since we will exit upon finding TA refresh isn't complete
+        east_session = assume_role(str(account_id), 'us-east-1')
+        # if our TA update is complete, we will be continuing on, otherwise we will bail here
+        ta_message = ta_check(east_session, alerts)
+        if ta_message == "NOT_COMPLETE":
+            # TA check is still going so bail
+            return account_id
+    else:
+        ta_message == "AWS Premium support is not enabled for this account.  As such, we were unable to retrieve Trusted Advisor results."
+
     # iterating through each
     for rgn in region_list['Regions']:
-        response = assume_role(str(account_id), rgn['RegionName'], event, alerts)
+        session = assume_role(str(account_id), rgn['RegionName'])
+
+        response = service_check(str(account_id), rgn['RegionName'], session, alerts)
         sns_message += response['rgn_message']
         # updating local alerts to be passed and updated by next iteration
         alerts = response['alerts']
-    if sns_message == "" and TA_MESSAGE == "":
+
+    if sns_message == "" and ta_message == "":
         print "All systems green!"
     else:
-        publish_sns(header_message + TA_MESSAGE + sns_message, event['SNSArn'], event['Region'])
-        if event['SendAnonymousData'] == 'Yes':
+        publish_sns(header_message + ta_message + sns_message, environ['SNSArn'], environ['Region'])
+        if environ['SendAnonymousData'] == 'Yes':
             send_report(alerts, event)
+    if event['Skip_TA']=="False":
+        # now that we have completed all check for this account, we need to delete the CWE we created
+        # in the initiate lambda to prevent this from firing every 5 minutes
+        cwe_client = east_session.client('events', region_name=environ['Region'])
+        # removing targets first
+        cwe_client.remove_targets(
+            Rule='LimitCheck-Secondary-'+str(account_id),
+            Ids=[
+                'LimitCheck-Secondary-'+str(account_id),
+            ]
+        )
+        # now we delete the rule
+        cwe_client.delete_rule(
+            Name='LimitCheck-Secondary-'+str(account_id)
+        )
+
+        # also need to remove invoke lambda permission
+        lambda_client = east_session.client('lambda', region_name=environ['Region'])
+        lambda_client.remove_permission(
+            FunctionName=context.function_name,
+            StatementId='GivingCWEPermission'+str(account_id)
+        )
 
     return account_id
