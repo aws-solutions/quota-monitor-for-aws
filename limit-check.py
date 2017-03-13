@@ -16,10 +16,10 @@ from boto3 import Session
 from boto3 import client
 
 import os
-import pprint
+from pprint import pprint as pprint_cli
+import json
 
 TA_MESSAGE = ''
-REGION_LIST=os.environ['regions'].replace(" ", "").split(",")
 
 def u_decode(str):
     if str is not None:
@@ -33,8 +33,10 @@ def extract_status(item):
     else:
         return None
 
-def check_region(reg):
-    return reg in region_list
+def output_ta_check(lst):
+    print "Trusted Advisors checks (service, limit, current)"
+    pprint_cli(lst)
+    return
 
 def publish_sns(sns_message, sns_arn, rgn):
     """
@@ -131,7 +133,7 @@ def assume_role(account_id, rgn, event, alerts):
     ##############
     # call trusted advisor for the limit checks
     ##############
-    # we only want to run trusted advisor for us-east-1
+    # we only want to run trusted advisor in us-east-1
     if rgn == 'us-east-1':
         support_client = session.client('support', region_name='us-east-1')
 
@@ -183,13 +185,14 @@ def assume_role(account_id, rgn, event, alerts):
                     alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] += 1
                 else:
                     alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] = 1
-            if check_region(flag_item['metadata'][0]):
-                status.append(extract_status(item))
+            if extract_status(flag_item) is not None:
+                status_list.append(extract_status(flag_item))
         if not warn_list:
             print "TA all green"
         else:
             global TA_MESSAGE
             TA_MESSAGE = trusted_alert(warn_list)
+        output_ta_check(status_list)
 
     ###############
     #call EC2 limits for rgn
@@ -395,7 +398,7 @@ def assume_role(account_id, rgn, event, alerts):
     print "Total number of limits near breach:\n" + dumps(alerts)
     print "Checks complete for "+account_id+" in region "+rgn+".\n-----------------------"
 
-    response = {'rgn_message':rgn_message, 'alerts':alerts}
+    response = {'rgn_message':rgn_message, 'alerts':alerts, 'ta_status': str(status_list)}
     return response
 
 def send_report(total_alerts, event):
@@ -434,6 +437,7 @@ def lambda_handler(event, context):
     Handles the initial firing and invokes the
     assume_role() for each region
     """
+    print("Received event: " + json.dumps(event, indent=2))
 
     account_id = event['AccountId']
     print 'accountID: ' + str(account_id)
@@ -441,28 +445,39 @@ def lambda_handler(event, context):
     header_message += " has limits approaching their upper threshold."
     header_message += "Please take action accordingly.\n"
     sns_message = ""
+    ta_status = ""
     # this is the alerts object that will get passed through
     # each iteration
     alerts = {}
     # creating list of regions to check limits against later
     ec2_client = client('ec2')
+
+    ########## this has been replaced by the env variable region_list #########
     # grabbing all regions
-    region_list = ec2_client.describe_regions()
+    # region_list = ec2_client.describe_regions()
+
     # initialize alerts
-    for rgn in region_list['Regions']:
-        alerts[rgn['RegionName']] = {}
+    # check only applicable regions
+    if 'regions' in os.environ.keys():
+        REGION_LIST=os.environ['regions'].replace(" ", "").split(",")
+    else:
+        REGION_LIST=['us-east-1']
+
+    for rgn in REGION_LIST:
+        alerts[rgn] = {}
     # adding global key for IAM
     alerts["global"] = {}
     # iterating through each
-    for rgn in region_list['Regions']:
-        response = assume_role(str(account_id), rgn['RegionName'], event, alerts)
+    for rgn in REGION_LIST:
+        response = assume_role(str(account_id), rgn, event, alerts)
         sns_message += response['rgn_message']
+        ta_status += response['ta_status']
         # updating local alerts to be passed and updated by next iteration
         alerts = response['alerts']
     if sns_message == "" and TA_MESSAGE == "":
         print "All systems green!"
     else:
-        publish_sns(header_message + TA_MESSAGE + sns_message, event['SNSArn'], event['Region'])
+        publish_sns(header_message + TA_MESSAGE + sns_message , event['SNSArn'], event['Region'])
         if event['SendAnonymousData'] == 'Yes':
             send_report(alerts, event)
 
