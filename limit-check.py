@@ -15,9 +15,26 @@ from time import sleep
 from boto3 import Session
 from boto3 import client
 
-
+import os
+import pprint
 
 TA_MESSAGE = ''
+REGION_LIST=os.environ['regions'].replace(" ", "").split(",")
+
+def u_decode(str):
+    if str is not None:
+        return str.encode('utf-8')
+    else:
+        return "None"
+
+def extract_status(item):
+    if u_decode(item['metadata'][0]) == 'us-east-1':
+        return [u_decode(item['metadata'][2]),u_decode(item['metadata'][3]),u_decode(item['metadata'][4])]
+    else:
+        return None
+
+def check_region(reg):
+    return reg in region_list
 
 def publish_sns(sns_message, sns_arn, rgn):
     """
@@ -148,10 +165,11 @@ def assume_role(account_id, rgn, event, alerts):
         # parse the json and find flagged resources that are in warning mode
         flag_list = response['result']['flaggedResources']
         warn_list = []
+        status_list = []
         for flag_item in flag_list:
-            ### Solution for dash validation in case it's a default region     
-            for x in range(0, 5):       
-                if flag_item['metadata'][x] == "-":     
+            ### Solution for dash validation in case it's a default region
+            for x in range(0, 5):
+                if flag_item['metadata'][x] == "-":
                     flag_item['metadata'][x] = "global"
             if flag_item['metadata'][5] != "Green":
                 # if item is not Green, we add it to the warning list
@@ -165,6 +183,8 @@ def assume_role(account_id, rgn, event, alerts):
                     alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] += 1
                 else:
                     alerts[flag_item['metadata'][0]][flag_item['metadata'][1]] = 1
+            if check_region(flag_item['metadata'][0]):
+                status.append(extract_status(item))
         if not warn_list:
             print "TA all green"
         else:
