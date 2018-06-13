@@ -1,0 +1,34 @@
+{
+  "name": "limtr-helper-service",
+  "version": "0.0.1",
+  "description": "microservice with helper modules for aws limit monitor",
+  "main": "index.js",
+  "author": "aws-solutions-builder",
+  "dependencies": {
+    "uuid": "*",
+    "url": "*",
+    "https": "*",
+    "moment": "*",
+    "async": "*"
+  },
+  "devDependencies": {
+    "chai": "*",
+    "sinon": "*",
+    "chai-sinon": "*",
+    "nyc": "*",
+    "mocha": "*",
+    "aws-sdk-mock": "*",
+    "aws-sdk": "*",
+    "npm-run-all": "*"
+  },
+  "scripts": {
+    "pretest": "npm install",
+    "test": "env AWS_ACCOUNTS=999900001111,999900002222 LOG_LEVEL=DEBUG mocha lib/*.spec.js",
+    "build-init": "rm -rf dist && rm -f archive.zip && mkdir dist && mkdir dist/lib",
+    "build:copy": "cp index.js dist/ && cp -r lib/*.js dist/lib",
+    "build:install": "cp package.json dist/ && cd dist && npm install --production",
+    "build": "npm-run-all -s build-init build:copy build:install",
+    "zip": "cd dist && zip -rq limtr-helper-service.zip .",
+    "coverage": "nyc npm test"
+  }
+}

@@ -1,0 +1,32 @@
+{
+    "name": "limtr-slack-service",
+    "description": "A Lambda function for Trusted Advisor service limit checks refresh",
+    "main": "index.js",
+    "author": {
+        "name": "aws-solutions-builder"
+    },
+    "version": "0.0.1",
+    "private": "true",
+    "dependencies": {},
+    "devDependencies": {
+        "chai": "*",
+        "sinon": "*",
+        "sinon-chai": "*",
+        "nyc": "*",
+        "mocha": "*",
+        "aws-sdk-mock": "*",
+        "aws-sdk": "*",
+        "npm-run-all": "*"
+    },
+    "scripts": {
+        "pretest": "npm install",
+        "test": "env SLACK_HOOK='slk_hook' SLACK_CHANNEL='slk_channel' LOG_LEVEL=DEBUG mocha lib/*.spec.js",
+        "build-init": "rm -rf dist && rm -f archive.zip && mkdir dist && mkdir dist/lib",
+        "build:copy": "cp index.js dist/ && cp -r lib/*.js dist/lib",
+        "build:install": "cp package.json dist/ && cd dist && npm install --production",
+        "build": "npm-run-all -s build-init build:copy build:install",
+        "zip": "cd dist && zip -rq limtr-slack-service.zip .",
+        "coverage": "nyc npm test"
+    },
+    "bundledDependencies": []
+}

@@ -1,26 +1,89 @@
-# Solutions Reference - 9/29/2016
-We have published an updated solution at https://aws.amazon.com/answers/account-management/limit-monitor/
-This makes the solution easier to deploy, and adds checks such as DynamoDB.  The readme has been updated to the latest installation instructions, please refer to the solution page for additional information.  We will maintain this repo with the latest template and code.
+# AWS Limit Monitor Solution
+The AWS Limit Monitor Solution is a reference implementation that provides a foundation for monitoring AWS service limits. Customers can leverage the solution to monitor limits across services supported by Amazon Trusted Advisor; in multiple regions and multiple AWS accounts. The solution integrates with Amazon SNS and Slack to notify customers for service limits approaching thresholds.
 
-# LimitMonitor
+## Getting Started
+To get started with the AWS Limit Monitor Solution, please review the solution documentation. https://aws.amazon.com/answers/account-management/limit-monitor/
 
-We have created a CloudFormation template that you can run to start receiving alerts with just a couple of clicks.  You can configure the LimitMonitor to alert you as you are approaching limits, all via Scheduled Lambda functions, so there is no additional infrastructure to monitor.  
+## Running unit tests for customization
+* Clone the repository, then make the desired code changes
+* Next, run unit tests to make sure added customization passes the tests
+```
+cd ./deployment
+chmod +x ./run-unit-tests.sh  \n
+./run-unit-tests.sh \n
+```
 
-## Basic Configuration
+## Building distributable for customization
+* Configure the bucket name of your target Amazon S3 distribution bucket
+```
+export TEMPLATE_OUTPUT_BUCKET=my-bucket-name # bucket where cfn template will reside
+export DIST_OUTPUT_BUCKET=my-bucket-name # bucket where customized code will reside
+```
+_Note:_ You would have to create 2 buckets, one with prefix 'my-bucket-name' and another regional bucket with prefix 'my-bucket-name-<aws_region>'; aws_region is where you are testing the customized solution. Also, the assets  in bucket should be publicly accessible
 
-The template will create three Lambda functions, a master function which will spawn a child function for each account it is checking, along with a configuration Lambda which will be used when launching the CloudFormation template to complete some final setup steps.
+* Now build the distributable:
+```
+chmod +x ./build-s3-dist.sh \n
+./build-s3-dist.sh $DIST_OUTPUT_BUCKET $TEMPLATE_OUTPUT_BUCKET \n
+```
 
-The CloudFormation template will create roles with the required permissions to check your limits, an SNS topic for which you can provide an e-mail to send the alerts to, all of the Lambda functions, and schedule the Master Lambda for you to run once a day.  You will need to provide a list of accounts you wish to check.
+* Deploy the distributable to an Amazon S3 bucket in your account. _Note:_ you must have the AWS Command Line Interface installed.
 
-If you are checking limits in a single account when the CloudFormation has completed running you will begin receiving alerts each day with any limits approaching the maximum.  If you are checking multiple accounts you will need to create an IAM role in the secondary accounts to trust the primary account to run the necessary describe calls across accounts using the Security Token Service.  You can check the Outputs page of the CloudFormation Stack where we have generated a set of CLI commands you can use in those accounts to create those roles, or you can create them yourself in the console.
+```
+aws s3 cp ./dist/ s3://my-bucket-name/limit-monitor/latest/ --recursive --exclude "*" --include "*.template" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
+aws s3 cp ./dist/ s3://my-bucket-name-<aws_region>/limit-monitor/latest/ --recursive --exclude "*" --include "*.zip" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
+```
 
-You can test the function is working by running the limit check manually.  If you navigate to CloudWatch Events in the console, you will see a rule named “Limits” created by the CloudFormation Template.
+* Get the link of the limit-monitor.template uploaded to your Amazon S3 bucket.
+* Deploy the AWS Limit Monitor Solution to your account by launching a new AWS CloudFormation stack using the link of the limit-monitor.template.
 
-When looking at the rule you will see the “Constant (JSON text)” field which we use to pass configuration information to the Lambda function.  If you copy this information and then open your Master Lambda Function in the console you can use this to run a test by configuring a test event under Actions for the function.  You can also edit the information in the CloudWatch Events Target to add/remove accounts as your needs change without having to relaunch the CloudFormation template.
+## File Structure
+The AWS Limit Monitor Solution project consists of 4 microservices which is deployed to a serverless environment in AWS Lambda.
 
-When you have configured your test event you can test the Master Lambda function which will run the check for each account and publish results to the SNS Topic.
+<pre>
+|-source/
+  |-services/
+    |-customhelper/ [ microservice for handling cloudformation custom resources ]
+      |-lib/
+        |-[ service module unit tests ]
+        |-index.js [main module]
+        |-logger.js [logger module]
+        |-metrics-helper.js [ helper module for sending anonymous metrics ]
+      |-index.js [ injection point for microservice ]
+      |-package.json
+    |-limitreport/ [ microservice for summarizing service limits ]
+      |-lib/
+        |-[ service module unit tests ]
+        |-index.js [main module]
+        |-limit-report.js [message handling module]
+        |-logger.js [logger module]
+        |-metrics-helper.js [ helper module for sending anonymous metrics ]
+      |-index.js [ injection point for microservice ]
+      |-package.json
+    |-slacknotify/ [ microservice for sending slack notifications ]
+      |-lib/
+        |-[ service module unit tests ]
+        |-index.js [main module]
+        |-logger.js [logger module]
+        |-slack-notify.js [slack messaging module]  
+      |-index.js [ injection point for microservice ]
+      |-package.json
+    |-tarefresh/ [ microservice for refreshing TA checks ]
+      |-lib/
+        |-[ service module unit tests ]
+        |-index.js [main module]
+        |-logger.js [logger module]
+        |-ta-refresh.js [TA checks module]  
+      |-index.js [ injection point for microservice ]
+      |-package.json   
+</pre>
 
-## License
+***
 
-This sample application is distributed under the
-[Amazon Software License](https://aws.amazon.com/asl/).
+Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
+
+    http://aws.amazon.com/asl/
+
+or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions and limitations under the License.

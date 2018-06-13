@@ -1,0 +1,268 @@
+# Serverless Limit Monitor Solution
+#
+# template for serverless-limit-monitor-solution
+# **DO NOT DELETE**
+#
+# author: aws-solutions-builder@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: (SO0005s) - AWS Serverless Limit Monitor Solution - Spoke Template
+
+Parameters:
+  # Master Account
+  MasterAccount:
+    Description: Account Id for the master account, eg. 999999000000
+    Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Limit Monitor Configuration
+      Parameters:
+      - MasterAccount
+    ParameterLabels:
+      MasterAccount:
+        default: Primary Account
+
+Mappings:
+  MetricsMap:
+    Send-Data:
+      SendAnonymousData: "Yes"
+
+  RefreshRate:
+    CronSchedule:
+      Default: rate(1 day) # change if needed
+
+  SourceCode:
+    General:
+      S3Bucket: %%BUCKET_NAME%%
+      KeyPrefix: "limit-monitor/%%VERSION%%"
+
+  EventsMap:
+    Checks:
+      Services: '"AutoScaling","CloudFormation","EBS","EC2","ELB","IAM","Kinesis","RDS","SES","VPC"' #change if needed
+
+Resources:
+  #
+  # Limit Monitor Cloudwatch Rules
+  # [TAOkRule, TAWarnRule, TAErrorRule]
+  #
+  TAOkRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Limit Monitor Solution - Spoke - Rule for TA OK events
+      EventPattern: !Join
+        - ''
+        - - '{"account":["'
+          - !Ref AWS::AccountId
+          - '"],'
+          - '"source":["aws.trustedadvisor"],'
+          - '"detail-type":["Trusted Advisor Check Item Refresh Notification"],'
+          - '"detail":{'
+          - '"status":['
+          - '"OK"'
+          - '],'
+          - '"check-item-detail":{'
+          - '"Service":['
+          - !FindInMap
+            - EventsMap
+            - Checks
+            - Services
+          - ']'
+          - '}'
+          - '}'
+          - '}'
+      State: ENABLED
+      Targets:
+        - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
+          Id: SpokeOkTarget
+
+  TAWarnRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Limit Monitor Solution - Spoke - Rule for TA WARN events
+      EventPattern: !Join
+        - ''
+        - - '{"account":["'
+          - !Ref AWS::AccountId
+          - '"],'
+          - '"source":["aws.trustedadvisor"],'
+          - '"detail-type":["Trusted Advisor Check Item Refresh Notification"],'
+          - '"detail":{'
+          - '"status":['
+          - '"WARN"'
+          - '],'
+          - '"check-item-detail":{'
+          - '"Service":['
+          - !FindInMap
+            - EventsMap
+            - Checks
+            - Services
+          - ']'
+          - '}'
+          - '}'
+          - '}'
+      State: ENABLED
+      Targets:
+        - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
+          Id: SpokeWarnTarget
+
+  TASErrorRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Limit Monitor Solution - Spoke - Rule for TA ERROR events
+      EventPattern: !Join
+        - ''
+        - - '{"account":["'
+          - !Ref AWS::AccountId
+          - '"],'
+          - '"source":["aws.trustedadvisor"],'
+          - '"detail-type":["Trusted Advisor Check Item Refresh Notification"],'
+          - '"detail":{'
+          - '"status":['
+          - '"ERROR"'
+          - '],'
+          - '"check-item-detail":{'
+          - '"Service":['
+          - !FindInMap
+            - EventsMap
+            - Checks
+            - Services
+          - ']'
+          - '}'
+          - '}'
+          - '}'
+      State: ENABLED
+      Targets:
+        - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
+          Id: SpokeErrorTarget
+
+  #
+  # TA Refresh resources
+  # [TARefreshSchedule, TARefresher, TARefresherRole, TARefresherInvokePermission]
+  #
+  TARefreshSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Schedule to refresh TA checks
+      ScheduleExpression: !FindInMap [RefreshRate, CronSchedule, Default]
+      State: ENABLED
+      Targets:
+        - Arn: !Sub ${TARefresher.Arn}
+          Id: TARefreshRate
+
+  TARefresher:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Serverless Limit Monitor - Lambda function to summarize service limits
+      Environment:
+        Variables:
+          AWS_SERVICES: !FindInMap [EventsMap, Checks, Services]
+          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
+
+      Handler: index.handler
+      Role: !Sub ${TARefresherRole.Arn}
+      Code:
+        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
+        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-refresh-service.zip"]]
+      Runtime: nodejs8.10
+      Timeout: 300
+
+  TARefresherRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub Limit-Monitor-Refresher-Role-${AWS::StackName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: !Sub Limit-Monitor-Refresher-Policy-${AWS::StackName}
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+          - Effect: Allow
+            Action:
+            - support:*
+            Resource:
+            - '*'
+
+  TARefresherInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Sub ${TARefresher}
+      Action: lambda:InvokeFunction
+      Principal: !Sub events.amazonaws.com
+      SourceArn: !Sub ${TARefreshSchedule.Arn}
+
+  #
+  # Helper resources
+  # LimtrHelperFunction, CreateUUID, DeploymentData, LimtrHelperRole
+  #
+  LimtrHelperFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Environment:
+        Variables:
+          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
+      Code:
+        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
+        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-helper-service.zip"]]
+      Runtime: nodejs8.10
+      Timeout: 300
+      Description: This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric
+      Role: !Sub ${LimtrHelperRole.Arn}
+
+  CreateUUID:
+    Type: Custom::UUID
+    Properties:
+      ServiceToken: !GetAtt LimtrHelperFunction.Arn
+
+  DeploymentData:
+    Type: Custom::DeploymentData
+    Properties:
+      ServiceToken: !GetAtt LimtrHelperFunction.Arn
+      SOLUTION: 'SO0005s'
+      UUID: !Sub ${CreateUUID.UUID}
+      VERSION: %%VERSION%%
+      ANONYMOUS_DATA: !FindInMap [MetricsMap, Send-Data, SendAnonymousData]
+
+  LimtrHelperRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: Custom_Limtr_Helper_Permissions
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+
+Outputs:
+  ServiceChecks:
+    Description: service limit checks monitored in the account
+    Value: !FindInMap [EventsMap, Checks, Services]
