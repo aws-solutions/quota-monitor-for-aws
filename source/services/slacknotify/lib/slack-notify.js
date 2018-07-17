@@ -126,15 +126,15 @@ class slacknotify {
           "short": true
         }, {
           "title": "LimitName",
-          "value": `${event.detail['check-item-detail']['Limit Amount']}`,
+          "value": `${event.detail['check-item-detail']['Limit Name']}`,
           "short": true
         }, {
           "title": "CurrentUsage",
-          "value": `${event.detail['check-item-detail']['Status']}`,
+          "value": `${event.detail['check-item-detail']['Current Usage']}`,
           "short": true
         }, {
           "title": "LimitAmount",
-          "value": `${event.detail['check-item-detail']['Current Usage']}`,
+          "value": `${event.detail['check-item-detail']['Limit Amount']}`,
           "short": true
         }],
         "pretext": '*Limit Monitor Update*',
