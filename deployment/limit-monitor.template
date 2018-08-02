@@ -148,9 +148,17 @@ Resources:
           - '}'
           - '}'
       State: ENABLED
+      # SO-Limit-M-41 - 07/30/2018 - Input transformer
+      # Using transformer to make SNS notification readable
       Targets:
         - Arn: !Sub ${SNSTopic}
           Id: LimitMonitorSNSTarget
+          InputTransformer:
+            InputPathsMap:
+              limitdetails: "$.detail.check-item-detail"
+              time: "$.time"
+              account: "$.account"
+            InputTemplate: '"AWS-Account : <account> || Timestamp : <time> || Limit-Details : <limitdetails>"'
 
   TASlackRule:
     Type: AWS::Events::Rule
@@ -411,8 +419,10 @@ Resources:
     Type: AWS::SNS::Topic
     Condition: SNSTrue
     Properties:
+      # SO-Limit-M-41 - 07/30/2018 - SNS email
+      # Converted to email to make more readable
       Subscription:
-      - Protocol: email-json
+      - Protocol: email
         Endpoint: !Sub ${SNSEmail}
 
   SNSTopicPolicy:
@@ -463,6 +473,13 @@ Resources:
 
   TARefresherRole:
     Type: AWS::IAM::Role
+    # SO-Limit-M-41 - 07/30/2018 - cfn nag
+    # Fixed cfn nag error, allow support:*
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+        - id: F3
+          reason: Override the IAM role to allow support:* resource on its permissions policy
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'

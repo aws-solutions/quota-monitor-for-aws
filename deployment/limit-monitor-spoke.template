@@ -171,6 +171,13 @@ Resources:
 
   TARefresherRole:
     Type: AWS::IAM::Role
+    # SO-Limit-M-41 - 07/30/2018 - cfn nag
+    # Fixed cfn nag error, allow support:*
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+        - id: F3
+          reason: Override the IAM role to allow support:* resource on its permissions policy
     Properties:
       RoleName: !Sub Limit-Monitor-Refresher-Role-${AWS::StackName}
       AssumeRolePolicyDocument:

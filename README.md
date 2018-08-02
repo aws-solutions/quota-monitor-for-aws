@@ -40,7 +40,7 @@ aws s3 cp ./dist/ s3://my-bucket-name-<aws_region>/limit-monitor/latest/ --recur
 ## File Structure
 The AWS Limit Monitor Solution project consists of 4 microservices which is deployed to a serverless environment in AWS Lambda.
 
-<pre>
+```
 |-source/
   |-services/
     |-customhelper/ [ microservice for handling cloudformation custom resources ]
@@ -76,8 +76,19 @@ The AWS Limit Monitor Solution project consists of 4 microservices which is depl
         |-ta-refresh.js [TA checks module]  
       |-index.js [ injection point for microservice ]
       |-package.json   
-</pre>
+```
+***
 
+#### v5.0 changes
+
+```bash
+* Hub and Spoke model to support multiple accounts
+* Service level granularity with Trusted Advisor service limit checks
+* DynamoDB for storing current limit usage and details
+* Slack workspace integration for notifications
+```
+
+***
 ***
 
 Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
