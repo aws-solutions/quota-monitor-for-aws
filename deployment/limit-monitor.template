@@ -1,49 +1,39 @@
-# Serverless Limit Monitor Solution
-#
-# template for serverless-limit-monitor-solution
-# **DO NOT DELETE**
-#
-# author: aws-solutions-builder@
 AWSTemplateFormatVersion: 2010-09-09
-
 Description: (SO0005) - AWS Serverless Limit Monitor Solution - Master Template
-
 Parameters:
-  # Email address to receive alerts
   SNSEmail:
     Description: email address to subscribe for alerts
     Type: String
-
-  # Accounts where limits need to be audited
   AccountList:
-    Description: list of comma separated account numbers to monitor, eg. "999999999999","000000000000" (must be double quoted & comma separated)
+    Description: >-
+      list of comma separated account numbers to monitor, eg.
+      "999999999999","000000000000" (must be double quoted & comma separated)
     Type: String
-
-  # Events for SNS notification
   SNSEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: leave blank if you do not want email notifications (must be double quoted & comma separated)
-
-  # Events for Slack notification
+    Description: >-
+      leave blank if you do not want email notifications (must be double quoted
+      & comma separated)
   SlackEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: leave blank if you do not want slack notifications (must be double quoted & comma separated)
-
+    Description: >-
+      leave blank if you do not want slack notifications (must be double quoted
+      & comma separated)
 Metadata:
-  AWS::CloudFormation::Interface:
+  'AWS::CloudFormation::Interface':
     ParameterGroups:
-    - Label:
-        default: Account Configuration
-      Parameters:
-      - AccountList
-    - Label:
-        default: Notification Configuration
-      Parameters:
-      - SNSEvents
-      - SNSEmail
-      - SlackEvents
+      - Label:
+          default: Account Configuration
+        Parameters:
+          - AccountList
+      - Label:
+          default: Notification Configuration
+        Parameters:
+          - SNSEvents
+          - SNSEmail
+          - SlackEvents
     ParameterLabels:
       AccountList:
         default: Account List
@@ -53,38 +43,42 @@ Metadata:
         default: Email Notification Level
       SlackEvents:
         default: Slack Notification Level
-
 Mappings:
   MetricsMap:
     Send-Data:
-      SendAnonymousData: "Yes" # change to 'No' if needed
-
+      SendAnonymousData: 'Yes'
   RefreshRate:
     CronSchedule:
-      Default: rate(1 day) # change as needed
-
+      Default: rate(1 day)
   SourceCode:
     General:
       S3Bucket: %%BUCKET_NAME%%
-      KeyPrefix: "limit-monitor/%%VERSION%%"
-
+      KeyPrefix: limit-monitor/%%%%VERSION%%%%
   EventsMap:
     Checks:
-      Services: '"AutoScaling","CloudFormation","EBS","EC2","ELB","IAM","Kinesis","RDS","SES","VPC"' # change as needed
-
+      Services: >-
+        "AutoScaling","CloudFormation","EBS","EC2","ELB","IAM","Kinesis","RDS","SES","VPC"
 Conditions:
-  SingleAccnt: !Equals [!Ref AccountList , '']
-  SNSTrue: !Not [!Equals [ !Ref SNSEvents, '' ]]
-  SlackTrue: !Not [!Equals [ !Ref SlackEvents, '' ]]
-  AnonymousMetric: !Equals [!FindInMap [MetricsMap, Send-Data, SendAnonymousData], "Yes"]
-
+  SingleAccnt: !Equals
+    - !Ref AccountList
+    - ''
+  SNSTrue: !Not
+    - !Equals
+      - !Ref SNSEvents
+      - ''
+  SlackTrue: !Not
+    - !Equals
+      - !Ref SlackEvents
+      - ''
+  AnonymousMetric: !Equals
+    - !FindInMap
+      - MetricsMap
+      - Send-Data
+      - SendAnonymousData
+    - 'Yes'
 Resources:
-  #
-  # Limit Monitor Cloudwatch Rules
-  # [TASQSRule, TASNSRule, TASlackRule]
-  #
   TASQSRule:
-    Type: AWS::Events::Rule
+    Type: 'AWS::Events::Rule'
     Properties:
       Description: Limit Monitor Solution - Rule for TA SQS events
       EventPattern: !Join
@@ -95,7 +89,7 @@ Resources:
             - !Join
               - ''
               - - '"'
-                - !Ref AWS::AccountId
+                - !Ref 'AWS::AccountId'
                 - '"'
             - !Ref AccountList
           - '],'
@@ -107,18 +101,20 @@ Resources:
           - '],'
           - '"check-item-detail":{'
           - '"Service":['
-          - !FindInMap [EventsMap, Checks, Services]
+          - !FindInMap
+            - EventsMap
+            - Checks
+            - Services
           - ']'
           - '}'
           - '}'
           - '}'
       State: ENABLED
       Targets:
-        - Arn: !Sub ${EventQueue.Arn}
+        - Arn: !Sub '${EventQueue.Arn}'
           Id: LimitMonitorSQSTarget
-
   TASNSRule:
-    Type: AWS::Events::Rule
+    Type: 'AWS::Events::Rule'
     Condition: SNSTrue
     Properties:
       Description: Limit Monitor Solution - Rule for TA SNS events
@@ -130,7 +126,7 @@ Resources:
             - !Join
               - ''
               - - '"'
-                - !Ref AWS::AccountId
+                - !Ref 'AWS::AccountId'
                 - '"'
             - !Ref AccountList
           - '],'
@@ -142,26 +138,28 @@ Resources:
           - '],'
           - '"check-item-detail":{'
           - '"Service":['
-          - !FindInMap [EventsMap, Checks, Services]
+          - !FindInMap
+            - EventsMap
+            - Checks
+            - Services
           - ']'
           - '}'
           - '}'
           - '}'
       State: ENABLED
-      # SO-Limit-M-41 - 07/30/2018 - Input transformer
-      # Using transformer to make SNS notification readable
       Targets:
-        - Arn: !Sub ${SNSTopic}
+        - Arn: !Sub '${SNSTopic}'
           Id: LimitMonitorSNSTarget
           InputTransformer:
             InputPathsMap:
-              limitdetails: "$.detail.check-item-detail"
-              time: "$.time"
-              account: "$.account"
-            InputTemplate: '"AWS-Account : <account> || Timestamp : <time> || Limit-Details : <limitdetails>"'
-
+              limitdetails: $.detail.check-item-detail
+              time: $.time
+              account: $.account
+            InputTemplate: >-
+              "AWS-Account : <account> || Timestamp : <time> || Limit-Details :
+              <limitdetails>"
   TASlackRule:
-    Type: AWS::Events::Rule
+    Type: 'AWS::Events::Rule'
     Condition: SlackTrue
     Properties:
       Description: Limit Monitor Solution - Rule for TA Slack events
@@ -173,7 +171,7 @@ Resources:
             - !Join
               - ''
               - - '"'
-                - !Ref AWS::AccountId
+                - !Ref 'AWS::AccountId'
                 - '"'
             - !Ref AccountList
           - '],'
@@ -185,131 +183,140 @@ Resources:
           - '],'
           - '"check-item-detail":{'
           - '"Service":['
-          - !FindInMap [EventsMap, Checks, Services]
+          - !FindInMap
+            - EventsMap
+            - Checks
+            - Services
           - ']'
           - '}'
           - '}'
           - '}'
       State: ENABLED
       Targets:
-        - Arn: !Sub ${SlackNotifier.Arn}
+        - Arn: !Sub '${SlackNotifier.Arn}'
           Id: LimitMonitorSlackTarget
-
-  #
-  # Limit summarizer resources
-  # [EventQueue, DeadLetterQueue, EventQueuePolicy, QueuePollSchedule,
-  # SummarizerInvokePermission, LimitSummarizer, LimitSummarizerRole, SummaryDDB]
-  #
   EventQueue:
-     Type: AWS::SQS::Queue
-     Properties:
-       RedrivePolicy:
-         deadLetterTargetArn: !Sub ${DeadLetterQueue.Arn}
-         maxReceiveCount: 3
-       VisibilityTimeout: 60
-       MessageRetentionPeriod: 86400 #1 day retention
-
-  DeadLetterQueue:
-    Type: AWS::SQS::Queue
+    Type: 'AWS::SQS::Queue'
     Properties:
-      MessageRetentionPeriod: 604800 #7 day retention
-
+      RedrivePolicy:
+        deadLetterTargetArn: !Sub '${DeadLetterQueue.Arn}'
+        maxReceiveCount: 3
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 86400
+  DeadLetterQueue:
+    Type: 'AWS::SQS::Queue'
+    Properties:
+      MessageRetentionPeriod: 604800
   EventQueuePolicy:
-    Type: AWS::SQS::QueuePolicy
+    Type: 'AWS::SQS::QueuePolicy'
     Properties:
       PolicyDocument:
         Id: LimitMonitorSQSPolicy
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
-        - Sid: LimitMonitorCWEventsAccess
-          Effect: Allow
-          Principal:
-            Service: events.amazonaws.com
-          Action: sqs:SendMessage
-          Resource: !Sub ${EventQueue.Arn}
+          - Sid: LimitMonitorCWEventsAccess
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 'sqs:SendMessage'
+            Resource: !Sub '${EventQueue.Arn}'
       Queues:
-      - !Ref EventQueue
-
+        - !Ref EventQueue
   QueuePollSchedule:
-    Type: AWS::Events::Rule
+    Type: 'AWS::Events::Rule'
     Properties:
       Description: Limit Monitor Solution - Schedule to poll SQS queue
       ScheduleExpression: rate(5 minutes)
       State: ENABLED
       Targets:
-        - Arn: !Sub ${LimitSummarizer.Arn}
+        - Arn: !Sub '${LimitSummarizer.Arn}'
           Id: SqsPollRate
-
   SummarizerInvokePermission:
-    Type: AWS::Lambda::Permission
+    Type: 'AWS::Lambda::Permission'
     Properties:
-      FunctionName: !Sub ${LimitSummarizer}
-      Action: lambda:InvokeFunction
+      FunctionName: !Sub '${LimitSummarizer}'
+      Action: 'lambda:InvokeFunction'
       Principal: !Sub events.amazonaws.com
-      SourceArn: !Sub ${QueuePollSchedule.Arn}
-
+      SourceArn: !Sub '${QueuePollSchedule.Arn}'
   LimitSummarizer:
-    Type: AWS::Lambda::Function
+    Type: 'AWS::Lambda::Function'
     Properties:
-      Description: Serverless Limit Monitor - Lambda function to summarize service limit usage
+      Description: >-
+        Serverless Limit Monitor - Lambda function to summarize service limit
+        usage
       Environment:
         Variables:
-          LIMIT_REPORT_TBL: !Sub ${SummaryDDB}
-          SQS_URL: !Sub ${EventQueue}
-          MAX_MESSAGES: 10 #100 messages can be read with each invocation, change as needed
+          LIMIT_REPORT_TBL: !Sub '${SummaryDDB}'
+          SQS_URL: !Sub '${EventQueue}'
+          MAX_MESSAGES: 10
           MAX_LOOPS: 10
-          ANONYMOUS_DATA: !FindInMap [MetricsMap, Send-Data, SendAnonymousData]
-          SOLUTION: 'SO0005'
-          UUID: !Sub ${CreateUUID.UUID}
-          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
+          ANONYMOUS_DATA: !FindInMap
+            - MetricsMap
+            - Send-Data
+            - SendAnonymousData
+          SOLUTION: SO0005
+          UUID: !Sub '${CreateUUID.UUID}'
+          LOG_LEVEL: INFO
       Handler: index.handler
-      Role: !Sub ${LimitSummarizerRole.Arn}
+      Role: !Sub '${LimitSummarizerRole.Arn}'
       Code:
-        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-report-service.zip"]]
+        S3Bucket: !Join
+          - '-'
+          - - !FindInMap
+              - SourceCode
+              - General
+              - S3Bucket
+            - !Ref 'AWS::Region'
+        S3Key: !Join
+          - /
+          - - !FindInMap
+              - SourceCode
+              - General
+              - KeyPrefix
+            - limtr-report-service.zip
       Runtime: nodejs8.10
       Timeout: 300
-
   LimitSummarizerRole:
-    Type: AWS::IAM::Role
+    Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
       Path: /
       Policies:
-      - PolicyName: !Sub Limit-Monitor-Policy-${AWS::StackName}-${AWS::Region}
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
-          - Effect: Allow
-            Action:
-            - sqs:DeleteMessage
-            - sqs:ReceiveMessage
-            Resource:
-            - !Sub ${EventQueue.Arn}
-          - Effect: Allow
-            Action:
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            Resource:
-            - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SummaryDDB}
-
+        - PolicyName: !Sub 'Limit-Monitor-Policy-${AWS::StackName}-${AWS::Region}'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub >-
+                  arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - 'sqs:DeleteMessage'
+                  - 'sqs:ReceiveMessage'
+                Resource:
+                  - !Sub '${EventQueue.Arn}'
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:PutItem'
+                Resource:
+                  - !Sub >-
+                    arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SummaryDDB}
   SummaryDDB:
-    Type: AWS::DynamoDB::Table
-    DeletionPolicy: Retain # retaining DDB after stack deletion
+    Type: 'AWS::DynamoDB::Table'
+    DeletionPolicy: Retain
     Properties:
-      TableName: !Sub LimitMonitor-${AWS::StackName}
+      TableName: !Sub 'LimitMonitor-${AWS::StackName}'
       SSESpecification:
         SSEEnabled: true
       AttributeDefinitions:
@@ -329,291 +336,324 @@ Resources:
         - Key: Solution
           Value: Serverless-Limit-Monitor
       TimeToLiveSpecification:
-          AttributeName: ExpiryTime
-          Enabled: true
-
-  #
-  # Slack notification resources
-  # [SlackNotifier, SlackNotifierRole, SlackNotifierInvokePermission, SlackHook, SlackChannel]
-  #
+        AttributeName: ExpiryTime
+        Enabled: true
   SlackNotifier:
-    Type: AWS::Lambda::Function
+    Type: 'AWS::Lambda::Function'
     Condition: SlackTrue
     Properties:
-      Description: Serverless Limit Monitor - Lambda function to send notifications on slack
+      Description: >-
+        Serverless Limit Monitor - Lambda function to send notifications on
+        slack
       Environment:
         Variables:
           SLACK_HOOK: SlackHookURL
           SLACK_CHANNEL: SlackChannel
-          LOG_LEVEL: 'INFO' # change to WARN, ERROR or DEBUG as needed
+          LOG_LEVEL: INFO
       Handler: index.handler
-      Role: !Sub ${SlackNotifierRole.Arn}
+      Role: !Sub '${SlackNotifierRole.Arn}'
       Code:
-        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-slack-service.zip"]]
+        S3Bucket: !Join
+          - '-'
+          - - !FindInMap
+              - SourceCode
+              - General
+              - S3Bucket
+            - !Ref 'AWS::Region'
+        S3Key: !Join
+          - /
+          - - !FindInMap
+              - SourceCode
+              - General
+              - KeyPrefix
+            - limtr-slack-service.zip
       Runtime: nodejs8.10
       Timeout: 300
-
   SlackNotifierRole:
-    Type: AWS::IAM::Role
+    Type: 'AWS::IAM::Role'
     Condition: SlackTrue
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
       Path: /
       Policies:
-      - PolicyName: !Sub Limit-Monitor-Policy-${AWS::StackName}-${AWS::Region}
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
-          - Effect: Allow
-            Action:
-            - ssm:GetParameter
-            Resource:
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:*
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:*
-
+        - PolicyName: !Sub 'Limit-Monitor-Policy-${AWS::StackName}-${AWS::Region}'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub >-
+                  arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - 'ssm:GetParameter'
+                Resource:
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:*'
   SlackNotifierInvokePermission:
-    Type: AWS::Lambda::Permission
+    Type: 'AWS::Lambda::Permission'
     Condition: SlackTrue
     Properties:
-      FunctionName: !Sub ${SlackNotifier}
-      Action: lambda:InvokeFunction
+      FunctionName: !Sub '${SlackNotifier}'
+      Action: 'lambda:InvokeFunction'
       Principal: events.amazonaws.com
-      SourceArn: !Sub ${TASlackRule.Arn}
-
+      SourceArn: !Sub '${TASlackRule.Arn}'
   SlackHook:
-    Type: AWS::SSM::Parameter
+    Type: 'AWS::SSM::Parameter'
     Condition: SlackTrue
     Properties:
       Name: SlackHookURL
       Type: String
       Value: SLACK_HOOK_DUMMY
       Description: slack channel incoming web hook url for limit monitor
-
   SlackChannel:
-    Type: AWS::SSM::Parameter
+    Type: 'AWS::SSM::Parameter'
     Condition: SlackTrue
     Properties:
       Name: SlackChannel
       Type: String
       Value: SLACK_CHANNEL_DUMMY
       Description: slack channel for getting limit monitor alerts
-
-  #
-  # Email notification resources
-  # [SNSTopic, SNSTopicPolicy]
-  #
   SNSTopic:
-    Type: AWS::SNS::Topic
+    Type: 'AWS::SNS::Topic'
     Condition: SNSTrue
     Properties:
-      # SO-Limit-M-41 - 07/30/2018 - SNS email
-      # Converted to email to make more readable
       Subscription:
-      - Protocol: email
-        Endpoint: !Sub ${SNSEmail}
-
+        - Protocol: email
+          Endpoint: !Sub '${SNSEmail}'
   SNSTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
+    Type: 'AWS::SNS::TopicPolicy'
     Properties:
       PolicyDocument:
         Id: LimitMonitorSNSPolicy
-        Version: '2012-10-17'
+        Version: 2012-10-17
         Statement:
-        - Sid: LimitMonitorCWEventsAccess
-          Effect: Allow
-          Principal:
-            Service: !Sub events.amazonaws.com
-          Action: sns:Publish
-          Resource: '*'
+          - Sid: LimitMonitorCWEventsAccess
+            Effect: Allow
+            Principal:
+              Service: !Sub events.amazonaws.com
+            Action: 'sns:Publish'
+            Resource: '*'
       Topics:
-      - !Ref SNSTopic
-
-  #
-  # TA refresh resources
-  # [TARefreshSchedule, TARefresher, TARefresherRole, TARefresherInvokePermission]
-  #
+        - !Ref SNSTopic
   TARefreshSchedule:
-    Type: AWS::Events::Rule
+    Type: 'AWS::Events::Rule'
     Properties:
       Description: Limit Monitor Solution - Schedule to refresh TA checks
-      ScheduleExpression: !FindInMap [RefreshRate, CronSchedule, Default]
+      ScheduleExpression: !FindInMap
+        - RefreshRate
+        - CronSchedule
+        - Default
       State: ENABLED
       Targets:
-        - Arn: !Sub ${TARefresher.Arn}
+        - Arn: !Sub '${TARefresher.Arn}'
           Id: TARefreshRate
-
   TARefresher:
-    Type: AWS::Lambda::Function
+    Type: 'AWS::Lambda::Function'
     Properties:
       Description: Serverless Limit Monitor - Lambda function to summarize service limits
       Environment:
         Variables:
-          AWS_SERVICES: !FindInMap [EventsMap, Checks, Services]
-          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
+          AWS_SERVICES: !FindInMap
+            - EventsMap
+            - Checks
+            - Services
+          LOG_LEVEL: INFO
       Handler: index.handler
-      Role: !Sub ${TARefresherRole.Arn}
+      Role: !Sub '${TARefresherRole.Arn}'
       Code:
-        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-refresh-service.zip"]]
+        S3Bucket: !Join
+          - '-'
+          - - !FindInMap
+              - SourceCode
+              - General
+              - S3Bucket
+            - !Ref 'AWS::Region'
+        S3Key: !Join
+          - /
+          - - !FindInMap
+              - SourceCode
+              - General
+              - KeyPrefix
+            - limtr-refresh-service.zip
       Runtime: nodejs8.10
       Timeout: 300
-
   TARefresherRole:
-    Type: AWS::IAM::Role
-    # SO-Limit-M-41 - 07/30/2018 - cfn nag
-    # Fixed cfn nag error, allow support:*
+    Type: 'AWS::IAM::Role'
     Metadata:
       cfn_nag:
         rules_to_suppress:
-        - id: F3
-          reason: Override the IAM role to allow support:* resource on its permissions policy
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
-      Path: /
-      Policies:
-      - PolicyName: !Sub Limit-Monitor-Refresher-Policy-${AWS::StackName}
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
-          - Effect: Allow
-            Action:
-            - support:*
-            Resource:
-            - '*'
-
-  TARefresherInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Sub ${TARefresher}
-      Action: lambda:InvokeFunction
-      Principal: !Sub events.amazonaws.com
-      SourceArn: !Sub ${TARefreshSchedule.Arn}
-
-  #
-  # Helper resources
-  # LimtrHelperFunction, GetUUID, EstablishTrust,
-  # AccountAnonymousData, LimtrHelperRole
-  #
-  LimtrHelperFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Environment:
-        Variables:
-          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
-      Code:
-        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-helper-service.zip"]]
-      Runtime: nodejs8.10
-      Timeout: 300
-      Description: This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric
-      Role: !Sub ${LimtrHelperRole.Arn}
-
-  CreateUUID:
-    Type: Custom::UUID
-    Properties:
-      ServiceToken: !GetAtt LimtrHelperFunction.Arn
-
-  EstablishTrust:
-    Type: Custom::CrossAccntTrust
-    Properties:
-      ServiceToken: !GetAtt LimtrHelperFunction.Arn
-      SUB_ACCOUNTS: !Ref AccountList
-
-  AccountAnonymousData:
-    Type: Custom::AnonymousData
-    Condition: AnonymousMetric
-    Properties:
-      ServiceToken: !GetAtt LimtrHelperFunction.Arn
-      SOLUTION: 'SO0005'
-      UUID: !Sub ${CreateUUID.UUID}
-      SNS_EVENTS: !If [SNSTrue, 'true', 'false']
-      SLACK_EVENTS: !If [SlackTrue, 'true', 'false']
-      SUB_ACCOUNTS: !Ref AccountList
-      VERSION: %%VERSION%%
-      TA_REFRESH_RATE: !FindInMap [RefreshRate, CronSchedule, Default]
-
-  DeploymentData:
-    Type: Custom::DeploymentData
-    Properties:
-      ServiceToken: !GetAtt LimtrHelperFunction.Arn
-      SOLUTION: 'SO0005'
-      UUID: !Sub ${CreateUUID.UUID}
-      VERSION: %%VERSION%%
-      ANONYMOUS_DATA: !FindInMap [MetricsMap, Send-Data, SendAnonymousData]
-
-  LimtrHelperRole:
-    Type: AWS::IAM::Role
+          - id: F3
+            reason: >-
+              Override the IAM role to allow support:* resource on its
+              permissions policy
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
       Path: /
       Policies:
-      - PolicyName: Custom_Limtr_Helper_Permissions
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
+        - PolicyName: !Sub 'Limit-Monitor-Refresher-Policy-${AWS::StackName}'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub >-
+                  arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - 'support:*'
+                Resource:
+                  - '*'
+  TARefresherInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !Sub '${TARefresher}'
+      Action: 'lambda:InvokeFunction'
+      Principal: !Sub events.amazonaws.com
+      SourceArn: !Sub '${TARefreshSchedule.Arn}'
+  LimtrHelperFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: index.handler
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Code:
+        S3Bucket: !Join
+          - '-'
+          - - !FindInMap
+              - SourceCode
+              - General
+              - S3Bucket
+            - !Ref 'AWS::Region'
+        S3Key: !Join
+          - /
+          - - !FindInMap
+              - SourceCode
+              - General
+              - KeyPrefix
+            - limtr-helper-service.zip
+      Runtime: nodejs8.10
+      Timeout: 300
+      Description: >-
+        This function generates UUID, establishes cross account trust on
+        CloudWatch Event Bus and sends anonymous metric
+      Role: !Sub '${LimtrHelperRole.Arn}'
+  CreateUUID:
+    Type: 'Custom::UUID'
+    Properties:
+      ServiceToken: !GetAtt
+        - LimtrHelperFunction
+        - Arn
+  EstablishTrust:
+    Type: 'Custom::CrossAccntTrust'
+    Properties:
+      ServiceToken: !GetAtt
+        - LimtrHelperFunction
+        - Arn
+      SUB_ACCOUNTS: !Ref AccountList
+  AccountAnonymousData:
+    Type: 'Custom::AnonymousData'
+    Condition: AnonymousMetric
+    Properties:
+      ServiceToken: !GetAtt
+        - LimtrHelperFunction
+        - Arn
+      SOLUTION: SO0005
+      UUID: !Sub '${CreateUUID.UUID}'
+      SNS_EVENTS: !If
+        - SNSTrue
+        - 'true'
+        - 'false'
+      SLACK_EVENTS: !If
+        - SlackTrue
+        - 'true'
+        - 'false'
+      SUB_ACCOUNTS: !Ref AccountList
+      version: %%VERSION%%
+      TA_REFRESH_RATE: !FindInMap
+        - RefreshRate
+        - CronSchedule
+        - Default
+  DeploymentData:
+    Type: 'Custom::DeploymentData'
+    Properties:
+      ServiceToken: !GetAtt
+        - LimtrHelperFunction
+        - Arn
+      SOLUTION: SO0005
+      UUID: !Sub '${CreateUUID.UUID}'
+      version: %%VERSION%%
+      ANONYMOUS_DATA: !FindInMap
+        - MetricsMap
+        - Send-Data
+        - SendAnonymousData
+  LimtrHelperRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
           - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
-          - Effect: Allow
-            Action:
-            - events:PutPermission
-            - events:RemovePermission
-            Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
-
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: Custom_Limtr_Helper_Permissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub >-
+                  arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - 'events:PutPermission'
+                  - 'events:RemovePermission'
+                Resource: !Sub >-
+                  arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
 Outputs:
   ServiceChecks:
     Description: Service limits monitored in the account
-    Value: !FindInMap [EventsMap, Checks, Services]
-
+    Value: !FindInMap
+      - EventsMap
+      - Checks
+      - Services
   AccountList:
     Description: Accounts to be monitored for service limits
     Value: !Ref AccountList
-
   SlackChannel:
     Condition: SlackTrue
-    Description: SSM parameter for Slack Channel, change the value for your slack workspace
+    Description: 'SSM parameter for Slack Channel, change the value for your slack workspace'
     Value: SlackChannel
-
   SlackHook:
     Condition: SlackTrue
-    Description: SSM parameter for Slack Web Hook, change the value for your slack workspace
+    Description: >-
+      SSM parameter for Slack Web Hook, change the value for your slack
+      workspace
     Value: SlackHookURL
-
   UUID:
     Description: UUID for the deployment
-    Value: !Sub ${CreateUUID.UUID}
+    Value: !Sub '${CreateUUID.UUID}'
