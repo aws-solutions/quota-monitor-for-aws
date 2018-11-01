@@ -6,6 +6,7 @@ const url = require('url');
 const moment = require('moment');
 const async = require('async');
 const AWS = require('aws-sdk');
+const util = require('util');
 
 const LOGGER = new(require('./logger'))();
 const MetricsHelper = require('./metrics-helper');
@@ -218,49 +219,36 @@ let sendResponse = function(event, callback, logStreamName, responseStatus, resp
  * Establish trust relationship for cross accounts
  */
 
-let createTrust = function(accounts, cb) {
-  let CWE = new AWS.CloudWatchEvents();
+let createTrust = async function(accounts, cb) {
+  const CWE = new AWS.CloudWatchEvents();
   if (accounts[0])
     LOGGER.log('DEBUG', `accounts for establishing trust relationship:\n ${accounts}`);
   else
     return cb('no accounts to establish trust');
 
-  async.each(accounts, function(account, callback) {
-      let _params = {
+  for (const account of accounts) {
+      LOGGER.log('INFO', `Authorising account ${account}...`);
+      await util.promisify(setTimeout)(500);
+      await CWE.putPermission({
         Action: 'events:PutEvents',
         Principal: account,
         StatementId: `limtr-${account}`
-      };
-
-      CWE.putPermission(_params, function(err, data) {
-        if (err)
+      }).promise()
+        .catch(function(err) {
           LOGGER.log('ERROR', `${JSON.stringify({
-          CreateTrust: {
-            status: 'ERROR',
-            account: account,
-            response: err
-          }
-        }, null, 2)}`); // an error occurred 🔥
-        else
-          LOGGER.log('DEBUG', `${JSON.stringify({
-                CreateTrust: {
-                  status: 'SUCCESS',
-                  account: account,
-                  response: data}
-        }, null, 2)}`); // successful response 👌
-        callback();
-      });
-    },
-    function(err) {
-      if (err) {
-        // One of the iterations produced an error.
-        // All processing will now stop.
+            CreateTrust: {
+                status: 'ERROR',
+                account: account,
+                response: err
+              }
+            }, null, 2)}`
+          );
+        });
+      LOGGER.log('INFO', `Account ${account} authorised`);
+  }
 
-      } else {
-        return cb('trust relationship established');
-      }
-    });
-}
+  return cb('trust relationship established');
+};
 
 /**
  * Removes trust relationship for cross accounts
