@@ -6,7 +6,6 @@ const url = require('url');
 const moment = require('moment');
 const async = require('async');
 const AWS = require('aws-sdk');
-const util = require('util');
 
 const LOGGER = new(require('./logger'))();
 const MetricsHelper = require('./metrics-helper');
@@ -219,7 +218,7 @@ let sendResponse = function(event, callback, logStreamName, responseStatus, resp
  * Establish trust relationship for cross accounts
  */
 
-let createTrust = async function(accounts, cb) {
+const createTrust = async function(accounts, cb) {
   const CWE = new AWS.CloudWatchEvents();
   if (accounts[0])
     LOGGER.log('DEBUG', `accounts for establishing trust relationship:\n ${accounts}`);
@@ -227,24 +226,31 @@ let createTrust = async function(accounts, cb) {
     return cb('no accounts to establish trust');
 
   for (const account of accounts) {
-      LOGGER.log('INFO', `Authorising account ${account}...`);
-      await util.promisify(setTimeout)(500);
-      await CWE.putPermission({
-        Action: 'events:PutEvents',
-        Principal: account,
-        StatementId: `limtr-${account}`
-      }).promise()
-        .catch(function(err) {
-          LOGGER.log('ERROR', `${JSON.stringify({
-            CreateTrust: {
-                status: 'ERROR',
-                account: account,
-                response: err
-              }
-            }, null, 2)}`
-          );
-        });
-      LOGGER.log('INFO', `Account ${account} authorised`);
+    LOGGER.log('INFO', `Authorising account ${account}...`);
+    await CWE.putPermission({
+      Action: 'events:PutEvents',
+      Principal: account,
+      StatementId: `limtr-${account}`
+    }).promise()
+      .then(function(r) {
+        LOGGER.log('DEBUG', `${JSON.stringify({
+          CreateTrust: {
+            status: 'SUCCESS',
+            account: account,
+            response: r}
+          }, null, 2)}`
+        );
+      })
+      .catch(function(err) {
+        LOGGER.log('ERROR', `${JSON.stringify({
+          CreateTrust: {
+              status: 'ERROR',
+              account: account,
+              response: err
+            }
+          }, null, 2)}`
+        );
+      });
   }
 
   return cb('trust relationship established');
