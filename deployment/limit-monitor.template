@@ -70,7 +70,7 @@ Mappings:
 
   EventsMap:
     Checks:
-      Services: '"AutoScaling","CloudFormation","EBS","EC2","ELB","IAM","Kinesis","RDS","SES","VPC"' # change as needed
+      Services: '"AutoScaling","CloudFormation","DynamoDB","EBS","EC2","ELB","IAM","Kinesis","RDS","Route53","SES","VPC"' # change as needed
 
 Conditions:
   SingleAccnt: !Equals [!Ref AccountList , '']

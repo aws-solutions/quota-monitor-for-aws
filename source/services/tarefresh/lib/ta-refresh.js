@@ -27,6 +27,10 @@ const serviceChecks = {
     'fW7HH0l7J9', 'aW7HH0l7J9'
   ],
   CloudFormation: ['gW7HH0l7J9'],
+  DynamoDB: [
+    '6gtQddfEw6',
+    'c5ftjdfkMr'
+  ],
   EBS: [
     'eI7KK0l7J9',
     'fH7LL0l7J9',
@@ -64,6 +68,13 @@ const serviceChecks = {
     'dYWBaXaaMM',
     'jEhCtdJKOY',
     'P1jhKWEmLa'
+  ],
+  Route53: [
+    'dx3xfcdfMr',
+    'ru4xfcdfMr',
+    'ty3xfcdfMr',
+    'dx3xfbjfMr',
+    'dx8afcdfMr'
   ],
   SES: ['hJ7NN0l7J9'],
   VPC: ['lN7RR0l7J9', 'kM7QQ0l7J9', 'jL7PP0l7J9']
