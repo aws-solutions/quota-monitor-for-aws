@@ -7,94 +7,179 @@ const moment = require('moment');
 const async = require('async');
 const AWS = require('aws-sdk');
 
-const LOGGER = new(require('./logger'))();
+const LOGGER = new (require('./logger'))();
 const MetricsHelper = require('./metrics-helper');
 
-module.exports.respond = function(event, context, callback) {
-
+const respond = function(event, context, callback) {
   //handle CREATE for custom resource CreateUUID
-  if (event.LogicalResourceId === 'CreateUUID' && event.RequestType === 'Create') {
-    LOGGER.log('DEBUG', `event details: ${event.LogicalResourceId}:${event.RequestType}`);
+  if (
+    event.LogicalResourceId === 'CreateUUID' &&
+    event.RequestType === 'Create'
+  ) {
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
 
     let _responseData = {
       UUID: uuidv4(),
-      Method: `${event.LogicalResourceId}:${event.RequestType}`
-    }
+      Method: `${event.LogicalResourceId}:${event.RequestType}`,
+    };
 
-    sendResponse(event, callback, context.logStreamName, 'SUCCESS', _responseData);
+    sendResponse(
+      event,
+      callback,
+      context.logStreamName,
+      'SUCCESS',
+      _responseData
+    );
     return;
 
+    //handle CREATE for SSMParameter
+  } else if (
+    event.LogicalResourceId === 'SSMParameter' &&
+    (event.RequestType === 'Create' || event.RequestType === 'Update')
+  ) {
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
+
+    let _responseData = {
+      Method: `${event.LogicalResourceId}:${event.RequestType}`,
+    };
+
+    // SO-Limit-M-44 - check if SSM Parameter key exists, if not create with dummy value
+    const slackHookKey = event.ResourceProperties.SLACK_HOOK_KEY;
+    const slackChannelKey = event.ResourceProperties.SLACK_CHANNEL_KEY;
+
+    createSSMParameter(slackHookKey, slackChannelKey, function(data) {
+      LOGGER.log('INFO', `SSM Status: ${JSON.stringify(data)}`);
+      sendResponse(
+        event,
+        callback,
+        context.logStreamName,
+        'SUCCESS',
+        _responseData
+      );
+      return;
+    });
+
     //handle CREATE for DeploymentData
-  } else if (event.LogicalResourceId === 'DeploymentData' && event.RequestType === 'Create') {
-    LOGGER.log('DEBUG', `event details: ${event.LogicalResourceId}:${event.RequestType}`);
+  } else if (
+    event.LogicalResourceId === 'DeploymentData' &&
+    event.RequestType === 'Create'
+  ) {
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
 
     let _metricData = {
       Version: event.ResourceProperties.VERSION,
-      AnonymousData: event.ResourceProperties.ANONYMOUS_DATA
-    }
+      AnonymousData: event.ResourceProperties.ANONYMOUS_DATA,
+    };
     //call metric helper
     sendMetrics(_metricData, event, function(data) {
       LOGGER.log('INFO', `Metrics Status: ${JSON.stringify(data)}`);
       let _responseData = {
-        Method: `${event.LogicalResourceId}:${event.RequestType}`
-      }
+        Method: `${event.LogicalResourceId}:${event.RequestType}`,
+      };
 
-      sendResponse(event, callback, context.logStreamName, 'SUCCESS', _responseData);
+      sendResponse(
+        event,
+        callback,
+        context.logStreamName,
+        'SUCCESS',
+        _responseData
+      );
       return;
     });
 
     //handle CREATE/UPDATE for custom resource AccountAnonymousData
-  } else if (event.LogicalResourceId === 'AccountAnonymousData' && (event.RequestType === 'Create' || event.RequestType === 'Update')) {
-    LOGGER.log('DEBUG', `event details: ${event.LogicalResourceId}:${event.RequestType}`);
-    let _awsAccounts = event.ResourceProperties.SUB_ACCOUNTS.split(",");
+  } else if (
+    event.LogicalResourceId === 'AccountAnonymousData' &&
+    (event.RequestType === 'Create' || event.RequestType === 'Update')
+  ) {
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
+    let _awsAccounts = event.ResourceProperties.SUB_ACCOUNTS.split(',');
 
     let _spokecount;
     if (_awsAccounts[0])
-      _spokecount = event.ResourceProperties.SUB_ACCOUNTS.split(",").length;
-    else
-      _spokecount = 0;
+      _spokecount = event.ResourceProperties.SUB_ACCOUNTS.split(',').length;
+    else _spokecount = 0;
 
     let _metricData = {
       Version: event.ResourceProperties.VERSION,
       SNSEvents: event.ResourceProperties.SNS_EVENTS,
       SlackEvents: event.ResourceProperties.SLACK_EVENTS,
       SpokeCount: _spokecount,
-      TARefreshRate: event.ResourceProperties.TA_REFRESH_RATE
-    }
+      TARefreshRate: event.ResourceProperties.TA_REFRESH_RATE,
+    };
     //call metric helper
     sendMetrics(_metricData, event, function(data) {
       LOGGER.log('INFO', `Metrics Status: ${JSON.stringify(data)}`);
       let _responseData = {
-        Method: `${event.LogicalResourceId}:${event.RequestType}`
-      }
+        Method: `${event.LogicalResourceId}:${event.RequestType}`,
+      };
 
-      sendResponse(event, callback, context.logStreamName, 'SUCCESS', _responseData);
+      sendResponse(
+        event,
+        callback,
+        context.logStreamName,
+        'SUCCESS',
+        _responseData
+      );
       return;
     });
 
     //handle CREATE for custom resource EstablishTrust
-  } else if (event.LogicalResourceId === 'EstablishTrust' && event.RequestType === 'Create') {
-    LOGGER.log('DEBUG', `event details: ${event.LogicalResourceId}:${event.RequestType}`);
-    let awsAccounts = event.ResourceProperties.SUB_ACCOUNTS.replace(/"/g, "");
-    let _awsAccounts = awsAccounts.split(",");
+  } else if (
+    event.LogicalResourceId === 'EstablishTrust' &&
+    event.RequestType === 'Create'
+  ) {
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
+    let awsAccounts = event.ResourceProperties.SUB_ACCOUNTS.replace(/"/g, '');
+    let _awsAccounts = awsAccounts.split(',');
 
     createTrust(_awsAccounts, function(data) {
       LOGGER.log('INFO', data);
       let _responseData = {
-        Method: `${event.LogicalResourceId}:${event.RequestType}`
-      }
+        Method: `${event.LogicalResourceId}:${event.RequestType}`,
+      };
 
-      sendResponse(event, callback, context.logStreamName, 'SUCCESS', _responseData);
+      sendResponse(
+        event,
+        callback,
+        context.logStreamName,
+        'SUCCESS',
+        _responseData
+      );
       return;
     });
 
     //handle UPDATE for custom resource EstablishTrust
-  } else if (event.LogicalResourceId === 'EstablishTrust' && event.RequestType === 'Update') {
-    LOGGER.log('DEBUG', `event details: ${event.LogicalResourceId}:${event.RequestType}`);
-    let oldAccounts = event.OldResourceProperties.SUB_ACCOUNTS.replace(/"/g, "");
-    let _oldAccounts = oldAccounts.split(",");
-    let newAccounts = event.ResourceProperties.SUB_ACCOUNTS.replace(/"/g, "");
-    let _newAccounts = newAccounts.split(",");
+  } else if (
+    event.LogicalResourceId === 'EstablishTrust' &&
+    event.RequestType === 'Update'
+  ) {
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
+    let oldAccounts = event.OldResourceProperties.SUB_ACCOUNTS.replace(
+      /"/g,
+      ''
+    );
+    let _oldAccounts = oldAccounts.split(',');
+    let newAccounts = event.ResourceProperties.SUB_ACCOUNTS.replace(/"/g, '');
+    let _newAccounts = newAccounts.split(',');
 
     //remove trust first
     removeTrust(_oldAccounts, function(data) {
@@ -103,41 +188,68 @@ module.exports.respond = function(event, context, callback) {
       createTrust(_newAccounts, function(data) {
         LOGGER.log('INFO', data);
         let _responseData = {
-          Method: `${event.LogicalResourceId}:${event.RequestType}`
-        }
+          Method: `${event.LogicalResourceId}:${event.RequestType}`,
+        };
 
-        sendResponse(event, callback, context.logStreamName, 'SUCCESS', _responseData);
+        sendResponse(
+          event,
+          callback,
+          context.logStreamName,
+          'SUCCESS',
+          _responseData
+        );
         return;
       });
     });
 
     //handle DELETE for custom resource EstablishTrust
-  } else if (event.LogicalResourceId === 'EstablishTrust' && event.RequestType === 'Delete') {
-    LOGGER.log('DEBUG', `event details: ${event.LogicalResourceId}:${event.RequestType}`);
-    let awsAccounts = event.ResourceProperties.SUB_ACCOUNTS.replace(/"/g, "");
-    let _awsAccounts = awsAccounts.split(",");
+  } else if (
+    event.LogicalResourceId === 'EstablishTrust' &&
+    event.RequestType === 'Delete'
+  ) {
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
+    let awsAccounts = event.ResourceProperties.SUB_ACCOUNTS.replace(/"/g, '');
+    let _awsAccounts = awsAccounts.split(',');
 
     removeTrust(_awsAccounts, function(data) {
       LOGGER.log('INFO', data);
       let _responseData = {
-        Method: `${event.LogicalResourceId}:${event.RequestType}`
-      }
+        Method: `${event.LogicalResourceId}:${event.RequestType}`,
+      };
 
-      sendResponse(event, callback, context.logStreamName, 'SUCCESS', _responseData);
+      sendResponse(
+        event,
+        callback,
+        context.logStreamName,
+        'SUCCESS',
+        _responseData
+      );
       return;
     });
 
     //always send response to custom resource
   } else {
     let _responseData = {
-      Method: `${event.LogicalResourceId}:${event.RequestType}`
-    }
-    LOGGER.log('DEBUG', `event details: ${event.LogicalResourceId}:${event.RequestType}`);
+      Method: `${event.LogicalResourceId}:${event.RequestType}`,
+    };
+    LOGGER.log(
+      'DEBUG',
+      `event details: ${event.LogicalResourceId}:${event.RequestType}`
+    );
 
-    sendResponse(event, callback, context.logStreamName, 'SUCCESS', _responseData);
+    sendResponse(
+      event,
+      callback,
+      context.logStreamName,
+      'SUCCESS',
+      _responseData
+    );
     return;
   }
-}
+};
 
 /**
  * [sendMetrics description]
@@ -149,8 +261,10 @@ let sendMetrics = function(metricData, event, cb) {
   let _metric = {
     Solution: event.ResourceProperties.SOLUTION,
     UUID: event.ResourceProperties.UUID,
-    TimeStamp: moment().utc().format('YYYY-MM-DD HH:mm:ss.S'),
-    Data: metricData
+    TimeStamp: moment()
+      .utc()
+      .format('YYYY-MM-DD HH:mm:ss.S'),
+    Data: metricData,
   };
 
   LOGGER.log('DEBUG', `anonymous metric: ${JSON.stringify(_metric)}`);
@@ -159,23 +273,28 @@ let sendMetrics = function(metricData, event, cb) {
     let responseData;
     if (err) {
       responseData = {
-        Error: 'Sending anonymous metric failed'
+        Error: 'Sending anonymous metric failed',
       };
     } else {
       responseData = {
-        Success: 'Anonymous metrics sent to AWS'
-      }
+        Success: 'Anonymous metrics sent to AWS',
+      };
     }
 
     return cb(responseData);
   });
-
-}
+};
 
 /**
  * Sends a response to the pre-signed S3 URL
  */
-let sendResponse = function(event, callback, logStreamName, responseStatus, responseData) {
+let sendResponse = function(
+  event,
+  callback,
+  logStreamName,
+  responseStatus,
+  responseData
+) {
   const responseBody = JSON.stringify({
     Status: responseStatus,
     Reason: `See the details in CloudWatch Log Stream: ${logStreamName}`,
@@ -183,7 +302,7 @@ let sendResponse = function(event, callback, logStreamName, responseStatus, resp
     StackId: event.StackId,
     RequestId: event.RequestId,
     LogicalResourceId: event.LogicalResourceId,
-    Data: responseData
+    Data: responseData,
   });
 
   LOGGER.log('DEBUG', `RESPONSE BODY:\n ${responseBody}`);
@@ -195,113 +314,193 @@ let sendResponse = function(event, callback, logStreamName, responseStatus, resp
     method: 'PUT',
     headers: {
       'Content-Type': '',
-      'Content-Length': responseBody.length
-    }
+      'Content-Length': responseBody.length,
+    },
   };
 
-  const req = https.request(options, (res) => {
+  const req = https.request(options, res => {
     LOGGER.log('INFO', `STATUS: ${res.statusCode}`);
     LOGGER.log('DEBUG', `HEADERS: ${JSON.stringify(res.headers)}`);
     callback(null, 'Successfully sent stack response!');
   });
 
-  req.on('error', (err) => {
+  req.on('error', err => {
     LOGGER.log('ERROR', `sendResponse Error:\n ${err}`);
     callback(err);
   });
 
   req.write(responseBody);
   req.end();
-}
+};
 
 /**
  * Establish trust relationship for cross accounts
  */
 
-let createTrust = function(accounts, cb) {
-  let CWE = new AWS.CloudWatchEvents();
+// 03/13/2019 - SO-Limit-M-45 - Fix to concurrent put permission call
+const createTrust = async function(accounts, cb) {
+  const CWE = new AWS.CloudWatchEvents();
   if (accounts[0])
-    LOGGER.log('DEBUG', `accounts for establishing trust relationship:\n ${accounts}`);
-  else
-    return cb('no accounts to establish trust');
+    LOGGER.log(
+      'DEBUG',
+      `accounts for establishing trust relationship:\n ${accounts}`
+    );
+  else return cb('no accounts to establish trust');
 
-  async.each(accounts, function(account, callback) {
-      let _params = {
-        Action: 'events:PutEvents',
-        Principal: account,
-        StatementId: `limtr-${account}`
-      };
-
-      CWE.putPermission(_params, function(err, data) {
-        if (err)
-          LOGGER.log('ERROR', `${JSON.stringify({
-          CreateTrust: {
-            status: 'ERROR',
-            account: account,
-            response: err
-          }
-        }, null, 2)}`); // an error occurred 🔥
-        else
-          LOGGER.log('DEBUG', `${JSON.stringify({
-                CreateTrust: {
-                  status: 'SUCCESS',
-                  account: account,
-                  response: data}
-        }, null, 2)}`); // successful response 👌
-        callback();
+  for (const account of accounts) {
+    LOGGER.log('INFO', `Authorising account ${account}...`);
+    await CWE.putPermission({
+      Action: 'events:PutEvents',
+      Principal: account,
+      StatementId: `limtr-${account}`,
+    })
+      .promise()
+      .then(function(r) {
+        LOGGER.log(
+          'DEBUG',
+          `${JSON.stringify(
+            {
+              CreateTrust: {
+                status: 'SUCCESS',
+                account: account,
+                response: r,
+              },
+            },
+            null,
+            2
+          )}`
+        );
+      })
+      .catch(function(err) {
+        LOGGER.log(
+          'ERROR',
+          `${JSON.stringify(
+            {
+              CreateTrust: {
+                status: 'ERROR',
+                account: account,
+                response: err,
+              },
+            },
+            null,
+            2
+          )}`
+        );
       });
-    },
-    function(err) {
-      if (err) {
-        // One of the iterations produced an error.
-        // All processing will now stop.
+  }
 
-      } else {
-        return cb('trust relationship established');
-      }
-    });
-}
-
+  return cb('trust relationship established');
+};
 /**
  * Removes trust relationship for cross accounts
  */
-let removeTrust = function(accounts, cb) {
+const removeTrust = async function(accounts, cb) {
   let CWE = new AWS.CloudWatchEvents();
   if (accounts[0])
-    LOGGER.log('DEBUG', `accounts for removing trust relationship:\n ${accounts}`);
-  else
-    return cb('no accounts to remove trust');
+    LOGGER.log(
+      'DEBUG',
+      `accounts for removing trust relationship:\n ${accounts}`
+    );
+  else return cb('no accounts to remove trust');
 
-  async.each(accounts, function(account, callback) {
-      let _params = {
-        StatementId: `limtr-${account}`
-      };
-
-      CWE.removePermission(_params, function(err, data) {
-        if (err)
-          LOGGER.log('ERROR', `${JSON.stringify({
-    RemoveTrust: {
-      status: 'ERROR',
-      account: account,
-      response: err } // an error occurred 🔥
-    }, null, 2)}`);
-        else
-          LOGGER.log('DEBUG', `${JSON.stringify({
-          RemoveTrust: {
-            status: 'SUCCESS',
-            account: account,
-            response: data}
-          }, null, 2)}`); // successful response 👌
-        callback();
+  for (const account of accounts) {
+    LOGGER.log('INFO', `Authorising account ${account}...`);
+    await CWE.removePermission({
+      StatementId: `limtr-${account}`,
+    })
+      .promise()
+      .then(function(r) {
+        LOGGER.log(
+          'DEBUG',
+          `${JSON.stringify(
+            {
+              RemoveTrust: {
+                status: 'SUCCESS',
+                account: account,
+                response: r,
+              },
+            },
+            null,
+            2
+          )}`
+        ); // successful response 👌
+      })
+      .catch(function(err) {
+        LOGGER.log(
+          'ERROR',
+          `${JSON.stringify(
+            {
+              RemoveTrust: {
+                status: 'ERROR',
+                account: account,
+                response: err,
+              }, // an error occurred 🔥
+            },
+            null,
+            2
+          )}`
+        );
       });
-    },
-    function(err) {
-      if (err) {
-        // One of the iterations produced an error.
-        // All processing will now stop.
+  }
+  return cb('trust relationship removed');
+};
 
-      } else {
-        return cb('trust relationship removed');
-      }
-    });
+/**
+ * Create SSM Parameter if it doesn't exist
+ */
+async function createSSMParameter(channelKey, hookURLKey, cb) {
+  const ssm = new AWS.SSM();
+  try {
+    const data = await ssm
+      .getParameters({Names: [channelKey, hookURLKey], WithDecryption: true})
+      .promise();
+    LOGGER.log(
+      'DEBUG',
+      `${JSON.stringify(
+        {
+          SSMParameter: {
+            create: 'true',
+            parameters: data.InvalidParameters,
+          },
+        },
+        null,
+        2
+      )}`
+    );
+    await Promise.all(
+      data.InvalidParameters.map(async ssmParam => {
+        console.log(ssmParam);
+        await ssm
+          .putParameter({
+            Name: ssmParam /* required */,
+            Type: 'String' /* required */,
+            Value: 'SLACK_DUMMY' /* required */,
+          })
+          .promise();
+      })
+    );
+    // successful response 👌
+    cb('slack ssm parameter creation done');
+  } catch (err) {
+    LOGGER.log(
+      'ERROR',
+      `${JSON.stringify(
+        {
+          SSMParameter: {
+            channelKey: channelKey,
+            hookKey: hookURLKey,
+            response: err,
+          }, // an error occurred 🔥
+        },
+        null,
+        2
+      )}`
+    );
+    cb(err);
+  }
 }
+
+module.exports = {
+  respond: respond,
+  createSSMParameter: createSSMParameter,
+};

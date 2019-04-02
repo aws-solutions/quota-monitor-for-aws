@@ -9,9 +9,7 @@ AWS.setSDK(path.resolve('./node_modules/aws-sdk'));
 let TARefresh = require('./ta-refresh.js');
 
 describe('tarefresh', function() {
-
   describe('#getTARefreshStatus', function() {
-
     let params = {};
 
     beforeEach(function() {});
@@ -21,17 +19,18 @@ describe('tarefresh', function() {
     });
 
     it('should return success when TA refresh is successful', function(done) {
-
-      AWS.mock('Support', 'refreshTrustedAdvisorCheck', function(params, callback) {
+      AWS.mock('Support', 'refreshTrustedAdvisorCheck', function(
+        params,
+        callback
+      ) {
         callback(null, {
-          result: 'success'
+          result: 'success',
         });
       });
 
       let _taRefresh = new TARefresh();
       _taRefresh.getTARefreshStatus(params, function(err, data) {
-        if (err)
-          done('invalid failure for positive test: ', err);
+        if (err) done('invalid failure for positive test: ', err);
         else {
           assert.equal(data.Result, 'TA refresh done');
           done();
@@ -40,8 +39,10 @@ describe('tarefresh', function() {
     });
 
     it('should return success logging which TA check failed', function(done) {
-
-      AWS.mock('Support', 'refreshTrustedAdvisorCheck', function(params, callback) {
+      AWS.mock('Support', 'refreshTrustedAdvisorCheck', function(
+        params,
+        callback
+      ) {
         callback('error', null);
       });
 
@@ -56,7 +57,5 @@ describe('tarefresh', function() {
         }
       });
     });
-
   });
-
 });

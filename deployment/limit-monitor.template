@@ -11,25 +11,36 @@ Description: (SO0005) - AWS Serverless Limit Monitor Solution - Master Template
 Parameters:
   # Email address to receive alerts
   SNSEmail:
-    Description: email address to subscribe for alerts
+    Description: (Required) The email address to subscribe for alert messages.
     Type: String
 
   # Accounts where limits need to be audited
   AccountList:
-    Description: list of comma separated account numbers to monitor, eg. "999999999999","000000000000" (must be double quoted & comma separated)
+    Description: List of comma-separated and double-quoted account numbers to monitor. If you leave this parameter blank, the solution will only monitor limits in the primary account. If you enter multiple secondary account IDs, you must also provide the primary account ID in this parameter.
     Type: String
+    AllowedPattern: '^"\d{12}"(,"\d{12}")*$|(^\s*)$'
 
   # Events for SNS notification
   SNSEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: leave blank if you do not want email notifications (must be double quoted & comma separated)
+    Description : 'List of alert levels to send email alerts in response to. Leave blank if you do not wish to receive email notifications. Must be double-quoted and comma separated.'
 
   # Events for Slack notification
   SlackEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: leave blank if you do not want slack notifications (must be double quoted & comma separated)
+    Description : 'List of alert levels to send Slack alerts in response to. Leave blank if you do not wish to receive Slack notifications. Must be double-quoted and comma separated.'
+
+  # Slack web hook URL
+  SlackHookURL:
+    Type: String
+    Description: 'SSM parameter key for incoming Slack web hook URL. Leave blank if you do not wish to receive Slack notifications.'
+
+  # Slack channel name
+  SlackChannel:
+    Type: String
+    Description: 'SSM parameter key for the Slack channel. Leave blank if you do not wish to receive Slack notifications.'
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -44,6 +55,8 @@ Metadata:
       - SNSEvents
       - SNSEmail
       - SlackEvents
+      - SlackHookURL
+      - SlackChannel
     ParameterLabels:
       AccountList:
         default: Account List
@@ -53,6 +66,12 @@ Metadata:
         default: Email Notification Level
       SlackEvents:
         default: Slack Notification Level
+      SlackHookURL:
+        default: Slack Hook Url Key Name
+      SlackChannel:
+        default: Slack Channel Key Name
+
+
 
 Mappings:
   MetricsMap:
@@ -343,8 +362,8 @@ Resources:
       Description: Serverless Limit Monitor - Lambda function to send notifications on slack
       Environment:
         Variables:
-          SLACK_HOOK: SlackHookURL
-          SLACK_CHANNEL: SlackChannel
+          SLACK_HOOK: !Sub ${SlackHookURL}
+          SLACK_CHANNEL: !Sub ${SlackChannel}
           LOG_LEVEL: 'INFO' # change to WARN, ERROR or DEBUG as needed
       Handler: index.handler
       Role: !Sub ${SlackNotifierRole.Arn}
@@ -392,24 +411,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !Sub ${TASlackRule.Arn}
-
-  SlackHook:
-    Type: AWS::SSM::Parameter
-    Condition: SlackTrue
-    Properties:
-      Name: SlackHookURL
-      Type: String
-      Value: SLACK_HOOK_DUMMY
-      Description: slack channel incoming web hook url for limit monitor
-
-  SlackChannel:
-    Type: AWS::SSM::Parameter
-    Condition: SlackTrue
-    Properties:
-      Name: SlackChannel
-      Type: String
-      Value: SLACK_CHANNEL_DUMMY
-      Description: slack channel for getting limit monitor alerts
 
   #
   # Email notification resources
@@ -517,7 +518,7 @@ Resources:
   #
   # Helper resources
   # LimtrHelperFunction, GetUUID, EstablishTrust,
-  # AccountAnonymousData, LimtrHelperRole
+  # AccountAnonymousData, SSMParameter, LimtrHelperRole
   #
   LimtrHelperFunction:
     Type: AWS::Lambda::Function
@@ -544,6 +545,14 @@ Resources:
     Properties:
       ServiceToken: !GetAtt LimtrHelperFunction.Arn
       SUB_ACCOUNTS: !Ref AccountList
+
+  SSMParameter:
+    Type: Custom::SSMParameter
+    Condition: SlackTrue
+    Properties:
+      ServiceToken: !GetAtt LimtrHelperFunction.Arn
+      SLACK_HOOK_KEY: !Sub ${SlackHookURL}
+      SLACK_CHANNEL_KEY: !Sub ${SlackChannel}
 
   AccountAnonymousData:
     Type: Custom::AnonymousData
@@ -594,6 +603,11 @@ Resources:
             - events:PutPermission
             - events:RemovePermission
             Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default
+          - Effect: Allow
+            Action:
+            - ssm:GetParameters
+            - ssm:PutParameter
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/* # restrict as needed
 
 Outputs:
   ServiceChecks:
@@ -604,15 +618,15 @@ Outputs:
     Description: Accounts to be monitored for service limits
     Value: !Ref AccountList
 
-  SlackChannel:
+  SlackChannelKey:
     Condition: SlackTrue
     Description: SSM parameter for Slack Channel, change the value for your slack workspace
-    Value: SlackChannel
+    Value: !Sub ${SlackChannel}
 
-  SlackHook:
+  SlackHookKey:
     Condition: SlackTrue
     Description: SSM parameter for Slack Web Hook, change the value for your slack workspace
-    Value: SlackHookURL
+    Value: !Sub ${SlackHookURL}
 
   UUID:
     Description: UUID for the deployment

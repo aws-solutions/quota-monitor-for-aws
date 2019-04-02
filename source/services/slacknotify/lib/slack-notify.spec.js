@@ -6,19 +6,18 @@ let path = require('path');
 let AWS = require('aws-sdk-mock');
 let sinon = require('sinon');
 AWS.setSDK(path.resolve('./node_modules/aws-sdk'));
-let SlackNotify = require('./slack-notify.js')
+let SlackNotify = require('./slack-notify.js');
 
 describe('slacknotify', function() {
-
   describe('#sendNotification', function() {
     let _ssmData = {
       Parameter: {
         Name: 'test',
         Type: 'SecureString',
         Value: 'https://test.com',
-        Version: 2
-      }
-    }
+        Version: 2,
+      },
+    };
 
     beforeEach(function() {
       AWS.mock('SSM', 'getParameter', function(params, callback) {
@@ -30,14 +29,8 @@ describe('slacknotify', function() {
       AWS.restore('SSM');
     });
 
-    xit('should return success when notification sent successfully', function() {
+    xit('should return success when notification sent successfully', function() {});
 
-    });
-
-    xit('should return fail when notification failed', function() {
-
-    });
-
+    xit('should return fail when notification failed', function() {});
   });
-
 });

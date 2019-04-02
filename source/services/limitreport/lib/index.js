@@ -19,10 +19,9 @@
 
 let AWS = require('aws-sdk');
 let LimitReport = require('./limit-report.js');
-const LOGGER = new(require('./logger'))();
+const LOGGER = new (require('./logger'))();
 
 module.exports.respond = function(event, cb) {
-
   // get SQS message and add to DynamoDB table
   let _limitReport = new LimitReport();
   _limitReport.updateReport(event, function(err, data) {
@@ -31,7 +30,6 @@ module.exports.respond = function(event, cb) {
       return cb(err, null);
     }
 
-    return (null, data);
+    return null, data;
   });
-
 };

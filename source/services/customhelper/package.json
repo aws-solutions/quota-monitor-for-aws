@@ -12,14 +12,16 @@
     "async": "*"
   },
   "devDependencies": {
-    "chai": "*",
-    "sinon": "*",
-    "chai-sinon": "*",
-    "nyc": "*",
-    "mocha": "*",
-    "aws-sdk-mock": "*",
     "aws-sdk": "*",
-    "npm-run-all": "*"
+    "aws-sdk-mock": "*",
+    "chai": "*",
+    "chai-sinon": "*",
+    "mocha": "*",
+    "npm-run-all": "*",
+    "nyc": "*",
+    "promise": "^8.0.2",
+    "sinon": "*",
+    "sinon-test": "^2.4.0"
   },
   "scripts": {
     "pretest": "npm install",

@@ -19,8 +19,7 @@
 
 console.log('Loading function');
 let lib = require('./lib');
-const LOGGER = new(require('./lib/logger'))();
-
+const LOGGER = new (require('./lib/logger'))();
 
 exports.handler = function(event, context, callback) {
   // Load the message passed into the Lambda function into a JSON object
@@ -38,5 +37,4 @@ exports.handler = function(event, context, callback) {
       return callback(null, response);
     }
   });
-
 };

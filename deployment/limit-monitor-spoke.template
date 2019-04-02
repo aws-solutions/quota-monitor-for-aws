@@ -13,6 +13,7 @@ Parameters:
   MasterAccount:
     Description: Account Id for the master account, eg. 999999000000
     Type: String
+    AllowedPattern: ^\d{12}$
 
 Metadata:
   AWS::CloudFormation::Interface:

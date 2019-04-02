@@ -88,6 +88,15 @@ The AWS Limit Monitor Solution project consists of 4 microservices which is depl
 * Slack workspace integration for notifications
 ```
 
+#### v5.1.1 changes
+
+```bash
+* SlackHookURLKey and SlackChannelKey parameters added to primary template for slack workspace
+* Slack ssm parameters will be created with the provided keys ONLY if they do not exist already
+* Regex pattern matching for account id, allowing only 12 digit, coma separated and double quoted ids
+* Fix in concurrent CW Event Bus put permission (PR #18)
+```
+
 ***
 ***
 

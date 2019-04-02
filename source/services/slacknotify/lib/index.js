@@ -19,10 +19,9 @@
 
 let AWS = require('aws-sdk');
 let SlackNotify = require('./slack-notify.js');
-const LOGGER = new(require('./logger'))();
+const LOGGER = new (require('./logger'))();
 
 module.exports.respond = function(event, cb) {
-
   // get service limit refresh status
   let _slackNotify = new SlackNotify();
   _slackNotify.sendNotification(event, function(err, data) {
@@ -33,5 +32,4 @@ module.exports.respond = function(event, cb) {
 
     return cb(null, data);
   });
-
 };

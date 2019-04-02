@@ -23,10 +23,10 @@ let _ = require('underscore');
 let moment = require('moment');
 
 let MetricsHelper = require('./metrics-helper');
-const LOGGER = new(require('./logger'))();
+const LOGGER = new (require('./logger'))();
 
 AWS.config.update({
-  region: process.env.AWS_REGION
+  region: process.env.AWS_REGION,
 });
 
 /**
@@ -36,7 +36,6 @@ AWS.config.update({
  * @class limitreport
  */
 class limitreport {
-
   /**
    * @constructor
    */
@@ -46,7 +45,7 @@ class limitreport {
 
     this.dynamoConfig = {
       credentials: this.creds,
-      region: process.env.AWS_REGION
+      region: process.env.AWS_REGION,
     };
     this.docClient = new AWS.DynamoDB.DocumentClient(this.dynamoConfig);
 
@@ -57,7 +56,6 @@ class limitreport {
     this.anonymous_data = process.env.ANONYMOUS_DATA;
     this.solution = process.env.SOLUTION;
     this.uuid = process.env.UUID;
-
   }
 
   /**
@@ -69,67 +67,74 @@ class limitreport {
   updateReport(event, cb) {
     const _self = this;
     let queueParams = {
-      AttributeNames: ["SentTimestamp"],
+      AttributeNames: ['SentTimestamp'],
       MaxNumberOfMessages: this.max_messages,
-      MessageAttributeNames: ["All"],
-      QueueUrl: this.queueURL
+      MessageAttributeNames: ['All'],
+      QueueUrl: this.queueURL,
     };
 
-    async.each(_.range(this.max_loops), function(i, callback_p) {
-
+    async.each(
+      _.range(this.max_loops),
+      function(i, callback_p) {
         _self.sqs.receiveMessage(queueParams, function(err, rcv_payload) {
-
           if (err) {
             LOGGER.log('ERROR', err); //🔥
             callback_p();
           } else if (rcv_payload.Messages && rcv_payload.Messages.length > 0) {
-
-            async.each(rcv_payload.Messages, function(message, callback_e) {
-
-              _self.updateTable(message, function(err, data) {
-                if (err) {
-                  LOGGER.log('ERROR', JSON.stringify(err));
-                  callback_e();
-                } else {
-                  LOGGER.log('INFO', JSON.stringify(data));
-
-                  //calling sendMetrics and removeMessage in parallel
-                  async.parallel({
-                    remove_mssg: function(callback) {
-                      _self.removeMessage(message, function(data) {
-                        callback(null, data);
-                      });
-                    },
-                    send_metric: function(callback) {
-                      _self.sendMetrics(message, function(data) {
-                        callback(null, data);
-                      });
-                    }
-                  }, function(err, results) {
-                    // results
-                    LOGGER.log('INFO', `results: ${JSON.stringify(results, null, 2)}`);
+            async.each(
+              rcv_payload.Messages,
+              function(message, callback_e) {
+                _self.updateTable(message, function(err, data) {
+                  if (err) {
+                    LOGGER.log('ERROR', JSON.stringify(err));
                     callback_e();
-                  });
-                }
-              });
+                  } else {
+                    LOGGER.log('INFO', JSON.stringify(data));
 
-            }, function(err) {
-              if (err); //if any iteration callback called with error
-              else
-                callback_p(); //executed after all iterations are done
-            });
-
+                    //calling sendMetrics and removeMessage in parallel
+                    async.parallel(
+                      {
+                        remove_mssg: function(callback) {
+                          _self.removeMessage(message, function(data) {
+                            callback(null, data);
+                          });
+                        },
+                        send_metric: function(callback) {
+                          _self.sendMetrics(message, function(data) {
+                            callback(null, data);
+                          });
+                        },
+                      },
+                      function(err, results) {
+                        // results
+                        LOGGER.log(
+                          'INFO',
+                          `results: ${JSON.stringify(results, null, 2)}`
+                        );
+                        callback_e();
+                      }
+                    );
+                  }
+                });
+              },
+              function(err) {
+                if (
+                  err //if any iteration callback called with error
+                );
+                else callback_p(); //executed after all iterations are done
+              }
+            );
           } else {
             callback_p();
           } //no messages
         });
-
       },
       function(err) {
-        return cb(null,{
-          Result: 'TA messages read'
+        return cb(null, {
+          Result: 'TA messages read',
         });
-      });
+      }
+    );
   }
 
   /**
@@ -143,33 +148,36 @@ class limitreport {
     let params = {
       TableName: this.ddbTable,
       Item: {
-        'MessageId': payload.MessageId,
-        'AccountId': ta_mssg.account,
-        'TimeStamp': ta_mssg.time,
-        'Region': ta_mssg.detail['check-item-detail']['Region'],
-        'Service': ta_mssg.detail['check-item-detail']['Service'],
-        'LimitName': ta_mssg.detail['check-item-detail']['Limit Amount'],
-        'CurrentUsage': ta_mssg.detail['check-item-detail']['Status'],
-        'LimitAmount': ta_mssg.detail['check-item-detail']['Current Usage'],
-        'Status': ta_mssg.detail['status'],
-        'ExpiryTime': new Date().getTime() + 15 * 24 * 3600 * 1000 //1️⃣5️⃣ days
-      }
+        MessageId: payload.MessageId,
+        AccountId: ta_mssg.account,
+        TimeStamp: ta_mssg.time,
+        Region: ta_mssg.detail['check-item-detail']['Region'],
+        Service: ta_mssg.detail['check-item-detail']['Service'],
+        LimitName: ta_mssg.detail['check-item-detail']['Limit Amount'],
+        CurrentUsage: ta_mssg.detail['check-item-detail']['Status'],
+        LimitAmount: ta_mssg.detail['check-item-detail']['Current Usage'],
+        Status: ta_mssg.detail['status'],
+        ExpiryTime: new Date().getTime() + 15 * 24 * 3600 * 1000, //1️⃣5️⃣ days
+      },
     };
     LOGGER.log('DEBUG', `DDB put item: ${JSON.stringify(params)}`);
 
     this.docClient.put(params, function(err, data) {
       if (err) {
-        return cb({
-          TableUpdate: {
-            status: err
-          }
-        }, null); //🔥
+        return cb(
+          {
+            TableUpdate: {
+              status: err,
+            },
+          },
+          null
+        ); //🔥
       } else {
         return cb(null, {
           TableUpdate: {
-            status: 'success'
+            status: 'success',
             //receipthandle: payload.ReceiptHandle
-          }
+          },
         });
       }
     });
@@ -182,43 +190,47 @@ class limitreport {
   sendMetrics(message, cb) {
     if (this.anonymous_data != 'Yes')
       return cb({
-        Status: 'Customer chose not to send anonymous metrics to AWS'
+        Status: 'Customer chose not to send anonymous metrics to AWS',
       });
 
     let _metricsHelper = new MetricsHelper();
 
     let metrics = JSON.parse(message.Body);
     let metricData = {
-      'Region': metrics.detail['check-item-detail']['Region'],
-      'Service': metrics.detail['check-item-detail']['Service'],
-      'LimitName': metrics.detail['check-item-detail']['Limit Amount'],
-      'Status': metrics.detail['status'] //include itemsize from ddb
-    }
+      Region: metrics.detail['check-item-detail']['Region'],
+      Service: metrics.detail['check-item-detail']['Service'],
+      LimitName: metrics.detail['check-item-detail']['Limit Amount'],
+      Status: metrics.detail['status'], //include itemsize from ddb
+    };
 
     let _anonymousmetric = {
       Solution: this.solution,
       UUID: this.uuid,
-      TimeStamp: moment().utc().format('YYYY-MM-DD HH:mm:ss.S'),
-      Data: metricData
+      TimeStamp: moment()
+        .utc()
+        .format('YYYY-MM-DD HH:mm:ss.S'),
+      Data: metricData,
     };
 
-    LOGGER.log('DEBUG', `anonymous metric: ${JSON.stringify(_anonymousmetric)}`);
+    LOGGER.log(
+      'DEBUG',
+      `anonymous metric: ${JSON.stringify(_anonymousmetric)}`
+    );
 
     _metricsHelper.sendAnonymousMetric(_anonymousmetric, function(err, data) {
       let responseData;
       if (err) {
         responseData = {
-          Error: 'Sending anonymous metric failed'
+          Error: 'Sending anonymous metric failed',
         };
       } else {
         responseData = {
-          Success: 'Anonymous metrics sent to AWS'
-        }
+          Success: 'Anonymous metrics sent to AWS',
+        };
       }
 
       return cb(responseData);
     });
-
   }
 
   /**
@@ -230,7 +242,7 @@ class limitreport {
   removeMessage(message, cb) {
     let _deleteParams = {
       QueueUrl: this.queueURL,
-      ReceiptHandle: message.ReceiptHandle
+      ReceiptHandle: message.ReceiptHandle,
     };
 
     this.sqs.deleteMessage(_deleteParams, function(err, data) {
@@ -238,21 +250,19 @@ class limitreport {
         return cb({
           Status: {
             table_update: 'success',
-            sqs_delete: err
-          }
+            sqs_delete: err,
+          },
         }); //🔥
       } else {
         return cb({
           Status: {
             table_update: 'success',
-            sqs_delete: 'success'
-          }
+            sqs_delete: 'success',
+          },
         });
       }
     });
-
   }
-
 }
 
 module.exports = limitreport;

@@ -19,10 +19,9 @@
 
 let AWS = require('aws-sdk');
 let TARefresh = require('./ta-refresh.js');
-const LOGGER = new(require('./logger'))();
+const LOGGER = new (require('./logger'))();
 
 module.exports.respond = function(event, cb) {
-
   // get service limit refresh status
   let _taRefresh = new TARefresh();
   _taRefresh.getTARefreshStatus(event, function(err, data) {
@@ -33,5 +32,4 @@ module.exports.respond = function(event, cb) {
 
     return cb(null, data);
   });
-
 };

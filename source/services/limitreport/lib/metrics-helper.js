@@ -18,7 +18,7 @@
 'use strict';
 
 let https = require('https');
-const LOGGER = new(require('./logger'))();
+const LOGGER = new (require('./logger'))();
 
 /**
  * Helper function to interact with dynamodb for data lake cfn custom resource.
@@ -26,7 +26,6 @@ const LOGGER = new(require('./logger'))();
  * @class metricsHelper
  */
 let metricsHelper = (function() {
-
   /**
    * @class metricsHelper
    * @constructor
@@ -39,15 +38,14 @@ let metricsHelper = (function() {
    * @param {sendAnonymousMetric~requestCallback} cb - The callback that handles the response.
    */
   metricsHelper.prototype.sendAnonymousMetric = function(metric, cb) {
-
     let _options = {
       hostname: 'metrics.awssolutionsbuilder.com',
       port: 443,
       path: '/generic',
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     };
 
     let request = https.request(_options, function(response) {
@@ -73,14 +71,19 @@ let metricsHelper = (function() {
 
     request.end();
 
-    request.on('error', (e) => {
+    request.on('error', e => {
       LOGGER.log('ERROR', e);
-      cb(['Error occurred when sending metric request.', JSON.stringify(_payload)].join(' '), null);
+      cb(
+        [
+          'Error occurred when sending metric request.',
+          JSON.stringify(_payload),
+        ].join(' '),
+        null
+      );
     });
   };
 
   return metricsHelper;
-
 })();
 
 module.exports = metricsHelper;
