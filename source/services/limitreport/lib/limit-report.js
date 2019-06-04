@@ -153,9 +153,9 @@ class limitreport {
         TimeStamp: ta_mssg.time,
         Region: ta_mssg.detail['check-item-detail']['Region'],
         Service: ta_mssg.detail['check-item-detail']['Service'],
-        LimitName: ta_mssg.detail['check-item-detail']['Limit Amount'],
-        CurrentUsage: ta_mssg.detail['check-item-detail']['Status'],
-        LimitAmount: ta_mssg.detail['check-item-detail']['Current Usage'],
+        LimitName: ta_mssg.detail['check-item-detail']['Limit Name'],
+        CurrentUsage: ta_mssg.detail['check-item-detail']['Current Usage'],
+        LimitAmount: ta_mssg.detail['check-item-detail']['Limit Amount'],
         Status: ta_mssg.detail['status'],
         ExpiryTime: new Date().getTime() + 15 * 24 * 3600 * 1000, //1️⃣5️⃣ days
       },
@@ -199,7 +199,7 @@ class limitreport {
     let metricData = {
       Region: metrics.detail['check-item-detail']['Region'],
       Service: metrics.detail['check-item-detail']['Service'],
-      LimitName: metrics.detail['check-item-detail']['Limit Amount'],
+      LimitName: metrics.detail['check-item-detail']['Limit Name'],
       Status: metrics.detail['status'], //include itemsize from ddb
     };
 
