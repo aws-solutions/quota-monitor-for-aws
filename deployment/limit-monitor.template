@@ -89,7 +89,7 @@ Mappings:
 
   EventsMap:
     Checks:
-      Services: '"AutoScaling","CloudFormation","EBS","EC2","ELB","IAM","Kinesis","RDS","SES","VPC"' # change as needed
+      Services: '"AutoScaling","CloudFormation","DynamoDB","EBS","EC2","ELB","IAM","Kinesis","RDS","Route53","SES","VPC"' #change if needed
 
 Conditions:
   SingleAccnt: !Equals [!Ref AccountList , '']
@@ -291,6 +291,11 @@ Resources:
 
   LimitSummarizerRole:
     Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+        - id: W11
+          reason: Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -328,7 +333,6 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain # retaining DDB after stack deletion
     Properties:
-      TableName: !Sub LimitMonitor-${AWS::StackName}
       SSESpecification:
         SSEEnabled: true
       AttributeDefinitions:
@@ -376,6 +380,11 @@ Resources:
   SlackNotifierRole:
     Type: AWS::IAM::Role
     Condition: SlackTrue
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+        - id: W11
+          reason: Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -401,7 +410,6 @@ Resources:
             - ssm:GetParameter
             Resource:
             - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:*
-            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:*
 
   SlackNotifierInvokePermission:
     Type: AWS::Lambda::Permission
@@ -420,7 +428,6 @@ Resources:
     Type: AWS::SNS::Topic
     Condition: SNSTrue
     Properties:
-      # SO-Limit-M-41 - 07/30/2018 - SNS email
       # Converted to email to make more readable
       Subscription:
       - Protocol: email
@@ -474,13 +481,13 @@ Resources:
 
   TARefresherRole:
     Type: AWS::IAM::Role
-    # SO-Limit-M-41 - 07/30/2018 - cfn nag
-    # Fixed cfn nag error, allow support:*
     Metadata:
       cfn_nag:
         rules_to_suppress:
         - id: F3
           reason: Override the IAM role to allow support:* resource on its permissions policy
+        - id: W11
+          reason: Override the IAM role to allow Resource:* for logs:PutLogEvents resource on its permissions policy
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -578,6 +585,11 @@ Resources:
 
   LimtrHelperRole:
     Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+        - id: W11
+          reason: Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17

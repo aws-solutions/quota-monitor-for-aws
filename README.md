@@ -97,10 +97,18 @@ The AWS Limit Monitor Solution project consists of 4 microservices which is depl
 * Fix in concurrent CW Event Bus put permission (PR #18)
 ```
 
+#### v5.2 changes
+
+```bash
+* Added Trusted Advisor service limit checks for Route53 and DynamoDB
+* Fixed mapping between DynamoDB attributes and TA keys 
+* Fixed incorrect attribute mappings
+```
+
 ***
 ***
 
-Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
 

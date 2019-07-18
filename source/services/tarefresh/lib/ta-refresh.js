@@ -1,5 +1,5 @@
 /*********************************************************************************************************************
- *  Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                           *
+ *  Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                           *
  *                                                                                                                    *
  *  Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance        *
  *  with the License. A copy of the License is located at                                                             *
@@ -25,6 +25,10 @@ const LOGGER = new (require('./logger'))();
 const serviceChecks = {
   AutoScaling: ['fW7HH0l7J9', 'aW7HH0l7J9'],
   CloudFormation: ['gW7HH0l7J9'],
+  DynamoDB: [
+    '6gtQddfEw6',
+    'c5ftjdfkMr'
+  ],
   EBS: [
     'eI7KK0l7J9',
     'fH7LL0l7J9',
@@ -60,6 +64,17 @@ const serviceChecks = {
     'dYWBaXaaMM',
     'jEhCtdJKOY',
     'P1jhKWEmLa',
+  ],
+  /*
+   * SO-Limit-M-47 - 04/01/2019 - New TA Checks
+   * added TA checks for R53 and DDB
+   */
+  Route53: [
+    'dx3xfcdfMr',
+    'ru4xfcdfMr',
+    'ty3xfcdfMr',
+    'dx3xfbjfMr',
+    'dx8afcdfMr'
   ],
   SES: ['hJ7NN0l7J9'],
   VPC: ['lN7RR0l7J9', 'kM7QQ0l7J9', 'jL7PP0l7J9'],

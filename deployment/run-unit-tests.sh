@@ -1,4 +1,3 @@
-# SO-Limit-M-41 - 07/30/2018 - Run ALL unit tests
 # Fixed path to run all unit tests
 cd ../source/services/limitreport
 npm install

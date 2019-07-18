@@ -1,3 +1,21 @@
+/*********************************************************************************************************************
+ *  Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                           *
+ *                                                                                                                    *
+ *  Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance        *
+ *  with the License. A copy of the License is located at                                                             *
+ *                                                                                                                    *
+ *      http://aws.amazon.com/asl/                                                                                    *
+ *                                                                                                                    *
+ *  or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES *
+ *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    *
+ *  and limitations under the License.                                                                                *
+ *********************************************************************************************************************/
+
+/**
+ * @author Solution Builders
+ */
+
+
 'use strict';
 
 const uuidv4 = require('uuid/v4');
@@ -49,11 +67,11 @@ const respond = function(event, context, callback) {
       Method: `${event.LogicalResourceId}:${event.RequestType}`,
     };
 
-    // SO-Limit-M-44 - check if SSM Parameter key exists, if not create with dummy value
+
     const slackHookKey = event.ResourceProperties.SLACK_HOOK_KEY;
     const slackChannelKey = event.ResourceProperties.SLACK_CHANNEL_KEY;
 
-    createSSMParameter(slackHookKey, slackChannelKey, function(data) {
+    createSSMParameter(slackChannelKey, slackHookKey, function(data) {
       LOGGER.log('INFO', `SSM Status: ${JSON.stringify(data)}`);
       sendResponse(
         event,
