@@ -1,0 +1,26 @@
+{
+    "name": "event-injector",
+    "version": "1.0.0",
+    "description": "Event Injectory is an auxiliary class for injecing cw events on cw event bridge for solution services",
+    "author": {
+        "name": "aws-solutions-builder"
+    },
+    "private": true,
+    "main": "./event-injector.common.js",
+    "dependencies": {
+        "logger": "file:../logger"
+    },
+    "devDependencies": {
+        "chai": "*",
+        "sinon": "*",
+        "sinon-chai": "*",
+        "mocha": "*",
+        "aws-sdk-mock": "*"
+    },
+    "scripts": {
+        "pretest": "rm -rf package-lock.json && rm -rf node_modules && npm install",
+        "test": "mocha lib/*.spec.js",
+        "build:init": "rm -rf package-lock.json && rm -rf dist && rm -rf node_modules",
+        "build": "npm run build:init && npm install --production"
+    }
+}

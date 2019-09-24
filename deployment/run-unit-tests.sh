@@ -14,3 +14,7 @@ npm test
 cd ../customhelper
 npm install
 npm test
+
+cd ../servicequotaschecks
+npm install
+npm test

@@ -20,9 +20,10 @@
 let AWS = require('aws-sdk');
 let async = require('async');
 const LOGGER = new (require('./logger'))();
+const constants = require('./constants.js')
 
 //all service check ids
-const serviceChecks = {
+let serviceChecks = {
   AutoScaling: ['fW7HH0l7J9', 'aW7HH0l7J9'],
   CloudFormation: ['gW7HH0l7J9'],
   DynamoDB: [
@@ -104,7 +105,26 @@ class tarefresh {
    * @param  {Function} cb    [description]
    * @return {[type]}         [description]
    */
-  getTARefreshStatus(event, cb) {
+  
+
+  /**
+   * This function checks if the customers have opted-in for the vCPU limits from Ec2 service.
+   * If the customers have opted in, the function will update the checks that will be performed by Trusted Advisor.
+   */
+  async getUpdatedEC2Checks() {
+    let servicequotas = new AWS.ServiceQuotas();
+    try {
+      let response = await servicequotas.getAWSDefaultServiceQuota(constants.limits_ec2_Standard_OnDemand).promise();
+      if (response.Quota.ServiceCode === "ec2")
+        serviceChecks.EC2=['aW9HH0l8J6','iH7PP0l7J9'];
+    }catch (err) {
+        LOGGER.log('ERROR', err);
+    }
+  }
+    
+  async getTARefreshStatus(event, cb) {
+    await this.getUpdatedEC2Checks();
+    LOGGER.log('INFO', serviceChecks.EC2);
     const _self = this;
     async.each(
       _userServices,

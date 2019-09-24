@@ -1,6 +1,6 @@
 {
-    "name": "limtr-slack-service",
-    "description": "A Lambda function for sending Slack Notifications for TA checks",
+    "name": "service-quotas-checks-service",
+    "description": "A Lambda function for Service Quotas checks",
     "main": "index.js",
     "author": {
         "name": "aws-solutions-builder"
@@ -8,18 +8,17 @@
     "version": "0.0.1",
     "private": "true",
     "dependencies": {
-        "async": "*",
-        "moment": "*"
+        "aws-sdk": "*"
     },
     "devDependencies": {
-        "chai": "*",
-        "sinon": "*",
-        "sinon-chai": "*",
-        "nyc": "*",
-        "mocha": "*",
-        "aws-sdk-mock": "*",
         "aws-sdk": "*",
-        "npm-run-all": "*"
+        "aws-sdk-mock": "*",
+        "chai": "*",
+        "mocha": "*",
+        "npm-run-all": "^4.1.5",
+        "nyc": "*",
+        "sinon": "*",
+        "sinon-chai": "*"
     },
     "scripts": {
         "pretest": "npm install",
@@ -28,8 +27,9 @@
         "build:copy": "cp index.js dist/ && cp -r lib/*.js dist/lib",
         "build:install": "cp package.json dist/ && cd dist && npm install --production",
         "build": "npm-run-all -s build-init build:copy build:install",
-        "zip": "cd dist && zip -rq limtr-slack-service.zip .",
-        "coverage": "nyc npm test"
+        "zip": "cd dist && zip -rq service-quotas-checks-service.zip .",
+        "coverage": "nyc npm test",
+        "locally": "node -e \"require('./index').handler({});\""
     },
     "bundledDependencies": []
 }

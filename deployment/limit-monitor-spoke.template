@@ -1,12 +1,12 @@
-# Serverless Limit Monitor Solution
+# %%SOLUTION_NAME%%
 #
-# template for serverless-limit-monitor-solution
+# template for %%SOLUTION_NAME%%
 # **DO NOT DELETE**
 #
 # author: aws-solutions-builder@
 AWSTemplateFormatVersion: 2010-09-09
 
-Description: (SO0005s) - AWS Serverless Limit Monitor Solution - Spoke Template
+Description: (SO0005s) - The AWS CloudFormation template for deployment of the %%SOLUTION_NAME%%. Version %%VERSION%% - Spoke Template
 
 Parameters:
   # Master Account
@@ -18,10 +18,10 @@ Parameters:
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
-    - Label:
-        default: Limit Monitor Configuration
-      Parameters:
-      - MasterAccount
+      - Label:
+          default: Limit Monitor Configuration
+        Parameters:
+          - MasterAccount
     ParameterLabels:
       MasterAccount:
         default: Primary Account
@@ -38,7 +38,9 @@ Mappings:
   SourceCode:
     General:
       S3Bucket: %%BUCKET_NAME%%
-      KeyPrefix: "limit-monitor/%%VERSION%%"
+      KeyPrefix: "%%SOLUTION_NAME%%/%%VERSION%%"
+      TemplateBucket: %%TEMPLATE_BUCKET_NAME%%
+
 
   EventsMap:
     Checks:
@@ -54,26 +56,26 @@ Resources:
     Properties:
       Description: Limit Monitor Solution - Spoke - Rule for TA OK events
       EventPattern: !Join
-        - ''
+        - ""
         - - '{"account":["'
           - !Ref AWS::AccountId
           - '"],'
-          - '"source":["aws.trustedadvisor"],'
-          - '"detail-type":["Trusted Advisor Check Item Refresh Notification"],'
+          - '"source":["aws.trustedadvisor", "limit-monitor-solution"],'
+          - '"detail-type":["Trusted Advisor Check Item Refresh Notification", "Limit Monitor Checks"],'
           - '"detail":{'
           - '"status":['
           - '"OK"'
-          - '],'
+          - "],"
           - '"check-item-detail":{'
           - '"Service":['
           - !FindInMap
             - EventsMap
             - Checks
             - Services
-          - ']'
-          - '}'
-          - '}'
-          - '}'
+          - "]"
+          - "}"
+          - "}"
+          - "}"
       State: ENABLED
       Targets:
         - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
@@ -84,26 +86,26 @@ Resources:
     Properties:
       Description: Limit Monitor Solution - Spoke - Rule for TA WARN events
       EventPattern: !Join
-        - ''
+        - ""
         - - '{"account":["'
           - !Ref AWS::AccountId
           - '"],'
-          - '"source":["aws.trustedadvisor"],'
-          - '"detail-type":["Trusted Advisor Check Item Refresh Notification"],'
+          - '"source":["aws.trustedadvisor", "limit-monitor-solution"],'
+          - '"detail-type":["Trusted Advisor Check Item Refresh Notification", "Limit Monitor Checks"],'
           - '"detail":{'
           - '"status":['
           - '"WARN"'
-          - '],'
+          - "],"
           - '"check-item-detail":{'
           - '"Service":['
           - !FindInMap
             - EventsMap
             - Checks
             - Services
-          - ']'
-          - '}'
-          - '}'
-          - '}'
+          - "]"
+          - "}"
+          - "}"
+          - "}"
       State: ENABLED
       Targets:
         - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
@@ -114,26 +116,26 @@ Resources:
     Properties:
       Description: Limit Monitor Solution - Spoke - Rule for TA ERROR events
       EventPattern: !Join
-        - ''
+        - ""
         - - '{"account":["'
           - !Ref AWS::AccountId
           - '"],'
-          - '"source":["aws.trustedadvisor"],'
-          - '"detail-type":["Trusted Advisor Check Item Refresh Notification"],'
+          - '"source":["aws.trustedadvisor", "limit-monitor-solution"],'
+          - '"detail-type":["Trusted Advisor Check Item Refresh Notification", "Limit Monitor Checks"],'
           - '"detail":{'
           - '"status":['
           - '"ERROR"'
-          - '],'
+          - "],"
           - '"check-item-detail":{'
           - '"Service":['
           - !FindInMap
             - EventsMap
             - Checks
             - Services
-          - ']'
-          - '}'
-          - '}'
-          - '}'
+          - "]"
+          - "}"
+          - "}"
+          - "}"
       State: ENABLED
       Targets:
         - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
@@ -160,13 +162,13 @@ Resources:
       Environment:
         Variables:
           AWS_SERVICES: !FindInMap [EventsMap, Checks, Services]
-          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
+          LOG_LEVEL: "INFO" #change to WARN, ERROR or DEBUG as needed
 
       Handler: index.handler
       Role: !Sub ${TARefresherRole.Arn}
       Code:
-        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-refresh-service.zip"]]
+        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
+        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-refresh-service.zip"]]
       Runtime: nodejs8.10
       Timeout: 300
 
@@ -177,35 +179,40 @@ Resources:
     Metadata:
       cfn_nag:
         rules_to_suppress:
-        - id: F3
-          reason: Override the IAM role to allow support:* resource on its permissions policy
-        - id: W11
-          reason: Override the IAM role to allow Resource:* for logs:PutLogEvents resource on its permissions policy
+          - id: F3
+            reason: Override the IAM role to allow support:* resource on its permissions policy
+          - id: W11
+            reason: Override the IAM role to allow Resource:* for logs:PutLogEvents resource on its permissions policy
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       Path: /
       Policies:
-      - PolicyName: !Sub Limit-Monitor-Refresher-Policy-${AWS::StackName}
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
-          - Effect: Allow
-            Action:
-            - support:*
-            Resource:
-            - '*'
+        - PolicyName: !Sub Limit-Monitor-Refresher-Policy-${AWS::StackName}
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+              - Effect: Allow
+                Action:
+                  - support:*
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - servicequotas:GetAWSDefaultServiceQuota
+                Resource:
+                  - "*"
 
   TARefresherInvokePermission:
     Type: AWS::Lambda::Permission
@@ -225,10 +232,10 @@ Resources:
       Handler: index.handler
       Environment:
         Variables:
-          LOG_LEVEL: 'INFO' #change to WARN, ERROR or DEBUG as needed
+          LOG_LEVEL: "INFO" #change to WARN, ERROR or DEBUG as needed
       Code:
-        S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "limtr-helper-service.zip"]]
+        S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
+        S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-helper-service.zip"]]
       Runtime: nodejs8.10
       Timeout: 300
       Description: This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric
@@ -243,7 +250,7 @@ Resources:
     Type: Custom::DeploymentData
     Properties:
       ServiceToken: !GetAtt LimtrHelperFunction.Arn
-      SOLUTION: 'SO0005s'
+      SOLUTION: "SO0005s"
       UUID: !Sub ${CreateUUID.UUID}
       VERSION: %%VERSION%%
       ANONYMOUS_DATA: !FindInMap [MetricsMap, Send-Data, SendAnonymousData]
@@ -253,28 +260,38 @@ Resources:
     Metadata:
       cfn_nag:
         rules_to_suppress:
-        - id: W11
-          reason: Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy
+          - id: W11
+            reason: Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: lambda.amazonaws.com
-          Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
       Path: /
       Policies:
-      - PolicyName: Custom_Limtr_Helper_Permissions
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+        - PolicyName: Custom_Limtr_Helper_Permissions
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*
+
+  limitCheckStack:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: !Sub 
+        - 'https://s3.amazonaws.com/${S3Bucket}/${KeyPrefix}/service-quotas-checks.template' 
+        -  
+          S3Bucket: !FindInMap ["SourceCode", "General", "TemplateBucket"] 
+          KeyPrefix: !FindInMap ["SourceCode", "General", "KeyPrefix"] 
+
 
 Outputs:
   ServiceChecks:
