@@ -7,3 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [5.3.0] - 2019-08-28
 ### Added
 - added support for EC2 vCPU limit
+
+## [5.3.1] - 2019-12-17
+### Added
+- upgraded lambda runtime to nodejs 12.x

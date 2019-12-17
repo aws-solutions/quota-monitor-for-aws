@@ -24,7 +24,7 @@ exports.handler = async(event)=> {
     let eventText = JSON.stringify(event, null, 2);
     LOGGER.log('DEBUG', `Received event: ${eventText}`);
     try {
-        await _serviceQuotasChecks.performLimitChecks();
+        await _serviceQuotasChecks.checkForVCPULimits();
     }catch(err) {
         LOGGER.log("ERROR", err);
     }

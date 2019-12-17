@@ -1,12 +1,12 @@
 /*********************************************************************************************************************
  *  Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                           *
  *                                                                                                                    *
- *  Licensed under the Amazon Software License (the "License"). You may not use this file except in compliance        *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    *
  *  with the License. A copy of the License is located at                                                             *
  *                                                                                                                    *
- *      http://aws.amazon.com/asl/                                                                                    *
+ *      http://www.apache.org/licenses/LICENSE-2.0                                                                    *
  *                                                                                                                    *
- *  or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES *
+ *  or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES *
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    *
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
@@ -20,7 +20,6 @@
 let AWS = require('aws-sdk');
 let async = require('async');
 const LOGGER = new (require('./logger'))();
-const constants = require('./constants.js')
 
 //all service check ids
 let serviceChecks = {
@@ -112,9 +111,13 @@ class tarefresh {
    * If the customers have opted in, the function will update the checks that will be performed by Trusted Advisor.
    */
   async getUpdatedEC2Checks() {
+    let limits_ec2_Standard_OnDemand = {
+      QuotaCode: 'L-1216C47A',
+      ServiceCode: 'ec2'
+    };
     let servicequotas = new AWS.ServiceQuotas();
     try {
-      let response = await servicequotas.getAWSDefaultServiceQuota(constants.limits_ec2_Standard_OnDemand).promise();
+      let response = await servicequotas.getAWSDefaultServiceQuota(limits_ec2_Standard_OnDemand).promise();
       if (response.Quota.ServiceCode === "ec2")
         serviceChecks.EC2=['aW9HH0l8J6','iH7PP0l7J9'];
     }catch (err) {

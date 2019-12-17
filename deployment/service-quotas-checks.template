@@ -32,9 +32,9 @@ Resources:
       Code:
         S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
         S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  "service-quotas-checks-service.zip"]]
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 300
-      Description: This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric
+      Description: This function checks for vCPU limits and sends notifiction on WARN and ERROR status
       Role: !Sub ${LimitMonitorRole.Arn}
 
   LimitMonitorRole:
@@ -68,8 +68,10 @@ Resources:
             Action:
               - servicequotas:GetServiceQuota
               - servicequotas:GetAWSDefaultServiceQuota
+              - servicequotas:ListServiceQuotas
               - cloudwatch:GetMetricData
               - events:PutEvents
+              - ec2:DescribeRegions
             Resource: "*"
 
   LimitCheckSchedule:

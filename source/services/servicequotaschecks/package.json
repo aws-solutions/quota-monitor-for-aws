@@ -28,7 +28,7 @@
         "build:install": "cp package.json dist/ && cd dist && npm install --production",
         "build": "npm-run-all -s build-init build:copy build:install",
         "zip": "cd dist && zip -rq service-quotas-checks-service.zip .",
-        "coverage": "nyc npm test",
+        "coverage": "nyc --reporter=html npm test",
         "locally": "node -e \"require('./index').handler({});\""
     },
     "bundledDependencies": []

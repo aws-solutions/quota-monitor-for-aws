@@ -17,8 +17,8 @@
 #  - version-code: version of the package 
  
 # Check to see if input has been provided: 
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then 
-    echo "Please provide the base source bucket name, trademark approved solution name and version where the lambda code will eventually reside." 
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    echo "Please provide the base source bucket name, trademark approved solution name, version and template bucket name where the lambda code will eventually reside." 
     echo "For example: ./build-s3-dist.sh solutions trademarked-solution-name v1.0.0" 
     exit 1 
 fi 
@@ -69,8 +69,8 @@ npm run build
 echo "------------------------------------------------------------------------------" 
 echo "[Rebuild] Resources - CW Metric helper" 
 echo "------------------------------------------------------------------------------" 
-cd $source_dir/resources/cw-metric 
-npm run build 
+cd $source_dir/resources/cw-metric-poller
+npm run build
 
 echo "------------------------------------------------------------------------------" 
 echo "[Rebuild] Resources - Event Injector" 

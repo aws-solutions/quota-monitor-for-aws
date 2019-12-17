@@ -24,13 +24,13 @@ Parameters:
   SNSEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: "List of alert levels to send email notifications. Must be double-quoted and comma separated. To disable email notifications, enter two comma separated blank double quotes (“”,””)."
+    Description: List of alert levels to send email notifications. Must be double-quoted and comma separated. To disable email notifications, enter two comma separated blank double quotes "","".
 
   # Events for Slack notification
   SlackEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: "List of alert levels to send Slack notifications. Must be double-quoted and comma separated. To disable email notifications, enter two comma separated blank double quotes (“”,””)."
+    Description: List of alert levels to send Slack notifications. Must be double-quoted and comma separated. To disable email notifications, enter two comma separated blank double quotes "","".
 
   # Slack web hook URL
   SlackHookURL:
@@ -222,6 +222,7 @@ Resources:
   EventQueue:
     Type: AWS::SQS::Queue
     Properties:
+      KmsMasterKeyId: "alias/aws/sqs"
       RedrivePolicy:
         deadLetterTargetArn: !Sub ${DeadLetterQueue.Arn}
         maxReceiveCount: 3
@@ -231,7 +232,9 @@ Resources:
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
+      KmsMasterKeyId: "alias/aws/sqs"
       MessageRetentionPeriod: 604800 #7 day retention
+
 
   EventQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -286,7 +289,7 @@ Resources:
       Code:
         S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
         S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-report-service.zip"]]
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 300
 
   LimitSummarizerRole:
@@ -328,6 +331,11 @@ Resources:
                   - dynamodb:PutItem
                 Resource:
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SummaryDDB}
+                Effect: Allow
+                Action:
+                  - kms:GenerateDataKey*
+                  - kms:Decrypt
+                Resource: "*"
 
   SummaryDDB:
     Type: AWS::DynamoDB::Table
@@ -374,7 +382,7 @@ Resources:
       Code:
         S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
         S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-slack-service.zip"]]
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 300
 
   SlackNotifierRole:
@@ -420,6 +428,37 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !Sub ${TASlackRule.Arn}
 
+# KMS
+
+  SnsEncryptionKey:
+        Type: AWS::KMS::Key
+        Properties:
+            Description: Key for Event SNS
+            Enabled: true
+            EnableKeyRotation: true
+            KeyPolicy:
+                Statement:
+                    -
+                        Sid: "default"
+                        Effect: "Allow"
+                        Principal:
+                            AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+                        Action: "kms:*"
+                        Resource: "*"
+                    -   Sid: "Allows event bridge to the kms key"
+                        Effect: "Allow"
+                        Principal:
+                            Service: events.amazonaws.com
+                        Action:
+                            - kms:GenerateDataKey*
+                            - kms:Decrypt
+                        Resource: "*"
+
+  SnsEncryptionKeyAlias:
+        Type: AWS::KMS::Alias
+        Properties:
+            AliasName: alias/limit-monitor-sns-encryption-key
+            TargetKeyId: !Ref SnsEncryptionKey
   #
   # Email notification resources
   # [SNSTopic, SNSTopicPolicy]
@@ -429,6 +468,7 @@ Resources:
     Condition: SNSTrue
     Properties:
       # Converted to email to make more readable
+      KmsMasterKeyId: !Ref SnsEncryptionKey
       Subscription:
         - Protocol: email
           Endpoint: !Sub ${SNSEmail}
@@ -476,7 +516,7 @@ Resources:
       Code:
         S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
         S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-refresh-service.zip"]]
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 300
 
   TARefresherRole:
@@ -542,7 +582,7 @@ Resources:
       Code:
         S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
         S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-helper-service.zip"]]
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 300
       Description: This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric
       Role: !Sub ${LimtrHelperRole.Arn}

@@ -169,7 +169,7 @@ Resources:
       Code:
         S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
         S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-refresh-service.zip"]]
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 300
 
   TARefresherRole:
@@ -236,7 +236,7 @@ Resources:
       Code:
         S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
         S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-helper-service.zip"]]
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Timeout: 300
       Description: This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric
       Role: !Sub ${LimtrHelperRole.Arn}
