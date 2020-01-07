@@ -331,7 +331,7 @@ Resources:
                   - dynamodb:PutItem
                 Resource:
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SummaryDDB}
-                Effect: Allow
+              - Effect: Allow
                 Action:
                   - kms:GenerateDataKey*
                   - kms:Decrypt
