@@ -222,7 +222,7 @@ Resources:
   EventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: !Ref SqsEncryptionKey
       RedrivePolicy:
         deadLetterTargetArn: !Sub ${DeadLetterQueue.Arn}
         maxReceiveCount: 3
@@ -232,7 +232,7 @@ Resources:
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: !Ref SqsEncryptionKey
       MessageRetentionPeriod: 604800 #7 day retention
 
 
@@ -459,6 +459,36 @@ Resources:
         Properties:
             AliasName: alias/limit-monitor-sns-encryption-key
             TargetKeyId: !Ref SnsEncryptionKey
+  
+  SqsEncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Key for Event SQS
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy:
+        Statement:
+          - Sid: "default"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: "Allows event bridge to the kms key"
+            Effect: "Allow"
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - kms:GenerateDataKey*
+              - kms:Decrypt
+            Resource: "*"
+
+  SqsEncryptionKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/limit-monitor-sqs-encryption-key
+      TargetKeyId: !Ref SqsEncryptionKey
+  
   #
   # Email notification resources
   # [SNSTopic, SNSTopicPolicy]
