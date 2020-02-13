@@ -29,6 +29,10 @@ let serviceChecks = {
     '6gtQddfEw6',
     'c5ftjdfkMr'
   ],
+  /*
+   * V172128963 - 01/21/2020 - New TA Checks
+   * added TA checks for EBS and ELB
+   */
   EBS: [
     'eI7KK0l7J9',
     'fH7LL0l7J9',
@@ -36,9 +40,11 @@ let serviceChecks = {
     'cG7HH0l7J9',
     'tV7YY0l7J9',
     'gI7MM0l7J9',
+    'wH7DD0l3J9',
+    'gH5CC0e3J9',
   ],
   EC2: ['aW9HH0l8J6', '0Xc6LMYG8P', 'iH7PP0l7J9'],
-  ELB: ['iK7OO0l7J9'],
+  ELB: ['iK7OO0l7J9', 'EM8b3yLRTr', '8wIqYSt25K'],
   IAM: [
     'sU7XX0l7J9',
     'nO7SS0l7J9',
@@ -104,7 +110,7 @@ class tarefresh {
    * @param  {Function} cb    [description]
    * @return {[type]}         [description]
    */
-  
+
 
   /**
    * This function checks if the customers have opted-in for the vCPU limits from Ec2 service.
@@ -119,23 +125,23 @@ class tarefresh {
     try {
       let response = await servicequotas.getAWSDefaultServiceQuota(limits_ec2_Standard_OnDemand).promise();
       if (response.Quota.ServiceCode === "ec2")
-        serviceChecks.EC2=['aW9HH0l8J6','iH7PP0l7J9'];
-    }catch (err) {
-        LOGGER.log('ERROR', err);
+        serviceChecks.EC2 = ['aW9HH0l8J6', 'iH7PP0l7J9'];
+    } catch (err) {
+      LOGGER.log('ERROR', err);
     }
   }
-    
+
   async getTARefreshStatus(event, cb) {
     await this.getUpdatedEC2Checks();
     LOGGER.log('INFO', serviceChecks.EC2);
     const _self = this;
     async.each(
       _userServices,
-      function(service, callback_p) {
+      function (service, callback_p) {
         async.each(
           serviceChecks[service],
-          function(checkId, callback_e) {
-            _self.refreshTA(checkId, function(err, data) {
+          function (checkId, callback_e) {
+            _self.refreshTA(checkId, function (err, data) {
               if (err) {
                 LOGGER.log(
                   'DEBUG',
@@ -145,12 +151,12 @@ class tarefresh {
               callback_e();
             });
           },
-          function(err) {
+          function (err) {
             callback_p();
           }
         );
       },
-      function(err) {
+      function (err) {
         return cb(null, {
           Result: 'TA refresh done',
         });
@@ -170,7 +176,7 @@ class tarefresh {
       checkId: checkId /* required */,
     };
 
-    this.support.refreshTrustedAdvisorCheck(params, function(err, data) {
+    this.support.refreshTrustedAdvisorCheck(params, function (err, data) {
       if (err) {
         return cb(err, null);
       }

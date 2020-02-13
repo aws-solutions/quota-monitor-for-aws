@@ -11,7 +11,7 @@ Description: (SO0005) - The AWS CloudFormation template for deployment of the %%
 Parameters:
   # Email address to receive alerts
   SNSEmail:
-    Description: (Required) The email address to subscribe for alert messages.
+    Description: The email address to subscribe for SNS limit alert messages, leave blank if SNS alerts not needed.
     Type: String
 
   # Accounts where limits need to be audited
@@ -24,13 +24,13 @@ Parameters:
   SNSEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: List of alert levels to send email notifications. Must be double-quoted and comma separated. To disable email notifications, enter two comma separated blank double quotes "","".
+    Description: List of alert levels to send email notifications. Must be double-quoted and comma separated. To disable email notifications, leave this blank.
 
   # Events for Slack notification
   SlackEvents:
     Type: String
     Default: '"WARN","ERROR"'
-    Description: List of alert levels to send Slack notifications. Must be double-quoted and comma separated. To disable email notifications, enter two comma separated blank double quotes "","".
+    Description: List of alert levels to send Slack notifications. Must be double-quoted and comma separated. To disable slack notifications, leave this blank.
 
   # Slack web hook URL
   SlackHookURL:
@@ -222,7 +222,7 @@ Resources:
   EventQueue:
     Type: AWS::SQS::Queue
     Properties:
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: !Ref LimitMonitorEncryptionKey
       RedrivePolicy:
         deadLetterTargetArn: !Sub ${DeadLetterQueue.Arn}
         maxReceiveCount: 3
@@ -232,9 +232,8 @@ Resources:
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      KmsMasterKeyId: "alias/aws/sqs"
+      KmsMasterKeyId: !Ref LimitMonitorEncryptionKey
       MessageRetentionPeriod: 604800 #7 day retention
-
 
   EventQueuePolicy:
     Type: AWS::SQS::QueuePolicy
@@ -287,8 +286,22 @@ Resources:
       Handler: index.handler
       Role: !Sub ${LimitSummarizerRole.Arn}
       Code:
-        S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
-        S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-report-service.zip"]]
+        S3Bucket:
+          !Join [
+            "-",
+            [
+              !FindInMap ["SourceCode", "General", "S3Bucket"],
+              Ref: "AWS::Region",
+            ],
+          ]
+        S3Key:
+          !Join [
+            "/",
+            [
+              !FindInMap ["SourceCode", "General", "KeyPrefix"],
+              "limtr-report-service.zip",
+            ],
+          ]
       Runtime: nodejs12.x
       Timeout: 300
 
@@ -331,7 +344,7 @@ Resources:
                   - dynamodb:PutItem
                 Resource:
                   - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SummaryDDB}
-                Effect: Allow
+              - Effect: Allow
                 Action:
                   - kms:GenerateDataKey*
                   - kms:Decrypt
@@ -380,8 +393,22 @@ Resources:
       Handler: index.handler
       Role: !Sub ${SlackNotifierRole.Arn}
       Code:
-        S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
-        S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-slack-service.zip"]]
+        S3Bucket:
+          !Join [
+            "-",
+            [
+              !FindInMap ["SourceCode", "General", "S3Bucket"],
+              Ref: "AWS::Region",
+            ],
+          ]
+        S3Key:
+          !Join [
+            "/",
+            [
+              !FindInMap ["SourceCode", "General", "KeyPrefix"],
+              "limtr-slack-service.zip",
+            ],
+          ]
       Runtime: nodejs12.x
       Timeout: 300
 
@@ -428,37 +455,36 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !Sub ${TASlackRule.Arn}
 
-# KMS
+  # KMS
 
-  SnsEncryptionKey:
-        Type: AWS::KMS::Key
-        Properties:
-            Description: Key for Event SNS
-            Enabled: true
-            EnableKeyRotation: true
-            KeyPolicy:
-                Statement:
-                    -
-                        Sid: "default"
-                        Effect: "Allow"
-                        Principal:
-                            AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
-                        Action: "kms:*"
-                        Resource: "*"
-                    -   Sid: "Allows event bridge to the kms key"
-                        Effect: "Allow"
-                        Principal:
-                            Service: events.amazonaws.com
-                        Action:
-                            - kms:GenerateDataKey*
-                            - kms:Decrypt
-                        Resource: "*"
+  LimitMonitorEncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Key for SNS and SQS
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy:
+        Statement:
+          - Sid: "default"
+            Effect: "Allow"
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: "Allows event bridge to the kms key"
+            Effect: "Allow"
+            Principal:
+              Service: events.amazonaws.com
+            Action:
+              - kms:GenerateDataKey*
+              - kms:Decrypt
+            Resource: "*"
 
-  SnsEncryptionKeyAlias:
-        Type: AWS::KMS::Alias
-        Properties:
-            AliasName: alias/limit-monitor-sns-encryption-key
-            TargetKeyId: !Ref SnsEncryptionKey
+  LimitMonitorEncryptionKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/limit-monitor-encryption-key
+      TargetKeyId: !Ref LimitMonitorEncryptionKey
   #
   # Email notification resources
   # [SNSTopic, SNSTopicPolicy]
@@ -468,13 +494,14 @@ Resources:
     Condition: SNSTrue
     Properties:
       # Converted to email to make more readable
-      KmsMasterKeyId: !Ref SnsEncryptionKey
+      KmsMasterKeyId: !Ref LimitMonitorEncryptionKey
       Subscription:
         - Protocol: email
           Endpoint: !Sub ${SNSEmail}
 
   SNSTopicPolicy:
     Type: AWS::SNS::TopicPolicy
+    Condition: SNSTrue
     Properties:
       PolicyDocument:
         Id: LimitMonitorSNSPolicy
@@ -514,8 +541,22 @@ Resources:
       Handler: index.handler
       Role: !Sub ${TARefresherRole.Arn}
       Code:
-        S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
-        S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-refresh-service.zip"]]
+        S3Bucket:
+          !Join [
+            "-",
+            [
+              !FindInMap ["SourceCode", "General", "S3Bucket"],
+              Ref: "AWS::Region",
+            ],
+          ]
+        S3Key:
+          !Join [
+            "/",
+            [
+              !FindInMap ["SourceCode", "General", "KeyPrefix"],
+              "limtr-refresh-service.zip",
+            ],
+          ]
       Runtime: nodejs12.x
       Timeout: 300
 
@@ -580,8 +621,22 @@ Resources:
         Variables:
           LOG_LEVEL: "INFO" #change to WARN, ERROR or DEBUG as needed
       Code:
-        S3Bucket: !Join ["-",[!FindInMap ["SourceCode", "General", "S3Bucket"],Ref: "AWS::Region"]]
-        S3Key: !Join ["/",[!FindInMap ["SourceCode", "General", "KeyPrefix"],"limtr-helper-service.zip"]]
+        S3Bucket:
+          !Join [
+            "-",
+            [
+              !FindInMap ["SourceCode", "General", "S3Bucket"],
+              Ref: "AWS::Region",
+            ],
+          ]
+        S3Key:
+          !Join [
+            "/",
+            [
+              !FindInMap ["SourceCode", "General", "KeyPrefix"],
+              "limtr-helper-service.zip",
+            ],
+          ]
       Runtime: nodejs12.x
       Timeout: 300
       Description: This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric
@@ -668,13 +723,11 @@ Resources:
 
   limitCheckStack:
     Type: AWS::CloudFormation::Stack
-    Properties: 
-      TemplateURL: !Sub 
-        - 'https://s3.amazonaws.com/${S3Bucket}/${KeyPrefix}/service-quotas-checks.template' 
-        -  
-          S3Bucket: !FindInMap ["SourceCode", "General", "TemplateBucket"] 
-          KeyPrefix: !FindInMap ["SourceCode", "General", "KeyPrefix"] 
-
+    Properties:
+      TemplateURL: !Sub
+        - "https://s3.amazonaws.com/${S3Bucket}/${KeyPrefix}/service-quotas-checks.template"
+        - S3Bucket: !FindInMap ["SourceCode", "General", "TemplateBucket"]
+          KeyPrefix: !FindInMap ["SourceCode", "General", "KeyPrefix"]
 
 Outputs:
   ServiceChecks:
