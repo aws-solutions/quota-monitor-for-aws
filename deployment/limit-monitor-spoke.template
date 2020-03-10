@@ -78,7 +78,7 @@ Resources:
           - "}"
       State: ENABLED
       Targets:
-        - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
+        - Arn: !Sub arn:aws:events:${AWS::Region}:${MasterAccount}:event-bus/default
           Id: SpokeOkTarget
 
   TAWarnRule:
@@ -108,7 +108,7 @@ Resources:
           - "}"
       State: ENABLED
       Targets:
-        - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
+        - Arn: !Sub arn:aws:events:${AWS::Region}:${MasterAccount}:event-bus/default
           Id: SpokeWarnTarget
 
   TASErrorRule:
@@ -138,7 +138,7 @@ Resources:
           - "}"
       State: ENABLED
       Targets:
-        - Arn: !Sub arn:aws:events:us-east-1:${MasterAccount}:event-bus/default
+        - Arn: !Sub arn:aws:events:${AWS::Region}:${MasterAccount}:event-bus/default
           Id: SpokeErrorTarget
 
   #
