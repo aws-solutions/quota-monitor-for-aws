@@ -24,14 +24,14 @@ _Note:_ You would have to create 2 buckets, one with prefix 'my-bucket-name' and
 * Now build the distributable:
 ```
 chmod +x ./build-s3-dist.sh \n
-./build-s3-dist.sh $DIST_OUTPUT_BUCKET $TEMPLATE_OUTPUT_BUCKET \n
+./build-s3-dist.sh $DIST_OUTPUT_BUCKET limit-monitor v1.0.0 $TEMPLATE_OUTPUT_BUCKET \n
 ```
 
 * Deploy the distributable to an Amazon S3 bucket in your account. _Note:_ you must have the AWS Command Line Interface installed.
 
 ```
-aws s3 cp ./dist/ s3://my-bucket-name/limit-monitor/latest/ --recursive --exclude "*" --include "*.template" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
-aws s3 cp ./dist/ s3://my-bucket-name-<aws_region>/limit-monitor/latest/ --recursive --exclude "*" --include "*.zip" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
+aws s3 cp ./global-s3-assets/ s3://my-bucket-name/limit-monitor/latest/ --recursive --exclude "*" --include "*.template" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
+aws s3 cp ./regional-s3-assets/ s3://my-bucket-name-<aws_region>/limit-monitor/latest/ --recursive --exclude "*" --include "*.zip" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
 ```
 
 * Get the link of the limit-monitor.template uploaded to your Amazon S3 bucket.
@@ -65,7 +65,7 @@ The AWS Limit Monitor Solution project consists of 4 microservices which is depl
         |-[ service module unit tests ]
         |-index.js [main module]
         |-logger.js [logger module]
-        |-slack-notify.js [slack messaging module]  
+        |-slack-notify.js [slack messaging module]
       |-index.js [ injection point for microservice ]
       |-package.json
     |-tarefresh/ [ microservice for refreshing TA checks ]
@@ -73,9 +73,9 @@ The AWS Limit Monitor Solution project consists of 4 microservices which is depl
         |-[ service module unit tests ]
         |-index.js [main module]
         |-logger.js [logger module]
-        |-ta-refresh.js [TA checks module]  
+        |-ta-refresh.js [TA checks module]
       |-index.js [ injection point for microservice ]
-      |-package.json   
+      |-package.json
 ```
 ***
 
@@ -101,7 +101,7 @@ The AWS Limit Monitor Solution project consists of 4 microservices which is depl
 
 ```bash
 * Added Trusted Advisor service limit checks for Route53 and DynamoDB
-* Fixed mapping between DynamoDB attributes and TA keys 
+* Fixed mapping between DynamoDB attributes and TA keys
 * Fixed incorrect attribute mappings
 ```
 

@@ -157,7 +157,7 @@ class limitreport {
         CurrentUsage: ta_mssg.detail['check-item-detail']['Current Usage'],
         LimitAmount: ta_mssg.detail['check-item-detail']['Limit Amount'],
         Status: ta_mssg.detail['status'],
-        ExpiryTime: new Date().getTime() + 15 * 24 * 3600 * 1000, //1️⃣5️⃣ days
+        ExpiryTime: parseInt((new Date().getTime() + 15 * 24 * 3600 * 1000) / 1000), //1️⃣5️⃣ days
       },
     };
     LOGGER.log('DEBUG', `DDB put item: ${JSON.stringify(params)}`);
