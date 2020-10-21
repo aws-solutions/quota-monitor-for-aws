@@ -1,0 +1,2061 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LimitMonitorStack snapshot test 1`] = `
+Object {
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": Object {
+    "AnonymousMetric": Object {
+      "Fn::Equals": Array [
+        "Yes",
+        Object {
+          "Fn::FindInMap": Array [
+            "MetricsMap",
+            "Send-Data",
+            "SendAnonymousData",
+          ],
+        },
+      ],
+    },
+    "SNSTrue": Object {
+      "Fn::Not": Array [
+        Object {
+          "Fn::Equals": Array [
+            "",
+            Object {
+              "Ref": "SNSEvents",
+            },
+          ],
+        },
+      ],
+    },
+    "SingleAccnt": Object {
+      "Fn::Equals": Array [
+        "",
+        Object {
+          "Ref": "AccountList",
+        },
+      ],
+    },
+    "SlackTrue": Object {
+      "Fn::Not": Array [
+        Object {
+          "Fn::Equals": Array [
+            "",
+            Object {
+              "Ref": "SlackEvents",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  "Mappings": Object {
+    "EventsMap": Object {
+      "Checks": Object {
+        "Services": "\\"AutoScaling\\",\\"CloudFormation\\",\\"DynamoDB\\",\\"EBS\\",\\"EC2\\",\\"ELB\\",\\"IAM\\",\\"Kinesis\\",\\"RDS\\",\\"Route53\\",\\"SES\\",\\"VPC\\"",
+      },
+    },
+    "MetricsMap": Object {
+      "Send-Data": Object {
+        "SendAnonymousData": "Yes",
+      },
+    },
+    "RefreshRate": Object {
+      "CronSchedule": Object {
+        "Default": "rate(1 day)",
+      },
+    },
+    "SourceCode": Object {
+      "General": Object {
+        "KeyPrefix": "limit-monitor/v5.3.3",
+        "S3Bucket": "solutions",
+        "TemplateBucket": "solutions-us-east-1",
+      },
+    },
+  },
+  "Metadata": Object {
+    "AWS::CloudFormation::Interface": Object {
+      "ParameterGroups": Array [
+        Object {
+          "Label": Object {
+            "default": "Notification Configuration",
+          },
+          "Parameters": Array [
+            "SNSEmail",
+          ],
+        },
+      ],
+      "ParameterLabels": Object {
+        "SNSEmail": Object {
+          "default": "Email Address",
+        },
+      },
+    },
+  },
+  "Outputs": Object {
+    "Accounts": Object {
+      "Description": "Accounts to be monitored for service limits",
+      "Value": Object {
+        "Ref": "AccountList",
+      },
+    },
+    "ServiceChecks": Object {
+      "Description": "Service limits monitored in the account",
+      "Value": Object {
+        "Fn::FindInMap": Array [
+          "EventsMap",
+          "Checks",
+          "Services",
+        ],
+      },
+    },
+    "SlackChannelKey": Object {
+      "Condition": "SlackTrue",
+      "Description": "SSM parameter for Slack Channel, change the value for your slack workspace",
+      "Value": Object {
+        "Fn::Sub": "SlackChannel",
+      },
+    },
+    "SlackHookKey": Object {
+      "Condition": "SlackTrue",
+      "Description": "SSM parameter for Slack Web Hook, change the value for your slack workspace",
+      "Value": Object {
+        "Fn::Sub": "SlackHookURL",
+      },
+    },
+    "UUID": Object {
+      "Description": "UUID for the deployment",
+      "Value": Object {
+        "Fn::GetAtt": Array [
+          "CreateUUID",
+          "UUID",
+        ],
+      },
+    },
+  },
+  "Parameters": Object {
+    "AccountList": Object {
+      "AllowedPattern": "^\\"\\\\d{12}\\"(,\\"\\\\d{12}\\")*$|(^\\\\s*)$",
+      "Description": "List of comma-separated and double-quoted account numbers to monitor. If you leave this parameter blank, the solution will only monitor limits in the primary account. If you enter multiple secondary account IDs, you must also provide the primary account ID in this parameter.",
+      "Type": "String",
+    },
+    "SNSEmail": Object {
+      "Description": "The email address to subscribe for SNS limit alert messages, leave blank if SNS alerts not needed.",
+      "Type": "String",
+    },
+    "SNSEvents": Object {
+      "Default": "\\"WARN\\",\\"ERROR\\"",
+      "Description": "List of alert levels to send email notifications. Must be double-quoted and comma separated. To disable email notifications, leave this blank.",
+      "Type": "String",
+    },
+    "SlackChannel": Object {
+      "Description": "SSM parameter key for the Slack channel. Leave blank if you do not wish to receive Slack notifications.",
+      "Type": "String",
+    },
+    "SlackEvents": Object {
+      "Default": "\\"WARN\\",\\"ERROR\\"",
+      "Description": "List of alert levels to send Slack notifications. Must be double-quoted and comma separated. To disable slack notifications, leave this blank.",
+      "Type": "String",
+    },
+    "SlackHookURL": Object {
+      "Description": "SSM parameter key for incoming Slack web hook URL. Leave blank if you do not wish to receive Slack notifications.",
+      "Type": "String",
+    },
+  },
+  "Resources": Object {
+    "AccountAnonymousData": Object {
+      "Condition": "AnonymousMetric",
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "SLACK_EVENTS": Array [
+          Object {
+            "Fn::If": Array [
+              "SlackTrue",
+              "true",
+              "false",
+            ],
+          },
+        ],
+        "SNS_EVENTS": Array [
+          Object {
+            "Fn::If": Array [
+              "SNSTrue",
+              "true",
+              "false",
+            ],
+          },
+        ],
+        "SOLUTION": "SO0005",
+        "SUB_ACCOUNTS": Object {
+          "Ref": "AccountList",
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "LimtrHelperFunction",
+            "Arn",
+          ],
+        },
+        "TA_REFRESH_RATE": Object {
+          "Fn::FindInMap": Array [
+            "RefreshRate",
+            "CronSchedule",
+            "Default",
+          ],
+        },
+        "UUID": Object {
+          "Fn::GetAtt": Array [
+            "CreateUUID",
+            "UUID",
+          ],
+        },
+        "VERSION": "v5.3.3",
+      },
+      "Type": "Custom::AnonymousData",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "CreateUUID": Object {
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "LimtrHelperFunction",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::UUID",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "DeadLetterQueue": Object {
+      "Properties": Object {
+        "KmsMasterKeyId": Object {
+          "Fn::GetAtt": Array [
+            "LimitMonitorEncryptionKey",
+            "Arn",
+          ],
+        },
+        "MessageRetentionPeriod": 604800,
+      },
+      "Type": "AWS::SQS::Queue",
+    },
+    "DeploymentData": Object {
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "ANONYMOUS_DATA": Object {
+          "Fn::FindInMap": Array [
+            "MetricsMap",
+            "Send-Data",
+            "SendAnonymousData",
+          ],
+        },
+        "SOLUTION": "SO0005",
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "LimtrHelperFunction",
+            "Arn",
+          ],
+        },
+        "UUID": Object {
+          "Fn::GetAtt": Array [
+            "CreateUUID",
+            "UUID",
+          ],
+        },
+        "VERSION": "v5.3.3",
+      },
+      "Type": "Custom::DeploymentData",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "EstablishTrust": Object {
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "SUB_ACCOUNTS": Object {
+          "Ref": "AccountList",
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "LimtrHelperFunction",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::CrossAccntTrust",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "EventQueue": Object {
+      "Properties": Object {
+        "KmsMasterKeyId": Object {
+          "Fn::GetAtt": Array [
+            "LimitMonitorEncryptionKey",
+            "Arn",
+          ],
+        },
+        "MessageRetentionPeriod": 86400,
+        "RedrivePolicy": Object {
+          "deadLetterTargetArn": Object {
+            "Fn::GetAtt": Array [
+              "DeadLetterQueue",
+              "Arn",
+            ],
+          },
+          "maxReceiveCount": 3,
+        },
+        "VisibilityTimeout": 60,
+      },
+      "Type": "AWS::SQS::Queue",
+    },
+    "LimitMonitorEncryptionKey": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "Description": "Key for SNS and SQS",
+        "EnableKeyRotation": true,
+        "Enabled": true,
+        "KeyPolicy": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "kms:Encrypt",
+                "kms:Decrypt",
+              ],
+              "Effect": "Allow",
+              "Principal": Object {
+                "AWS": Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      "arn:",
+                      Object {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::111111111111:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": "*",
+              "Sid": "default",
+            },
+            Object {
+              "Action": Array [
+                "kms:Create*",
+                "kms:Describe*",
+                "kms:Enable*",
+                "kms:List*",
+                "kms:Put*",
+                "kms:Update*",
+                "kms:Revoke*",
+                "kms:Disable*",
+                "kms:Get*",
+                "kms:Delete*",
+                "kms:ScheduleKeyDeletion",
+                "kms:CancelKeyDeletion",
+                "kms:GenerateDataKey",
+                "kms:TagResource",
+                "kms:UntagResource",
+              ],
+              "Effect": "Allow",
+              "Principal": Object {
+                "AWS": Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      "arn:",
+                      Object {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::111111111111:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": "*",
+            },
+            Object {
+              "Action": Array [
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+              ],
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "events.amazonaws.com",
+              },
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::KMS::Key",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "LimitMonitorEncryptionKeyAlias": Object {
+      "Properties": Object {
+        "AliasName": "alias/limit-monitor-encryption-key",
+        "TargetKeyId": Object {
+          "Fn::GetAtt": Array [
+            "LimitMonitorEncryptionKey",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::KMS::Alias",
+    },
+    "LimitSummarizer": Object {
+      "DependsOn": Array [
+        "LimitSummarizerRoleDefaultPolicy539F09EE",
+        "LimitSummarizerRole",
+      ],
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W58",
+              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "Code": Object {
+          "S3Bucket": Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "S3Bucket",
+                  ],
+                },
+                "-",
+                Object {
+                  "Ref": "AWS::Region",
+                },
+              ],
+            ],
+          },
+          "S3Key": Object {
+            "Fn::Join": Array [
+              "/",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "KeyPrefix",
+                  ],
+                },
+                "limtr-report-service.zip",
+              ],
+            ],
+          },
+        },
+        "Description": "Serverless Limit Monitor - Lambda function to summarize service limit usage",
+        "Environment": Object {
+          "Variables": Object {
+            "ANONYMOUS_DATA": Object {
+              "Fn::FindInMap": Array [
+                "MetricsMap",
+                "Send-Data",
+                "SendAnonymousData",
+              ],
+            },
+            "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1",
+            "DDB_TABLE_NAME": Object {
+              "Ref": "SummaryDDB",
+            },
+            "LIMIT_REPORT_TBL": Object {
+              "Ref": "SummaryDDB",
+            },
+            "LOG_LEVEL": "INFO",
+            "MAX_LOOPS": "10",
+            "MAX_MESSAGES": "10",
+            "SOLUTION": "SO0005",
+            "SQS_URL": Object {
+              "Ref": "EventQueue",
+            },
+            "UUID": Object {
+              "Fn::GetAtt": Array [
+                "CreateUUID",
+                "UUID",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "LimitSummarizerRole",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs12.x",
+        "Timeout": 300,
+        "TracingConfig": Object {
+          "Mode": "Active",
+        },
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LimitSummarizerRole": Object {
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W11",
+              "reason": "Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Path": "/",
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":logs:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":log-group:/aws/lambda/*",
+                      ],
+                    ],
+                  },
+                  "Sid": "default",
+                },
+                Object {
+                  "Action": Array [
+                    "sqs:DeleteMessage",
+                    "sqs:ReceiveMessage",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::GetAtt": Array [
+                      "EventQueue",
+                      "Arn",
+                    ],
+                  },
+                },
+                Object {
+                  "Action": Array [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":dynamodb:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":table/*",
+                      ],
+                    ],
+                  },
+                },
+                Object {
+                  "Action": Array [
+                    "kms:GenerateDataKey*",
+                    "kms:Decrypt",
+                    "kms:Encrypt",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::GetAtt": Array [
+                      "LimitMonitorEncryptionKey",
+                      "Arn",
+                    ],
+                  },
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": Object {
+              "Fn::Join": Array [
+                "",
+                Array [
+                  "Limit-Monitor-Policy-",
+                  Object {
+                    "Ref": "AWS::StackName",
+                  },
+                  "-",
+                  Object {
+                    "Ref": "AWS::Region",
+                  },
+                ],
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "LimitSummarizerRoleDefaultPolicy539F09EE": Object {
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W12",
+              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray.",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "xray:PutTraceSegments",
+                "xray:PutTelemetryRecords",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "SummaryDDB",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LimitSummarizerRoleDefaultPolicy539F09EE",
+        "Roles": Array [
+          Object {
+            "Ref": "LimitSummarizerRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "LimtrHelperFunction": Object {
+      "DependsOn": Array [
+        "LimtrHelperRole",
+      ],
+      "Properties": Object {
+        "Code": Object {
+          "S3Bucket": Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "S3Bucket",
+                  ],
+                },
+                "-",
+                Object {
+                  "Ref": "AWS::Region",
+                },
+              ],
+            ],
+          },
+          "S3Key": Object {
+            "Fn::Join": Array [
+              "/",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "KeyPrefix",
+                  ],
+                },
+                "limtr-helper-service.zip",
+              ],
+            ],
+          },
+        },
+        "Description": "This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric",
+        "Environment": Object {
+          "Variables": Object {
+            "LOG_LEVEL": "INFO",
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "LimtrHelperRole",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs12.x",
+        "Timeout": 300,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LimtrHelperRole": Object {
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W11",
+              "reason": "Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Path": "/",
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":logs:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":log-group:/aws/lambda/*",
+                      ],
+                    ],
+                  },
+                  "Sid": "default",
+                },
+                Object {
+                  "Action": Array [
+                    "events:PutPermission",
+                    "events:RemovePermission",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":events:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":event-bus/default",
+                      ],
+                    ],
+                  },
+                },
+                Object {
+                  "Action": Array [
+                    "ssm:GetParameters",
+                    "ssm:PutParameter",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":ssm:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":parameter/*",
+                      ],
+                    ],
+                  },
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "Custom_Limtr_Helper_Permissions",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "QueuePollSchedule": Object {
+      "Properties": Object {
+        "Description": "Limit Monitor Solution - Schedule to poll SQS queue",
+        "ScheduleExpression": "rate(5 minutes)",
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Fn::GetAtt": Array [
+                "LimitSummarizer",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "QueuePollScheduleLambdaFunctionServiceRole173B759B": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:aws:logs:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":log-group:/aws/lambda/*",
+                      ],
+                    ],
+                  },
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "LambdaFunctionServiceRolePolicy",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "SNSTopic": Object {
+      "Condition": "SNSTrue",
+      "Properties": Object {
+        "KmsMasterKeyId": Object {
+          "Fn::GetAtt": Array [
+            "LimitMonitorEncryptionKey",
+            "Arn",
+          ],
+        },
+        "Subscription": Array [
+          Object {
+            "Endpoint": Object {
+              "Fn::Sub": "\${SNSEmail}",
+            },
+            "Protocol": "email",
+          },
+        ],
+      },
+      "Type": "AWS::SNS::Topic",
+    },
+    "SNSTopicPolicyE1168CD7": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sns:Publish",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "events.amazonaws.com",
+              },
+              "Resource": Object {
+                "Ref": "SNSTopic",
+              },
+              "Sid": "0",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Topics": Array [
+          Object {
+            "Ref": "SNSTopic",
+          },
+        ],
+      },
+      "Type": "AWS::SNS::TopicPolicy",
+    },
+    "SSMParameter": Object {
+      "Condition": "SlackTrue",
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "SLACK_CHANNEL_KEY": Object {
+          "Fn::Sub": "SlackChannel",
+        },
+        "SLACK_HOOK_KEY": Object {
+          "Fn::Sub": "SlackHookURL",
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "LimtrHelperFunction",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::SSMParameter",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "SlackNotifier": Object {
+      "Condition": "SlackTrue",
+      "DependsOn": Array [
+        "SlackNotifierRoleDefaultPolicy3F0FB2C2",
+        "SlackNotifierRole",
+      ],
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W58",
+              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "Code": Object {
+          "S3Bucket": Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "S3Bucket",
+                  ],
+                },
+                "-",
+                Object {
+                  "Ref": "AWS::Region",
+                },
+              ],
+            ],
+          },
+          "S3Key": Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "KeyPrefix",
+                  ],
+                },
+                "/limtr-slack-service.zip",
+              ],
+            ],
+          },
+        },
+        "Description": "Serverless Limit Monitor - Lambda function to send notifications on slack",
+        "Environment": Object {
+          "Variables": Object {
+            "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1",
+            "LOG_LEVEL": "INFO",
+            "SLACK_CHANNEL": Object {
+              "Fn::Sub": "SlackChannel",
+            },
+            "SLACK_HOOK": Object {
+              "Fn::Sub": "SlackHookURL",
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "SlackNotifierRole",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs12.x",
+        "Timeout": 300,
+        "TracingConfig": Object {
+          "Mode": "Active",
+        },
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "SlackNotifierInvokePermission": Object {
+      "Condition": "SlackTrue",
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "SlackNotifier",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "TASlackRule",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "SlackNotifierRole": Object {
+      "Condition": "SlackTrue",
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W11",
+              "reason": "Override the IAM role to allow support:* for logs:PutLogEvents resource on its permissions policy",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Path": "/",
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":logs:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":log-group:/aws/lambda/*",
+                      ],
+                    ],
+                  },
+                  "Sid": "default",
+                },
+                Object {
+                  "Action": "ssm:GetParameter",
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":ssm:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":*",
+                      ],
+                    ],
+                  },
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": Object {
+              "Fn::Join": Array [
+                "",
+                Array [
+                  "Limit-Monitor-Policy-",
+                  Object {
+                    "Ref": "AWS::StackName",
+                  },
+                  "-",
+                  Object {
+                    "Ref": "AWS::Region",
+                  },
+                ],
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "SlackNotifierRoleDefaultPolicy3F0FB2C2": Object {
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W12",
+              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray.",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "xray:PutTraceSegments",
+                "xray:PutTelemetryRecords",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "SlackNotifierRoleDefaultPolicy3F0FB2C2",
+        "Roles": Array [
+          Object {
+            "Ref": "SlackNotifierRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "SummarizerInvokePermission": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "LimitSummarizer",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "QueuePollSchedule",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "SummaryDDB": Object {
+      "DeletionPolicy": "Retain",
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W73",
+              "reason": "PROVISIONED billing mode is a default and is not explicitly applied as a setting.",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "MessageId",
+            "AttributeType": "S",
+          },
+          Object {
+            "AttributeName": "TimeStamp",
+            "AttributeType": "S",
+          },
+        ],
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "MessageId",
+            "KeyType": "HASH",
+          },
+          Object {
+            "AttributeName": "TimeStamp",
+            "KeyType": "RANGE",
+          },
+        ],
+        "PointInTimeRecoverySpecification": Object {
+          "PointInTimeRecoveryEnabled": true,
+        },
+        "ProvisionedThroughput": Object {
+          "ReadCapacityUnits": 2,
+          "WriteCapacityUnits": 2,
+        },
+        "SSESpecification": Object {
+          "SSEEnabled": true,
+        },
+        "TimeToLiveSpecification": Object {
+          "AttributeName": "ExpiryTime",
+          "Enabled": true,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "TARefreshSchedule": Object {
+      "Properties": Object {
+        "Description": "Limit Monitor Solution - Schedule to refresh TA checks",
+        "ScheduleExpression": Object {
+          "Fn::FindInMap": Array [
+            "RefreshRate",
+            "CronSchedule",
+            "Default",
+          ],
+        },
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Fn::GetAtt": Array [
+                "TARefresher",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "TARefreshScheduleLambdaFunctionServiceRole88DF7FDF": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:aws:logs:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":log-group:/aws/lambda/*",
+                      ],
+                    ],
+                  },
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "LambdaFunctionServiceRolePolicy",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TARefresher": Object {
+      "DependsOn": Array [
+        "TARefresherRoleDefaultPolicy7FEE92D8",
+        "TARefresherRole",
+      ],
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W58",
+              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "Code": Object {
+          "S3Bucket": Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "S3Bucket",
+                  ],
+                },
+                "-",
+                Object {
+                  "Ref": "AWS::Region",
+                },
+              ],
+            ],
+          },
+          "S3Key": Object {
+            "Fn::Join": Array [
+              "/",
+              Array [
+                Object {
+                  "Fn::FindInMap": Array [
+                    "SourceCode",
+                    "General",
+                    "KeyPrefix",
+                  ],
+                },
+                "limtr-refresh-service.zip",
+              ],
+            ],
+          },
+        },
+        "Description": "Serverless Limit Monitor - Lambda function to summarize service limits",
+        "Environment": Object {
+          "Variables": Object {
+            "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1",
+            "AWS_SERVICES": Object {
+              "Fn::FindInMap": Array [
+                "EventsMap",
+                "Checks",
+                "Services",
+              ],
+            },
+            "LOG_LEVEL": "INFO",
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "TARefresherRole",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs12.x",
+        "Timeout": 300,
+        "TracingConfig": Object {
+          "Mode": "Active",
+        },
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "TARefresherInvokePermission": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "TARefresher",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "TARefreshSchedule",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "TARefresherRole": Object {
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "F3",
+              "reason": "Override the IAM role to allow support:* resource on its permissions policy",
+            },
+            Object {
+              "id": "W11",
+              "reason": "Override the IAM role to allow Resource:* for logs:PutLogEvents, resource on its permissions policy",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Path": "/",
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":logs:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":log-group:/aws/lambda/*",
+                      ],
+                    ],
+                  },
+                  "Sid": "default",
+                },
+                Object {
+                  "Action": "support:*",
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+                Object {
+                  "Action": "servicequotas:GetAWSDefaultServiceQuota",
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": Object {
+              "Fn::Join": Array [
+                "",
+                Array [
+                  "Limit-Monitor-Refresher-Policy-",
+                  Object {
+                    "Ref": "AWS::StackName",
+                  },
+                ],
+              ],
+            },
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TARefresherRoleDefaultPolicy7FEE92D8": Object {
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W12",
+              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray.",
+            },
+          ],
+        },
+      },
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "xray:PutTraceSegments",
+                "xray:PutTelemetryRecords",
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "TARefresherRoleDefaultPolicy7FEE92D8",
+        "Roles": Array [
+          Object {
+            "Ref": "TARefresherRole",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "TASNSRule": Object {
+      "Condition": "SlackTrue",
+      "Properties": Object {
+        "Description": "Limit Monitor Solution - Rule for TA SNS events",
+        "EventPattern": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "{\\"account\\":[",
+              Object {
+                "Fn::If": Array [
+                  "SingleAccnt",
+                  Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "\\"",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        "\\"",
+                      ],
+                    ],
+                  },
+                  Object {
+                    "Ref": "AccountList",
+                  },
+                ],
+              },
+              "],",
+              "\\"source\\":[\\"aws.trustedadvisor\\", \\"limit-monitor-solution\\"],",
+              "\\"detail-type\\":[\\"Trusted Advisor Check Item Refresh Notification\\", \\"Limit Monitor Checks\\"],",
+              "\\"detail\\":{",
+              "\\"status\\":[",
+              Object {
+                "Ref": "SNSEvents",
+              },
+              "],",
+              "\\"check-item-detail\\":{",
+              "\\"Service\\":[",
+              Object {
+                "Fn::FindInMap": Array [
+                  "EventsMap",
+                  "Checks",
+                  "Services",
+                ],
+              },
+              "]",
+              "}",
+              "}",
+              "}",
+            ],
+          ],
+        },
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Ref": "SNSTopic",
+            },
+            "Id": "LimitMonitorSNSTarget",
+            "InputTransformer": Object {
+              "InputPathsMap": Object {
+                "account": "$.account",
+                "limitdetails": "$.detail.check-item-detail",
+                "time": "$.time",
+              },
+              "InputTemplate": "\\"AWS-Account : <account> || Timestamp : <time> || Limit-Details : <limitdetails>\\"",
+            },
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "TASQSRule": Object {
+      "Properties": Object {
+        "Description": "Limit Monitor Solution - Rule for TA SQS events",
+        "EventPattern": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "{\\"account\\":[",
+              Object {
+                "Fn::If": Array [
+                  "SingleAccnt",
+                  Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "\\"",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        "\\"",
+                      ],
+                    ],
+                  },
+                  Object {
+                    "Ref": "AccountList",
+                  },
+                ],
+              },
+              "],",
+              "\\"source\\":[\\"aws.trustedadvisor\\", \\"limit-monitor-solution\\"],",
+              "\\"detail-type\\":[\\"Trusted Advisor Check Item Refresh Notification\\", \\"Limit Monitor Checks\\"],",
+              "\\"detail\\":{",
+              "\\"status\\":[",
+              "\\"OK\\",\\"WARN\\",\\"ERROR\\"",
+              "],",
+              "\\"check-item-detail\\":{",
+              "\\"Service\\":[",
+              Object {
+                "Fn::FindInMap": Array [
+                  "EventsMap",
+                  "Checks",
+                  "Services",
+                ],
+              },
+              "]",
+              "}",
+              "}",
+              "}",
+            ],
+          ],
+        },
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Fn::GetAtt": Array [
+                "EventQueue",
+                "Arn",
+              ],
+            },
+            "Id": "LimitMonitorSQSTarget",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "TASQSRuledeadLetterQueuePolicyD9684898": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "sqs:DeleteMessage",
+                "sqs:ReceiveMessage",
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:RemovePermission",
+                "sqs:AddPermission",
+                "sqs:SetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Principal": Object {
+                "AWS": Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      "arn:",
+                      Object {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::111111111111:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "DeadLetterQueue",
+                  "Arn",
+                ],
+              },
+              "Sid": "QueueOwnerOnlyAccess",
+            },
+            Object {
+              "Action": "SQS:*",
+              "Condition": Object {
+                "Bool": Object {
+                  "aws:SecureTransport": "false",
+                },
+              },
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "DeadLetterQueue",
+                  "Arn",
+                ],
+              },
+              "Sid": "HttpsOnly",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Queues": Array [
+          Object {
+            "Ref": "DeadLetterQueue",
+          },
+        ],
+      },
+      "Type": "AWS::SQS::QueuePolicy",
+    },
+    "TASQSRulequeuePolicyF2CDE7D2": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "sqs:DeleteMessage",
+                "sqs:ReceiveMessage",
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:RemovePermission",
+                "sqs:AddPermission",
+                "sqs:SetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Principal": Object {
+                "AWS": Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      "arn:",
+                      Object {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::111111111111:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "EventQueue",
+                  "Arn",
+                ],
+              },
+              "Sid": "QueueOwnerOnlyAccess",
+            },
+            Object {
+              "Action": "SQS:*",
+              "Condition": Object {
+                "Bool": Object {
+                  "aws:SecureTransport": "false",
+                },
+              },
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "EventQueue",
+                  "Arn",
+                ],
+              },
+              "Sid": "HttpsOnly",
+            },
+            Object {
+              "Action": Array [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "events.amazonaws.com",
+              },
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "EventQueue",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Queues": Array [
+          Object {
+            "Ref": "EventQueue",
+          },
+        ],
+      },
+      "Type": "AWS::SQS::QueuePolicy",
+    },
+    "TASlackEventRuleLambdaFunctionServiceRole010C3825": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": Array [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents",
+                  ],
+                  "Effect": "Allow",
+                  "Resource": Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "arn:aws:logs:",
+                        Object {
+                          "Ref": "AWS::Region",
+                        },
+                        ":",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        ":log-group:/aws/lambda/*",
+                      ],
+                    ],
+                  },
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "LambdaFunctionServiceRolePolicy",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "TASlackRule": Object {
+      "Condition": "SlackTrue",
+      "Properties": Object {
+        "Description": "Limit Monitor Solution - Rule for TA Slack events",
+        "EventPattern": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "{\\"account\\":[",
+              Object {
+                "Fn::If": Array [
+                  "SingleAccnt",
+                  Object {
+                    "Fn::Join": Array [
+                      "",
+                      Array [
+                        "\\"",
+                        Object {
+                          "Ref": "AWS::AccountId",
+                        },
+                        "\\"",
+                      ],
+                    ],
+                  },
+                  Object {
+                    "Ref": "AccountList",
+                  },
+                ],
+              },
+              "],",
+              "\\"source\\":[\\"aws.trustedadvisor\\", \\"limit-monitor-solution\\"],",
+              "\\"detail-type\\":[\\"Trusted Advisor Check Item Refresh Notification\\", \\"Limit Monitor Checks\\"],",
+              "\\"detail\\":{",
+              "\\"status\\":[",
+              Object {
+                "Ref": "SlackEvents",
+              },
+              "],",
+              "\\"check-item-detail\\":{",
+              "\\"Service\\":[",
+              Object {
+                "Fn::FindInMap": Array [
+                  "EventsMap",
+                  "Checks",
+                  "Services",
+                ],
+              },
+              "]",
+              "}",
+              "}",
+              "}",
+            ],
+          ],
+        },
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Fn::GetAtt": Array [
+                "SlackNotifier",
+                "Arn",
+              ],
+            },
+            "Id": "LimitMonitorSlackTarget",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "limitCheckStack": Object {
+      "Properties": Object {
+        "TemplateURL": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "https://s3.amazonaws.com/",
+              Object {
+                "Fn::FindInMap": Array [
+                  "SourceCode",
+                  "General",
+                  "TemplateBucket",
+                ],
+              },
+              "/",
+              Object {
+                "Fn::FindInMap": Array [
+                  "SourceCode",
+                  "General",
+                  "KeyPrefix",
+                ],
+              },
+              "/service-quotas-checks.template",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::CloudFormation::Stack",
+    },
+  },
+}
+`;

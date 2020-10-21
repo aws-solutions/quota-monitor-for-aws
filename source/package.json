@@ -1,0 +1,39 @@
+{
+  "name": "limit-monitor",
+  "version": "0.1.0",
+  "bin": {
+    "limit-monitor": "bin/limit-monitor.js"
+  },
+  "scripts": {
+    "cleanup": "tsc --build ./ --clean && rm -rf node_modules && rm -f package-lock.json",
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@aws-cdk/assert": "1.62.0",
+    "@types/jest": "^25.2.3",
+    "@types/node": "10.17.5",
+    "aws-cdk": "1.62.0",
+    "jest": "^25.5.4",
+    "ts-jest": "^25.3.1",
+    "ts-node": "^8.1.0",
+    "typescript": "~3.7.2"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-lambda": "1.62.0",
+    "@aws-cdk/aws-events": "1.62.0",
+    "@aws-cdk/aws-events-targets": "1.62.0",
+    "@aws-cdk/aws-iam": "1.62.0",
+    "@aws-cdk/aws-kms": "1.62.0",
+    "@aws-cdk/aws-s3": "1.62.0",
+    "@aws-cdk/core": "1.62.0",
+    "@aws-solutions-constructs/core": "1.62.0",
+    "@aws-solutions-constructs/aws-events-rule-lambda": "1.62.0",
+    "@aws-solutions-constructs/aws-lambda-dynamodb": "1.62.0",
+    "@aws-solutions-constructs/aws-events-rule-sns": "1.62.0",
+    "@aws-solutions-constructs/aws-events-rule-sqs": "1.62.0",
+    "source-map-support": "^0.5.16"
+  }
+}

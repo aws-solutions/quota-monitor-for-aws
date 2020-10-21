@@ -11,3 +11,10 @@
 **/global-s3-assets
 **/regional-s3-assets
 **/npm-debug.log
+
+#cdk related files
+*cdk.out*
+*.d.ts
+source/bin/*.js
+source/lib/*.js
+source/test/*.js

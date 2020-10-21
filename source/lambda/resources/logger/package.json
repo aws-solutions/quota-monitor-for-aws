@@ -1,0 +1,24 @@
+{
+    "name": "logger",
+    "version": "1.0.0",
+    "description": "Logger is an auxiliary logging class for solution services",
+    "author": {
+        "name": "aws-solutions-builder"
+    },
+    "private": true,
+    "main": "./logger.common.js",
+    "dependencies": {},
+    "devDependencies": {
+        "chai": "4.2.0",
+        "sinon": "9.0.3",
+        "sinon-chai": "3.5.0",
+        "mocha": "8.1.3",
+        "aws-sdk-mock": "5.1.0"
+    },
+    "scripts": {
+        "pretest": "rm -rf package-lock.json && rm -rf node_modules && npm install",
+        "test": "mocha lib/*.spec.js",
+        "build:init": "rm -rf package-lock.json && rm -rf dist && rm -rf node_modules",
+        "build": "npm run build:init && npm install --production"
+    }
+}

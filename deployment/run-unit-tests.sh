@@ -1,5 +1,7 @@
+#!/bin/bash
+
 # Fixed path to run all unit tests
-cd ../source/services/limitreport
+cd ../source/lambda/services/limitreport
 npm install
 npm test
 
