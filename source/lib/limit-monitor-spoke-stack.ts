@@ -205,7 +205,6 @@ export class LimitMonitorSpokeStack extends cdk.Stack {
             lambdaFunctionProps: {
                 runtime: lambda.Runtime.NODEJS_12_X,
                 code: lambda.Code.fromBucket(solutionsLambdaCodeBucket, props.solutionName + '/' + props.solutionVersion + '/limtr-refresh-service.zip'),
-                functionName: 'TARefresher',
                 description: 'Serverless Limit Monitor - Lambda function to summarize service limits',
                 timeout: cdk.Duration.seconds(300),
                 handler: 'index.handler',

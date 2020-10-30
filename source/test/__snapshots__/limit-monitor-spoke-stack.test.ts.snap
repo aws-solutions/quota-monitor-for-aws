@@ -313,7 +313,6 @@ Object {
             "LOG_LEVEL": "INFO",
           },
         },
-        "FunctionName": "TARefresher",
         "Handler": "index.handler",
         "Role": Object {
           "Fn::GetAtt": Array [
@@ -377,7 +376,11 @@ Object {
                     "Fn::Join": Array [
                       "",
                       Array [
-                        "arn:aws:logs:",
+                        "arn:",
+                        Object {
+                          "Ref": "AWS::Partition",
+                        },
+                        ":logs:",
                         Object {
                           "Ref": "AWS::Region",
                         },
