@@ -35,7 +35,6 @@ let serviceChecks = {
    */
   EBS: [
     'eI7KK0l7J9',
-    'fH7LL0l7J9',
     'dH7RR0l6J9',
     'cG7HH0l7J9',
     'tV7YY0l7J9',
@@ -43,7 +42,7 @@ let serviceChecks = {
     'wH7DD0l3J9',
     'gH5CC0e3J9',
   ],
-  EC2: ['aW9HH0l8J6', '0Xc6LMYG8P', 'iH7PP0l7J9'],
+  EC2: ['0Xc6LMYG8P', 'iH7PP0l7J9'],
   ELB: ['iK7OO0l7J9', 'EM8b3yLRTr', '8wIqYSt25K'],
   IAM: [
     'sU7XX0l7J9',
@@ -125,7 +124,7 @@ class tarefresh {
     try {
       let response = await servicequotas.getAWSDefaultServiceQuota(limits_ec2_Standard_OnDemand).promise();
       if (response.Quota.ServiceCode === "ec2")
-        serviceChecks.EC2 = ['aW9HH0l8J6', 'iH7PP0l7J9'];
+        serviceChecks.EC2 = ['iH7PP0l7J9'];
     } catch (err) {
       LOGGER.log('ERROR', err);
     }

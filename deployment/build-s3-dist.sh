@@ -27,7 +27,10 @@
 #  - version-code: version of the package
 
 # Important: CDK global version number
-cdk_version=1.64
+cdk_version=1.101.0
+maxrc=0
+rc=0
+export overrideWarningsEnabled=false
 
 # Check to see if the required parameters have been provided:
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [-z "$4"]; then
@@ -87,17 +90,53 @@ echo "--------------------------------------------------------------------------
 # Install the global aws-cdk package
 echo "cd $source_dir"
 cd $source_dir
-echo "npm install -g aws-cdk@$cdk_version"
-npm install -g aws-cdk@$cdk_version
+echo "npm install aws-cdk@$cdk_version"
+do_cmd npm install
+do_cmd npm install aws-cdk@$cdk_version
+export PATH=$(npm bin):$PATH
+# Check cdk version
+cdkver=`cdk --version | grep -Eo '^[0-9]{1,2}\.[0-9]+\.[0-9]+'`
+echo CDK version $cdkver
+if [[ $cdkver != $cdk_version ]]; then 
+    echo Required CDK version is $cdk_version, found $cdkver
+    exit 255
+fi
 
 # Run npm run build && npm run test for the cdk component unit tests
 echo "npm run build && npm run test"
-do_cmd npm install
-do_cmd npm run build && npm run test
+npm run build && npm run test
+rc=$?
+
+if [ "$rc" -ne "0" ]; then
+  echo "** UNIT TESTS FAILED **"
+else
+  echo "Unit Tests Successful"
+fi
+if [ "$rc" -gt "$maxrc" ]; then
+    maxrc=$rc
+fi
 
 # Run all the lambda source code tests.
 echo "$template_dir/run-unit-tests.sh"
-do_cmd $template_dir/run-unit-tests.sh 
+$template_dir/run-unit-tests.sh 
+rc=$?
+
+if [ "$rc" -ne "0" ]; then
+  echo "** UNIT TESTS FAILED **"
+else
+  echo "Unit Tests Successful"
+fi
+if [ "$rc" -gt "$maxrc" ]; then
+    maxrc=$rc
+fi
+
+echo "========================================================================="
+if [ "$maxrc" -ne "0" ]; then
+  echo "** UNIT TESTS FAILED **"
+  exit $maxrc
+else
+  echo "ALL UNIT TESTS PASSED"
+fi
 
 # Run 'cdk synth' to generate raw solution outputs
 echo "cdk synth --output=$staging_dist_dir"

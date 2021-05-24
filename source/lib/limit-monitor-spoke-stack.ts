@@ -20,9 +20,8 @@ import * as s3 from "@aws-cdk/aws-s3";
 import * as iam from "@aws-cdk/aws-iam";
 import * as events from "@aws-cdk/aws-events";
 import { PolicyDocument, PolicyStatement, Effect } from "@aws-cdk/aws-iam";
-import { Aws, CfnStack } from "@aws-cdk/core";
+import { Aws, CfnResource, CfnStack } from "@aws-cdk/core";
 import { LimitMonitorStackProps } from '../bin/limit-monitor';
-
 export class LimitMonitorSpokeStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props: LimitMonitorStackProps) {
         super(scope, id, props)
@@ -250,7 +249,7 @@ export class LimitMonitorSpokeStack extends cdk.Stack {
         eventRuleLambda.lambdaFunction.addToRolePolicy(serviceQuotasPolicy)
 
         const cfnLambdaFunctionDefPolicy = eventRuleLambda.lambdaFunction.role?.node.tryFindChild('DefaultPolicy')?.node.findChild('Resource') as iam.CfnPolicy;
-
+        const cfnLambdaFunction = eventRuleLambda.lambdaFunction.node.findChild("Resource") as CfnResource;
         // Add the CFN NAG suppress to allow for "Resource": "*" for AWS X-Ray and support * actions.
         cfnLambdaFunctionDefPolicy.cfnOptions.metadata = {
             cfn_nag: {
@@ -261,7 +260,21 @@ export class LimitMonitorSpokeStack extends cdk.Stack {
                     id: 'F4',
                     reason: `Lambda needs the support * to perform the functions for monitoring resources.`
                 }
-            ]}}
+            ]}};
+            cfnLambdaFunction.cfnOptions.metadata = {
+                cfn_nag: {
+                  rules_to_suppress: [
+                    {
+                      id: "W89",
+                      reason: "Not a valid use case to deploy in VPC",
+                    },
+                    {
+                      id: "W92",
+                      reason: "ReservedConcurrentExecutions not needed",
+                    }
+                  ],
+                },
+              };
 
 
         //End TARefresherLambda and Event Rule Resource.
@@ -298,6 +311,20 @@ export class LimitMonitorSpokeStack extends cdk.Stack {
 
         const cfn_ref_limtrFunction = limtrHelperFunction.node.defaultChild as lambda.CfnFunction
         cfn_ref_limtrFunction.overrideLogicalId('LimtrHelperFunction')
+        cfn_ref_limtrFunction.cfnOptions.metadata = {
+            cfn_nag: {
+              rules_to_suppress: [
+                {
+                  id: "W89",
+                  reason: "Not a valid use case to deploy in VPC",
+                },
+                {
+                  id: "W92",
+                  reason: "ReservedConcurrentExecutions not needed",
+                }
+              ],
+            },
+          };
 
 
 

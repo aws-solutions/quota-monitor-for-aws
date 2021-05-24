@@ -17,7 +17,6 @@
 
 'use strict';
 
-let AWS = require('aws-sdk');
 let LimitReport = require('./limit-report.js');
 const LOGGER = new (require('./logger'))();
 

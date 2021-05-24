@@ -26,8 +26,8 @@ import * as sqs from '@aws-cdk/aws-sqs';
 import { CfnOutput } from '@aws-cdk/core';
 import { LambdaToDynamoDBProps, LambdaToDynamoDB } from '@aws-solutions-constructs/aws-lambda-dynamodb';
 import { EventsRuleToLambdaProps, EventsRuleToLambda } from '@aws-solutions-constructs/aws-events-rule-lambda';
-import { EventsRuleToSNS, EventsRuleToSNSProps } from '@aws-solutions-constructs/aws-events-rule-sns';
-import { EventsRuleToSQS, EventsRuleToSQSProps } from '@aws-solutions-constructs/aws-events-rule-sqs';
+import { EventsRuleToSns, EventsRuleToSnsProps } from '@aws-solutions-constructs/aws-events-rule-sns';
+import { EventsRuleToSqs, EventsRuleToSqsProps } from '@aws-solutions-constructs/aws-events-rule-sqs';
 import { LimitMonitorStackProps } from '../bin/limit-monitor';
 import { ArnPrincipal, Effect } from '@aws-cdk/aws-iam';
 
@@ -171,13 +171,30 @@ export class LimitMonitorStack extends cdk.Stack {
 
     const taSlackEventRuleToLambdaConstruct = new EventsRuleToLambda(this, 'TASlackEventRule', taSlackEventsRuleToLambdaProps);
 
+    const cfn_nag_w89_w92 = {
+      cfn_nag: {
+        rules_to_suppress: [
+          {
+            id: "W89",
+            reason: "Not a valid use case to deploy in VPC",
+          },
+          {
+            id: "W92",
+            reason: "ReservedConcurrentExecutions not needed",
+          }
+        ],
+      },
+    };
     const lambdaSlackNotifier_cfn_ref = taSlackEventRuleToLambdaConstruct.lambdaFunction.node.defaultChild as lambda.CfnFunction
     lambdaSlackNotifier_cfn_ref.overrideLogicalId('SlackNotifier')
     lambdaSlackNotifier_cfn_ref.addOverride('Condition', 'SlackTrue')
 
     const lambdaSlackNotifier_cfn_permission = taSlackEventRuleToLambdaConstruct.lambdaFunction.permissionsNode.tryFindChild('LambdaInvokePermission') as lambda.CfnPermission
-    lambdaSlackNotifier_cfn_permission.overrideLogicalId('SlackNotifierInvokePermission')
-    lambdaSlackNotifier_cfn_permission.addOverride('Condition', 'SlackTrue')
+    if (lambdaSlackNotifier_cfn_permission != undefined) {
+      lambdaSlackNotifier_cfn_permission.overrideLogicalId('SlackNotifierInvokePermission')
+      lambdaSlackNotifier_cfn_permission.addOverride('Condition', 'SlackTrue')
+    }
+    lambdaSlackNotifier_cfn_ref.cfnOptions.metadata = cfn_nag_w89_w92
 
     const taslackrule_cfn_ref = taSlackEventRuleToLambdaConstruct.eventsRule.node.defaultChild as events.CfnRule
     taslackrule_cfn_ref.overrideLogicalId('TASlackRule')
@@ -263,7 +280,7 @@ export class LimitMonitorStack extends cdk.Stack {
     /*
     * Create cloudformation resources for TA SQS Event Rule to SQS using aws-events-rule-sqs construct pattern
     */
-    const taSQSRuleEventsRuleToSQSProps: EventsRuleToSQSProps = {
+    const taSQSRuleEventsRuleToSqsProps: EventsRuleToSqsProps = {
       queueProps: {
         encryption: sqs.QueueEncryption.KMS,
         encryptionMasterKey: limitMonitorEncryptionKey,
@@ -285,17 +302,17 @@ export class LimitMonitorStack extends cdk.Stack {
       }
     };
 
-    const taSQSRuleEventsRuleToSQSConstruct = new EventsRuleToSQS(this, 'TASQSRule', taSQSRuleEventsRuleToSQSProps);
+    const taSQSRuleEventsRuleToSqsConstruct = new EventsRuleToSqs(this, 'TASQSRule', taSQSRuleEventsRuleToSqsProps);
 
-    const taevent_queue_cfn_ref = taSQSRuleEventsRuleToSQSConstruct.sqsQueue.node.defaultChild as sqs.CfnQueue
+    const taevent_queue_cfn_ref = taSQSRuleEventsRuleToSqsConstruct.sqsQueue.node.defaultChild as sqs.CfnQueue
     taevent_queue_cfn_ref.overrideLogicalId('EventQueue')
 
-    if (taSQSRuleEventsRuleToSQSConstruct.deadLetterQueue != undefined) {
-      const taevent_deadletterqueue_cfn_ref = taSQSRuleEventsRuleToSQSConstruct.deadLetterQueue.queue.node.defaultChild as sqs.CfnQueue
+    if (taSQSRuleEventsRuleToSqsConstruct.deadLetterQueue != undefined) {
+      const taevent_deadletterqueue_cfn_ref = taSQSRuleEventsRuleToSqsConstruct.deadLetterQueue.queue.node.defaultChild as sqs.CfnQueue
       taevent_deadletterqueue_cfn_ref.overrideLogicalId('DeadLetterQueue')
     }
 
-    const tasqsrule_cfn_ref = taSQSRuleEventsRuleToSQSConstruct.eventsRule.node.defaultChild as events.CfnRule
+    const tasqsrule_cfn_ref = taSQSRuleEventsRuleToSqsConstruct.eventsRule.node.defaultChild as events.CfnRule
     tasqsrule_cfn_ref.overrideLogicalId('TASQSRule')
     tasqsrule_cfn_ref.addOverride('Properties.EventPattern', {
       "Fn::Join": [
@@ -352,7 +369,7 @@ export class LimitMonitorStack extends cdk.Stack {
     const limitSummarizerRoleSQSPS = new iam.PolicyStatement({
       actions: ["sqs:DeleteMessage", "sqs:ReceiveMessage"],
       effect: Effect.ALLOW,
-      resources: [taSQSRuleEventsRuleToSQSConstruct.sqsQueue.queueArn]
+      resources: [taSQSRuleEventsRuleToSqsConstruct.sqsQueue.queueArn]
     })
 
     const limitSummarizerRoleDynamoDBPS = new iam.PolicyStatement({
@@ -397,7 +414,7 @@ export class LimitMonitorStack extends cdk.Stack {
         description: 'Serverless Limit Monitor - Lambda function to summarize service limit usage',
         environment: {
           //LIMIT_REPORT_TBL: limitSummarizerLambdaToDynamoDb.dynamoTable.tableName,
-          SQS_URL: taSQSRuleEventsRuleToSQSConstruct.sqsQueue.queueUrl,
+          SQS_URL: taSQSRuleEventsRuleToSqsConstruct.sqsQueue.queueUrl,
           MAX_MESSAGES: '10', //100 messages can be read with each invocation, change as needed
           MAX_LOOPS: '10',
           ANONYMOUS_DATA: sendAnonymousData,
@@ -420,10 +437,13 @@ export class LimitMonitorStack extends cdk.Stack {
     const queuePollScheduleEventsRuleToLambdaConstruct = new EventsRuleToLambda(this, 'QueuePollSchedule', queuePollScheduleEventsRuleToLambdaProps);
 
     const lambdaLimitSummarizer_cfn_ref = queuePollScheduleEventsRuleToLambdaConstruct.lambdaFunction.node.defaultChild as lambda.CfnFunction
+    lambdaLimitSummarizer_cfn_ref.cfnOptions.metadata = cfn_nag_w89_w92
     lambdaLimitSummarizer_cfn_ref.overrideLogicalId('LimitSummarizer')
 
     const lambdaLimitSummarizer_cfn_permission = queuePollScheduleEventsRuleToLambdaConstruct.lambdaFunction.permissionsNode.tryFindChild('LambdaInvokePermission') as lambda.CfnPermission
-    lambdaLimitSummarizer_cfn_permission.overrideLogicalId('SummarizerInvokePermission')
+    if (lambdaLimitSummarizer_cfn_permission != undefined) {
+      lambdaLimitSummarizer_cfn_permission.overrideLogicalId('SummarizerInvokePermission')
+    }
 
     const queuepollschedulerule_cfn_ref = queuePollScheduleEventsRuleToLambdaConstruct.eventsRule.node.defaultChild as events.CfnRule
     queuepollschedulerule_cfn_ref.overrideLogicalId('QueuePollSchedule')
@@ -506,10 +526,13 @@ export class LimitMonitorStack extends cdk.Stack {
     const taRefresherEventsRuleToLambdaConstruct = new EventsRuleToLambda(this, 'TARefreshSchedule', taRefresherEventsRuleToLambdaProps);
 
     const lambdaTaRefresher_cfn_ref = taRefresherEventsRuleToLambdaConstruct.lambdaFunction.node.defaultChild as lambda.CfnFunction
+    lambdaTaRefresher_cfn_ref.cfnOptions.metadata = cfn_nag_w89_w92
     lambdaTaRefresher_cfn_ref.overrideLogicalId('TARefresher')
 
     const lambdaTaRefresher_cfn_permission = taRefresherEventsRuleToLambdaConstruct.lambdaFunction.permissionsNode.tryFindChild('LambdaInvokePermission') as lambda.CfnPermission
-    lambdaTaRefresher_cfn_permission.overrideLogicalId('TARefresherInvokePermission')
+    if (lambdaTaRefresher_cfn_permission != undefined) {
+      lambdaTaRefresher_cfn_permission.overrideLogicalId('TARefresherInvokePermission')
+    }
 
     const taRefresherrule_cfn_ref = taRefresherEventsRuleToLambdaConstruct.eventsRule.node.defaultChild as events.CfnRule
     taRefresherrule_cfn_ref.overrideLogicalId('TARefreshSchedule')
@@ -591,6 +614,7 @@ export class LimitMonitorStack extends cdk.Stack {
     })
 
     const limtrhelperlambda_cfn_ref = LimtrHelperFunction.node.defaultChild as lambda.CfnFunction
+    limtrhelperlambda_cfn_ref.cfnOptions.metadata = cfn_nag_w89_w92
     limtrhelperlambda_cfn_ref.overrideLogicalId('LimtrHelperFunction')
 
 
@@ -624,7 +648,7 @@ export class LimitMonitorStack extends cdk.Stack {
     /*
     * Use aws-events-rule-sns construct
     */
-    const taSNSEventsRuleToSNSProps: EventsRuleToSNSProps = {
+    const taSNSEventsRuleToSnsProps: EventsRuleToSnsProps = {
       existingTopicObj: snsTopic,
       enableEncryptionWithCustomerManagedKey: false,
       eventRuleProps: {
@@ -635,9 +659,9 @@ export class LimitMonitorStack extends cdk.Stack {
       encryptionKey: limitMonitorEncryptionKey
     };
 
-    const taSNSEventsRuleToSNSTopicConstruct = new EventsRuleToSNS(this, 'TASNSRule', taSNSEventsRuleToSNSProps);
+    const taSNSEventsRuleToSnsTopicConstruct = new EventsRuleToSns(this, 'TASNSRule', taSNSEventsRuleToSnsProps);
 
-    const tasnsrule_cfn_ref = taSNSEventsRuleToSNSTopicConstruct.eventsRule.node.defaultChild as events.CfnRule
+    const tasnsrule_cfn_ref = taSNSEventsRuleToSnsTopicConstruct.eventsRule.node.defaultChild as events.CfnRule
     tasnsrule_cfn_ref.overrideLogicalId('TASNSRule')
     tasnsrule_cfn_ref.addOverride('Condition', 'SlackTrue')
     //add additional details to the event rule target created by default by the construct

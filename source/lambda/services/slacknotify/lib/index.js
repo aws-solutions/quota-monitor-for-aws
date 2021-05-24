@@ -17,7 +17,6 @@
 
 'use strict';
 
-let AWS = require('aws-sdk');
 let SlackNotify = require('./slack-notify.js');
 const LOGGER = new (require('./logger'))();
 

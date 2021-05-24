@@ -20,8 +20,6 @@
 let AWS = require('aws-sdk');
 let async = require('async');
 let _ = require('underscore');
-let moment = require('moment');
-
 let MetricsHelper = require('./metrics-helper');
 const LOGGER = new (require('./logger'))();
 
@@ -206,9 +204,7 @@ class limitreport {
     let _anonymousmetric = {
       Solution: this.solution,
       UUID: this.uuid,
-      TimeStamp: moment()
-        .utc()
-        .format('YYYY-MM-DD HH:mm:ss.S'),
+      TimeStamp: new Date(),
       Data: metricData,
     };
 

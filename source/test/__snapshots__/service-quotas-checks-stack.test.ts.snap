@@ -35,25 +35,6 @@ Object {
     },
   },
   "Resources": Object {
-    "LimitCheckInvokePermission": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "LimitMonitorFunction",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "LimitCheckSchedule",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "LimitCheckSchedule": Object {
       "Properties": Object {
         "Description": "Limit Monitor Solution - Rule to perform limit checks",
@@ -78,6 +59,25 @@ Object {
         ],
       },
       "Type": "AWS::Events::Rule",
+    },
+    "LimitCheckScheduleLambdaFunctionAwsEventsLambdaInvokePermission11533DD1E": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "LimitMonitorFunction",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "LimitCheckSchedule",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "LimitCheckScheduleLambdaFunctionServiceRole74B5A7C9": Object {
       "Properties": Object {
@@ -222,8 +222,12 @@ Object {
         "cfn_nag": Object {
           "rules_to_suppress": Array [
             Object {
-              "id": "W58",
-              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+              "id": "W89",
+              "reason": "Not a valid use case to deploy in VPC",
+            },
+            Object {
+              "id": "W92",
+              "reason": "ReservedConcurrentExecutions not needed",
             },
           ],
         },

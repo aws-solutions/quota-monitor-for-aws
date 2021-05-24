@@ -104,6 +104,20 @@ Object {
       "DependsOn": Array [
         "LimtrHelperRole",
       ],
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W89",
+              "reason": "Not a valid use case to deploy in VPC",
+            },
+            Object {
+              "id": "W92",
+              "reason": "ReservedConcurrentExecutions not needed",
+            },
+          ],
+        },
+      },
       "Properties": Object {
         "Code": Object {
           "S3Bucket": Object {
@@ -278,8 +292,12 @@ Object {
         "cfn_nag": Object {
           "rules_to_suppress": Array [
             Object {
-              "id": "W58",
-              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+              "id": "W89",
+              "reason": "Not a valid use case to deploy in VPC",
+            },
+            Object {
+              "id": "W92",
+              "reason": "ReservedConcurrentExecutions not needed",
             },
           ],
         },
@@ -328,7 +346,7 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "TARefreshScheduleLambdaFunctionLambdaInvokePermission8FC7101E": Object {
+    "TARefreshScheduleLambdaFunctionAwsEventsLambdaInvokePermission1F8477682": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {

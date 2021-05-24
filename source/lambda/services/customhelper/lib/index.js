@@ -21,8 +21,6 @@
 const { "v4": uuidv4 } = require('uuid');
 const https = require('https');
 const url = require('url');
-const moment = require('moment');
-const async = require('async');
 const AWS = require('aws-sdk');
 
 const LOGGER = new (require('./logger'))();
@@ -279,9 +277,7 @@ let sendMetrics = function(metricData, event, cb) {
   let _metric = {
     Solution: event.ResourceProperties.SOLUTION,
     UUID: event.ResourceProperties.UUID,
-    TimeStamp: moment()
-      .utc()
-      .format('YYYY-MM-DD HH:mm:ss.S'),
+    TimeStamp: new Date(),
     Data: metricData,
   };
 

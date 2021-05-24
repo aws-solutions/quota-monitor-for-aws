@@ -9,8 +9,8 @@ To get started with the AWS Limit Monitor Solution, please review the solution d
 * Next, run unit tests to make sure added customization passes the tests
 ```
 cd ./deployment
-chmod +x ./run-unit-tests.sh  \n
-./run-unit-tests.sh \n
+chmod +x ./run-unit-tests.sh  
+./run-unit-tests.sh 
 ```
 
 ## Building distributable for customization
@@ -25,15 +25,15 @@ _Note:_ You would have to create 2 buckets, one with prefix 'my-bucket-name' and
 
 * Now build the distributable:
 ```
-chmod +x ./build-s3-dist.sh \n
-./build-s3-dist.sh $DIST_OUTPUT_BUCKET $SOLUTION_NAME $SOLUTION_VERSION $TEMPLATE_OUTPUT_BUCKET \n
+chmod +x ./build-s3-dist.sh 
+./build-s3-dist.sh $DIST_OUTPUT_BUCKET $SOLUTION_NAME $SOLUTION_VERSION $TEMPLATE_OUTPUT_BUCKET 
 ```
 
 * Deploy the distributable to an Amazon S3 bucket in your account. _Note:_ you must have the AWS Command Line Interface installed.
 
 ```
-aws s3 cp ./dist/ s3://my-bucket-name/limit-monitor/latest/ --recursive --exclude "*" --include "*.template" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
-aws s3 cp ./dist/ s3://my-bucket-name-<aws_region>/limit-monitor/latest/ --recursive --exclude "*" --include "*.zip" --acl bucket-owner-full-control --profile aws-cred-profile-name \n
+aws s3 cp ../source/lambda/services/limitreport/dist/ s3://my-bucket-name/limit-monitor/latest/ --recursive --exclude "*" --include "*.template" --acl bucket-owner-full-control --profile aws-cred-profile-name 
+aws s3 cp ../source/lambda/services/limitreport/dist/ s3://my-bucket-name-<aws_region>/limit-monitor/latest/ --recursive --exclude "*" --include "*.zip" --acl bucket-owner-full-control --profile aws-cred-profile-name 
 ```
 
 * Get the link of the limit-monitor.template uploaded to your Amazon S3 bucket.
@@ -89,19 +89,14 @@ The AWS Limit Monitor Solution project consists of 4 microservices which is depl
   |-tsconfig.json
 ```
 
-***
-***
+<a name="collection-of-operational-metrics"></a>
+# Collection of operational metrics
 
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+This solution collects anonymous operational metrics to help AWS improve the
+quality of features of the solution. For more information, including how to disable
+this capability, please see the [implementation guide](https://docs.aws.amazon.com/solutions/latest/limit-monitor/operational-metrics.html).
 
-Licensed under the Apache License, Version 2.0 (the "License");
-You may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+<a name="license"></a>
+# License
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+See license [here](https://github.com/awslabs/machine-downtime-monitor-on-aws/blob/master/LICENSE.txt) 

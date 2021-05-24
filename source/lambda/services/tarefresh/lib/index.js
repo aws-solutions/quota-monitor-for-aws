@@ -17,7 +17,6 @@
 
 'use strict';
 
-let AWS = require('aws-sdk');
 let TARefresh = require('./ta-refresh.js');
 const LOGGER = new (require('./logger'))();
 

@@ -227,6 +227,7 @@ Object {
       "UpdateReplacePolicy": "Delete",
     },
     "DeadLetterQueue": Object {
+      "DeletionPolicy": "Delete",
       "Properties": Object {
         "KmsMasterKeyId": Object {
           "Fn::GetAtt": Array [
@@ -237,6 +238,7 @@ Object {
         "MessageRetentionPeriod": 604800,
       },
       "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
     },
     "DeploymentData": Object {
       "DeletionPolicy": "Delete",
@@ -283,6 +285,7 @@ Object {
       "UpdateReplacePolicy": "Delete",
     },
     "EventQueue": Object {
+      "DeletionPolicy": "Delete",
       "Properties": Object {
         "KmsMasterKeyId": Object {
           "Fn::GetAtt": Array [
@@ -303,6 +306,7 @@ Object {
         "VisibilityTimeout": 60,
       },
       "Type": "AWS::SQS::Queue",
+      "UpdateReplacePolicy": "Delete",
     },
     "LimitMonitorEncryptionKey": Object {
       "DeletionPolicy": "Retain",
@@ -411,8 +415,12 @@ Object {
         "cfn_nag": Object {
           "rules_to_suppress": Array [
             Object {
-              "id": "W58",
-              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+              "id": "W89",
+              "reason": "Not a valid use case to deploy in VPC",
+            },
+            Object {
+              "id": "W92",
+              "reason": "ReservedConcurrentExecutions not needed",
             },
           ],
         },
@@ -641,7 +649,7 @@ Object {
           "rules_to_suppress": Array [
             Object {
               "id": "W12",
-              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray.",
+              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray and access ENIs in a VPC.",
             },
           ],
         },
@@ -665,6 +673,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
                 "dynamodb:BatchWriteItem",
                 "dynamodb:PutItem",
                 "dynamodb:UpdateItem",
@@ -699,6 +708,20 @@ Object {
       "DependsOn": Array [
         "LimtrHelperRole",
       ],
+      "Metadata": Object {
+        "cfn_nag": Object {
+          "rules_to_suppress": Array [
+            Object {
+              "id": "W89",
+              "reason": "Not a valid use case to deploy in VPC",
+            },
+            Object {
+              "id": "W92",
+              "reason": "ReservedConcurrentExecutions not needed",
+            },
+          ],
+        },
+      },
       "Properties": Object {
         "Code": Object {
           "S3Bucket": Object {
@@ -893,6 +916,25 @@ Object {
       },
       "Type": "AWS::Events::Rule",
     },
+    "QueuePollScheduleLambdaFunctionAwsEventsLambdaInvokePermission1FFB9A285": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "LimitSummarizer",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "QueuePollSchedule",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
     "QueuePollScheduleLambdaFunctionServiceRole173B759B": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
@@ -1024,8 +1066,12 @@ Object {
         "cfn_nag": Object {
           "rules_to_suppress": Array [
             Object {
-              "id": "W58",
-              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+              "id": "W89",
+              "reason": "Not a valid use case to deploy in VPC",
+            },
+            Object {
+              "id": "W92",
+              "reason": "ReservedConcurrentExecutions not needed",
             },
           ],
         },
@@ -1093,26 +1139,6 @@ Object {
         },
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "SlackNotifierInvokePermission": Object {
-      "Condition": "SlackTrue",
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "SlackNotifier",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "TASlackRule",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
     },
     "SlackNotifierRole": Object {
       "Condition": "SlackTrue",
@@ -1226,7 +1252,7 @@ Object {
           "rules_to_suppress": Array [
             Object {
               "id": "W12",
-              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray.",
+              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray and access ENIs in a VPC.",
             },
           ],
         },
@@ -1253,25 +1279,6 @@ Object {
         ],
       },
       "Type": "AWS::IAM::Policy",
-    },
-    "SummarizerInvokePermission": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "LimitSummarizer",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "QueuePollSchedule",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
     },
     "SummaryDDB": Object {
       "DeletionPolicy": "Retain",
@@ -1349,6 +1356,25 @@ Object {
       },
       "Type": "AWS::Events::Rule",
     },
+    "TARefreshScheduleLambdaFunctionAwsEventsLambdaInvokePermission1F8477682": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "TARefresher",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "TARefreshSchedule",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
     "TARefreshScheduleLambdaFunctionServiceRole88DF7FDF": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
@@ -1413,8 +1439,12 @@ Object {
         "cfn_nag": Object {
           "rules_to_suppress": Array [
             Object {
-              "id": "W58",
-              "reason": "Lambda functions has the required permission to write CloudWatch Logs. It uses custom policy instead of arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole with more tighter permissions.",
+              "id": "W89",
+              "reason": "Not a valid use case to deploy in VPC",
+            },
+            Object {
+              "id": "W92",
+              "reason": "ReservedConcurrentExecutions not needed",
             },
           ],
         },
@@ -1483,25 +1513,6 @@ Object {
         },
       },
       "Type": "AWS::Lambda::Function",
-    },
-    "TARefresherInvokePermission": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "TARefresher",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "TARefreshSchedule",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
     },
     "TARefresherRole": Object {
       "Metadata": Object {
@@ -1600,7 +1611,7 @@ Object {
           "rules_to_suppress": Array [
             Object {
               "id": "W12",
-              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray.",
+              "reason": "Lambda needs the following minimum required permissions to send trace data to X-Ray and access ENIs in a VPC.",
             },
           ],
         },
@@ -1914,6 +1925,25 @@ Object {
         ],
       },
       "Type": "AWS::SQS::QueuePolicy",
+    },
+    "TASlackEventRuleLambdaFunctionAwsEventsLambdaInvokePermission168B6EF2C": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "SlackNotifier",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "TASlackRule",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "TASlackEventRuleLambdaFunctionServiceRole010C3825": Object {
       "Properties": Object {

@@ -1,6 +1,6 @@
 {
   "name": "limit-monitor",
-  "version": "0.1.0",
+  "version": "5.3.4",
   "bin": {
     "limit-monitor": "bin/limit-monitor.js"
   },
@@ -12,28 +12,28 @@
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "1.64.0",
-    "@types/jest": "^25.2.3",
-    "@types/node": "10.17.5",
-    "aws-cdk": "1.64.0",
-    "jest": "^25.5.4",
-    "ts-jest": "^25.3.1",
-    "ts-node": "^8.1.0",
-    "typescript": "~3.7.2"
+    "@aws-cdk/assert": "1.101.0",
+    "@types/jest": "26.0.23",
+    "@types/node": "15.3.1",
+    "aws-cdk": "^1.101.0",
+    "jest": "26.6.3",
+    "ts-jest": "26.5.6",
+    "ts-node": "9.1.1",
+    "typescript": "4.2.4"
   },
   "dependencies": {
-    "@aws-cdk/aws-lambda": "1.64.0",
-    "@aws-cdk/aws-events": "1.64.0",
-    "@aws-cdk/aws-events-targets": "1.64.0",
-    "@aws-cdk/aws-iam": "1.64.0",
-    "@aws-cdk/aws-kms": "1.64.0",
-    "@aws-cdk/aws-s3": "1.64.0",
-    "@aws-cdk/core": "1.64.0",
-    "@aws-solutions-constructs/core": "1.64.0",
-    "@aws-solutions-constructs/aws-events-rule-lambda": "1.64.0",
-    "@aws-solutions-constructs/aws-lambda-dynamodb": "1.64.0",
-    "@aws-solutions-constructs/aws-events-rule-sns": "1.64.0",
-    "@aws-solutions-constructs/aws-events-rule-sqs": "1.64.0",
+    "@aws-cdk/aws-events": "1.101.0",
+    "@aws-cdk/aws-events-targets": "1.101.0",
+    "@aws-cdk/aws-iam": "1.101.0",
+    "@aws-cdk/aws-kms": "1.101.0",
+    "@aws-cdk/aws-lambda": "1.101.0",
+    "@aws-cdk/aws-s3": "1.101.0",
+    "@aws-cdk/core": "1.101.0",
+    "@aws-solutions-constructs/aws-events-rule-lambda": "1.101.0",
+    "@aws-solutions-constructs/aws-events-rule-sns": "1.101.0",
+    "@aws-solutions-constructs/aws-events-rule-sqs": "1.101.0",
+    "@aws-solutions-constructs/aws-lambda-dynamodb": "1.101.0",
+    "@aws-solutions-constructs/core": "1.101.0",
     "source-map-support": "^0.5.16"
   }
 }

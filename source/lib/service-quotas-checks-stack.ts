@@ -114,6 +114,20 @@ export class ServiceQuotasChecksStack extends cdk.Stack {
     }
 
     const lambdaLimitMonitor_cfn_ref = limitMonitorEventRuleToLambdaConstruct.lambdaFunction.node.defaultChild as lambda.CfnFunction
+    lambdaLimitMonitor_cfn_ref.cfnOptions.metadata = {
+      cfn_nag: {
+        rules_to_suppress: [
+          {
+            id: "W89",
+            reason: "Not a valid use case to deploy in VPC",
+          },
+          {
+            id: "W92",
+            reason: "ReservedConcurrentExecutions not needed",
+          }
+        ],
+      },
+    };
     lambdaLimitMonitor_cfn_ref.overrideLogicalId('LimitMonitorFunction')
     lambdaLimitMonitor_cfn_ref.addPropertyOverride('Environment', {
       Variables: {
@@ -123,7 +137,9 @@ export class ServiceQuotasChecksStack extends cdk.Stack {
     })
 
     const lambdaLimitMonitor_cfn_permission = limitMonitorEventRuleToLambdaConstruct.lambdaFunction.permissionsNode.tryFindChild('LambdaInvokePermission') as lambda.CfnPermission
-    lambdaLimitMonitor_cfn_permission.overrideLogicalId('LimitCheckInvokePermission')
+    if (lambdaLimitMonitor_cfn_permission != undefined) {
+      lambdaLimitMonitor_cfn_permission.overrideLogicalId('LimitCheckInvokePermission')
+    }
 
     const limitMonitorrule_cfn_ref = limitMonitorEventRuleToLambdaConstruct.eventsRule.node.defaultChild as events.CfnRule
     limitMonitorrule_cfn_ref.overrideLogicalId('LimitCheckSchedule')
