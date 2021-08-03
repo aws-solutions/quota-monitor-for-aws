@@ -375,7 +375,7 @@ export class LimitMonitorStack extends cdk.Stack {
     const limitSummarizerRoleDynamoDBPS = new iam.PolicyStatement({
       actions: ["dynamodb:GetItem", "dynamodb:PutItem"],
       effect: Effect.ALLOW,
-      resources: [`arn:${cdk.Aws.PARTITION}:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/*`]
+      resources: [`arn:${cdk.Aws.PARTITION}:dynamodb:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:table/*-SummaryDDB-*`]
     })
 
     const limitSummarizerRoleKMSPS = new iam.PolicyStatement({
@@ -452,7 +452,7 @@ export class LimitMonitorStack extends cdk.Stack {
     // TA Refresher policy documents
     const taRefresherRoleSupportPS = new iam.PolicyStatement({
       effect: Effect.ALLOW,
-      actions: ['support:*'],
+      actions: ['support:RefreshTrustedAdvisorCheck'],
       resources: ['*']
     })
 
