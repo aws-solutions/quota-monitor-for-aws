@@ -452,7 +452,7 @@ export class LimitMonitorStack extends cdk.Stack {
     // TA Refresher policy documents
     const taRefresherRoleSupportPS = new iam.PolicyStatement({
       effect: Effect.ALLOW,
-      actions: ['support:*'],
+      actions: ['support:RefreshTrustedAdvisorCheck'],
       resources: ['*']
     })
 
