@@ -33,7 +33,7 @@ rc=0
 export overrideWarningsEnabled=false
 
 # Check to see if the required parameters have been provided:
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [-z "$4"]; then
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
     echo "Please provide the base source bucket name, trademark approved solution name, version and template bucket name where the lambda code will eventually reside."
     echo "For example: ./build-s3-dist.sh solutions trademarked-solution-name v1.0.0 template-bucket"
     exit 1
@@ -104,7 +104,7 @@ fi
 
 # Run npm run build && npm run test for the cdk component unit tests
 echo "npm run build && npm run test"
-npm run build && npm run test
+npm run test
 rc=$?
 
 if [ "$rc" -ne "0" ]; then

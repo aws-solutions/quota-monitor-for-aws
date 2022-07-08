@@ -504,8 +504,184 @@ describe('service-quotas-checks module', function() {
       })
     }))
 
-    it('should handle error', (async function() {
+    it('should raise error from listServiceQuotas API', (async function() {
+      const stub = sinon.stub();
+      stub.onCall(0).returns(Promise.resolve(
+        { NextToken: "test",
+          Quotas:
+          [ 
+            {
+              ServiceCode: 'ec2',
+              ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+              QuotaArn: 'arn:aws:servicequotas:us-east-1:11223344:ec2/L-74FC7D96',
+              QuotaCode: 'L-74FC7D96',
+              QuotaName: 'Running On-Demand F instances',
+              Value: 176,
+              Unit: 'None',
+              Adjustable: true,
+              GlobalQuota: false,
+              UsageMetric: {
+                  MetricNamespace: 'AWS/Usage',
+                  MetricName: 'ResourceCount',
+                  MetricDimensions: {
+                      Class: 'F/OnDemand',
+                      Resource: 'vCPU',
+                      Service: 'EC2',
+                      Type: 'Resource'
+                  },
+                  MetricStatisticRecommendation: 'Maximum'
+              }
+          },
+            { ServiceCode: 'ec2',
+              ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+              QuotaArn:'arn:aws:servicequotas:us-east-1:11223344:ec2/L-DEF8E115',
+              QuotaCode: 'L-DEF8E115',
+              QuotaName: 'Running Dedicated x1e Hosts',
+              Value: 1,
+              Unit: 'None',
+              Adjustable: true,
+              GlobalQuota: false 
+            }
+          ]
+        }
+      ));
+      stub.onCall(1).returns(Promise.reject("ServiceUnavailableException"));
+      const _sq = new ServiceQuotasChecks();
+      AWS.mock('ServiceQuotas','listServiceQuotas',stub);
+      try {
+        await _sq.getEC2InstanceTypes();
+      }catch (err) {
+        expect(err).to.equal("ServiceUnavailableException")
+      }
+    }))
 
+    it('should handle next_token from listServiceQuotas API', (async function() {
+      const stub = sinon.stub();
+      stub.onCall(0).returns(Promise.resolve(
+        { NextToken: "test",
+          Quotas:
+          [ 
+            {
+              ServiceCode: 'ec2',
+              ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+              QuotaArn: 'arn:aws:servicequotas:us-east-1:11223344:ec2/L-74FC7D96',
+              QuotaCode: 'L-74FC7D96',
+              QuotaName: 'Running On-Demand F instances',
+              Value: 176,
+              Unit: 'None',
+              Adjustable: true,
+              GlobalQuota: false,
+              UsageMetric: {
+                  MetricNamespace: 'AWS/Usage',
+                  MetricName: 'ResourceCount',
+                  MetricDimensions: {
+                      Class: 'F/OnDemand',
+                      Resource: 'vCPU',
+                      Service: 'EC2',
+                      Type: 'Resource'
+                  },
+                  MetricStatisticRecommendation: 'Maximum'
+              }
+          },
+            { ServiceCode: 'ec2',
+              ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+              QuotaArn:'arn:aws:servicequotas:us-east-1:11223344:ec2/L-DEF8E115',
+              QuotaCode: 'L-DEF8E115',
+              QuotaName: 'Running Dedicated x1e Hosts',
+              Value: 1,
+              Unit: 'None',
+              Adjustable: true,
+              GlobalQuota: false 
+            }
+          ]
+        }
+      ));
+      stub.onCall(1).returns(Promise.resolve(
+        {
+          Quotas:
+          [ 
+            {
+              ServiceCode: 'ec2',
+              ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+              QuotaArn: 'arn:aws:servicequotas:us-east-1:11223344:ec2/L-74FC7D96',
+              QuotaCode: 'L-74FC7D96',
+              QuotaName: 'Running On-Demand F instances',
+              Value: 200,
+              Unit: 'None',
+              Adjustable: true,
+              GlobalQuota: false,
+              UsageMetric: {
+                  MetricNamespace: 'AWS/Usage',
+                  MetricName: 'ResourceCount',
+                  MetricDimensions: {
+                      Class: 'F/OnDemand',
+                      Resource: 'vCPU',
+                      Service: 'EC2',
+                      Type: 'Resource'
+                  },
+                  MetricStatisticRecommendation: 'Maximum'
+              }
+          },
+            { ServiceCode: 'ec2',
+              ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+              QuotaArn:'arn:aws:servicequotas:us-east-1:11223344:ec2/L-DEF8E115',
+              QuotaCode: 'L-DEF8E115',
+              QuotaName: 'Running Dedicated x1e Hosts',
+              Value: 1,
+              Unit: 'None',
+              Adjustable: true,
+              GlobalQuota: false 
+            }
+          ]
+        }
+      ));
+      const _sq = new ServiceQuotasChecks();
+      AWS.mock('ServiceQuotas','listServiceQuotas',stub);
+      let response = await _sq.getEC2InstanceTypes();
+      expect(response[0]).deep.equals({
+        ServiceCode: 'ec2',
+        ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+        QuotaArn: 'arn:aws:servicequotas:us-east-1:11223344:ec2/L-74FC7D96',
+        QuotaCode: 'L-74FC7D96',
+        QuotaName: 'Running On-Demand F instances',
+        Value: 176,
+        Unit: 'None',
+        Adjustable: true,
+        GlobalQuota: false,
+        UsageMetric: {
+            MetricNamespace: 'AWS/Usage',
+            MetricName: 'ResourceCount',
+            MetricDimensions: {
+                Class: 'F/OnDemand',
+                Resource: 'vCPU',
+                Service: 'EC2',
+                Type: 'Resource'
+            },
+            MetricStatisticRecommendation: 'Maximum'
+        }
+      })
+      expect(response[1]).deep.equals({
+        ServiceCode: 'ec2',
+        ServiceName: 'Amazon Elastic Compute Cloud (Amazon EC2)',
+        QuotaArn: 'arn:aws:servicequotas:us-east-1:11223344:ec2/L-74FC7D96',
+        QuotaCode: 'L-74FC7D96',
+        QuotaName: 'Running On-Demand F instances',
+        Value: 200,
+        Unit: 'None',
+        Adjustable: true,
+        GlobalQuota: false,
+        UsageMetric: {
+            MetricNamespace: 'AWS/Usage',
+            MetricName: 'ResourceCount',
+            MetricDimensions: {
+                Class: 'F/OnDemand',
+                Resource: 'vCPU',
+                Service: 'EC2',
+                Type: 'Resource'
+            },
+            MetricStatisticRecommendation: 'Maximum'
+        }
+      })
     }))
 
   })

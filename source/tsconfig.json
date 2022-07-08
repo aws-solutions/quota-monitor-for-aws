@@ -7,9 +7,12 @@
     "inlineSourceMap": true,
     "inlineSources": true,
     "lib": [
-      "es2018"
+      "DOM",
+      "ES2018"
     ],
-    "module": "CommonJS",
+    "types": ["jest", "node"],
+    "module": "commonjs",
+    "noEmit": true,
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,

@@ -56,7 +56,7 @@ export class ServiceQuotasChecksStack extends cdk.Stack {
 
     const limitMonitorEventsRuleToLambdaProps: EventsRuleToLambdaProps = {
       lambdaFunctionProps: {
-        description: 'This function checks for vCPU limits and sends notifiction on WARN and ERROR status',
+        description: 'This function checks for vCPU limits and sends notification on WARN and ERROR status',
         runtime: lambda.Runtime.NODEJS_12_X,
         code: lambda.Code.fromBucket(solutionSourceCodeBucket, limitMonitorLambdaSourceCodeS3Key),
         handler: 'index.handler',
@@ -132,7 +132,8 @@ export class ServiceQuotasChecksStack extends cdk.Stack {
     lambdaLimitMonitor_cfn_ref.addPropertyOverride('Environment', {
       Variables: {
         LOG_LEVEL: "INFO",
-        LIMIT_THRESHOLD: thresholdPercentage.valueAsNumber
+        LIMIT_THRESHOLD: thresholdPercentage.valueAsNumber,
+        CUSTOM_USER_AGENT: `AwsSolution/${props.solutionId}/${props.solutionVersion}`
       }
     })
 
