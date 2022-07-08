@@ -8,7 +8,8 @@
     "cleanup": "tsc --build ./ --clean && rm -rf node_modules && rm -f package-lock.json",
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
+    "pretest": "npm i",
+    "test": "./node_modules/jest/bin/jest.js",
     "cdk": "cdk"
   },
   "devDependencies": {

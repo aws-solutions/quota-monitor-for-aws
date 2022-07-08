@@ -21,7 +21,7 @@ const LOGGER = new (require('./logger'))();
 
 class ServiceQuotasChecks {
     constructor() {
-        AWS.config.update({region: 'us-east-1'});
+        AWS.config.update({customUserAgent: process.env.CUSTOM_USER_AGENT, region: 'us-east-1'});
     }
 
     /**
@@ -76,30 +76,22 @@ class ServiceQuotasChecks {
         let quotas = {};
         AWS.config.update({region:'us-east-1'});
         let sq = new AWS.ServiceQuotas();
-        try {
+        quotas = await sq.listServiceQuotas(params).promise();
+        quotas.Quotas.map(item=> {
+            ec2_service_limits.push(item);
+        });
+        while(quotas.NextToken) {
+            params.NextToken=quotas.NextToken;
             quotas = await sq.listServiceQuotas(params).promise();
             quotas.Quotas.map(item=> {
                 ec2_service_limits.push(item);
-            });
-            while(quotas.NextToken) {
-                params.NextToken=quotas.NextToken;
-                try { 
-                    quotas = await sq.listServiceQuotas(params).promise();
-                    quotas.Quotas.map(item=> {
-                        ec2_service_limits.push(item);
-                    })
-                } catch(err) {
-                    LOGGER.log('ERROR', err);
-                }
-            }
-            ec2_service_limits.map(limit_type => {
-                if(limit_type.UsageMetric)
-                    instance_Types.push(limit_type);
             })
-            LOGGER.log('DEBUG', 'instance_Types ' + JSON.stringify(instance_Types))
-        } catch(err) {
-            LOGGER.log('ERROR', err);
         }
+        ec2_service_limits.map(limit_type => {
+            if(limit_type.UsageMetric)
+                instance_Types.push(limit_type);
+        })
+        LOGGER.log('DEBUG', 'instance_Types ' + JSON.stringify(instance_Types))
         return instance_Types;
     }
 

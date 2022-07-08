@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.5] - 2022-07-08
+
+### Changed
+
+- Updated error handling in service-quotas-check microservice, raising the error for `listServiceQuotas` API exceptions
+
+### Added
+
+- Unit tests for service-quotas-check module
+
 ## [5.3.4] - 2021-05-31
 
 ### Added
