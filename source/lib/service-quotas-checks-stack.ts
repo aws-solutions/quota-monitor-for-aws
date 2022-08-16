@@ -57,7 +57,7 @@ export class ServiceQuotasChecksStack extends cdk.Stack {
     const limitMonitorEventsRuleToLambdaProps: EventsRuleToLambdaProps = {
       lambdaFunctionProps: {
         description: 'This function checks for vCPU limits and sends notification on WARN and ERROR status',
-        runtime: lambda.Runtime.NODEJS_12_X,
+        runtime: lambda.Runtime.NODEJS_14_X,
         code: lambda.Code.fromBucket(solutionSourceCodeBucket, limitMonitorLambdaSourceCodeS3Key),
         handler: 'index.handler',
         //role: limitMonitorLambdaRole,

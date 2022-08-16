@@ -202,7 +202,7 @@ export class LimitMonitorSpokeStack extends cdk.Stack {
                 enabled: true,
             },
             lambdaFunctionProps: {
-                runtime: lambda.Runtime.NODEJS_12_X,
+                runtime: lambda.Runtime.NODEJS_14_X,
                 code: lambda.Code.fromBucket(solutionsLambdaCodeBucket, props.solutionName + '/' + props.solutionVersion + '/limtr-refresh-service.zip'),
                 description: 'Serverless Limit Monitor - Lambda function to summarize service limits',
                 timeout: cdk.Duration.seconds(300),
@@ -297,7 +297,7 @@ export class LimitMonitorSpokeStack extends cdk.Stack {
         cfn_ref_limtrHelperRole.overrideLogicalId('LimtrHelperRole')
 
         const limtrHelperFunction = new lambda.Function(this, 'LimtrHelperFunction', {
-                    runtime: lambda.Runtime.NODEJS_12_X,
+                    runtime: lambda.Runtime.NODEJS_14_X,
                     description: 'This function generates UUID, establishes cross account trust on CloudWatch Event Bus and sends anonymous metric',
                     handler: 'index.handler',
                     code: lambda.Code.fromBucket(solutionsLambdaCodeBucket, props.solutionName + '/' + props.solutionVersion + '/limtr-helper-service.zip'),

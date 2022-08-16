@@ -156,7 +156,7 @@ export class LimitMonitorStack extends cdk.Stack {
           SLACK_CHANNEL: cdk.Fn.sub('SlackChannel'),
           LOG_LEVEL: 'INFO'
         },
-        runtime: lambda.Runtime.NODEJS_12_X,
+        runtime: lambda.Runtime.NODEJS_14_X,
         code: lambda.Code.fromBucket(solutionSourceCodeBucket, slackNotifierLambdaSourceCodeS3Key),
         handler: 'index.handler',
         role: slackNotifierLambdaRole,
@@ -421,7 +421,7 @@ export class LimitMonitorStack extends cdk.Stack {
           SOLUTION: props.solutionId, //'SO0005'
           LOG_LEVEL: 'INFO'  //change to WARN, ERROR or DEBUG as needed
         },
-        runtime: lambda.Runtime.NODEJS_12_X,
+        runtime: lambda.Runtime.NODEJS_14_X,
         code: lambda.Code.fromBucket(solutionSourceCodeBucket, limitSummarizerLambdaSourceCodeS3Key),
         handler: 'index.handler',
         role: limitSummarizerLambdaRole,
@@ -510,7 +510,7 @@ export class LimitMonitorStack extends cdk.Stack {
           AWS_SERVICES: cdk.Fn.findInMap('EventsMap', 'Checks', 'Services'),
           LOG_LEVEL: 'INFO'  //change to WARN, ERROR or DEBUG as needed
         },
-        runtime: lambda.Runtime.NODEJS_12_X,
+        runtime: lambda.Runtime.NODEJS_14_X,
         code: lambda.Code.fromBucket(solutionSourceCodeBucket, taRefresherLambdaSourceCodeS3Key),
         handler: 'index.handler',
         role: taRefresherLambdaRole,
@@ -606,7 +606,7 @@ export class LimitMonitorStack extends cdk.Stack {
       environment: {
         LOG_LEVEL: 'INFO'
       },
-      runtime: lambda.Runtime.NODEJS_12_X,
+      runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromBucket(solutionSourceCodeBucket, LimtrHelperLambdaSourceCodeS3Key),
       handler: 'index.handler',
       role: limtrHelperLambdaRole,

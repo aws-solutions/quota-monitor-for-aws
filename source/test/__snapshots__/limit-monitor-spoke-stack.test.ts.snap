@@ -146,7 +146,7 @@ Object {
             "Arn",
           ],
         },
-        "Runtime": "nodejs12.x",
+        "Runtime": "nodejs14.x",
         "Timeout": 300,
       },
       "Type": "AWS::Lambda::Function",
@@ -338,7 +338,7 @@ Object {
             "Arn",
           ],
         },
-        "Runtime": "nodejs12.x",
+        "Runtime": "nodejs14.x",
         "Timeout": 300,
         "TracingConfig": Object {
           "Mode": "Active",
