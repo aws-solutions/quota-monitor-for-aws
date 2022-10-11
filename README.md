@@ -1,4 +1,4 @@
-# AWS Limit Monitor Solution
+# Quota Monitor for AWS
 The AWS Limit Monitor Solution is a reference implementation that provides a foundation for monitoring AWS service limits. Customers can leverage the solution to monitor limits across services supported by Amazon Trusted Advisor; in multiple regions and multiple AWS accounts. The solution integrates with Amazon SNS and Slack to notify customers for service limits approaching thresholds.
 
 ## Getting Started
