@@ -1,16 +1,18 @@
 **/node_modules
 **/dist
+**/layer
 **/open-source
 **/.zip
 **/.DS_Store
 **/.idea
 **/.log
 **/coverage
-**/package-lock.json
 **/.nyc_output
 **/global-s3-assets
 **/regional-s3-assets
 **/npm-debug.log
+**/test-report.xml
+.scannerwork
 
 #cdk related files
 *cdk.out*
@@ -18,3 +20,6 @@
 source/bin/*.js
 source/lib/*.js
 source/test/*.js
+
+#cfn nag related output files
+cfn_nag_suppressions.log

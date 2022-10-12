@@ -1,0 +1,37 @@
+{
+  "name": "quota-monitor-notifier",
+  "description": "microservice for sending slack notifications for TA checks",
+  "main": "./index.js",
+  "author": {
+    "name": "Amazon Web Services",
+    "url": "https://aws.amazon.com/solutions"
+  },
+  "license": "Apache-2.0",
+  "version": "0.0.1",
+  "private": "true",
+  "dependencies": {
+    "@aws-sdk/client-ssm": "^3.110.0",
+    "https": "^1.0.0",
+    "url": "^0.11.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^28.0.0",
+    "@types/node": "^18.7.16",
+    "jest": "^28.0.0",
+    "ts-jest": "^28.0.8",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.2"
+  },
+  "scripts": {
+    "pretest": "npm ci",
+    "test": "npx jest",
+    "build:clean": "rm -rf ./node_modules && rm -rf ./dist",
+    "build:ts": "npx tsc --project ./tsconfig.json",
+    "postinstall": "npm run build:ts",
+    "build:copy": "cp -r ./node_modules ./dist/services/slackNotifier",
+    "build:zip": "cd ./dist/services/slackNotifier && zip -rq slack-notifier.zip . && mv slack-notifier.zip ../../",
+    "build:all": "npm run build:clean && npm ci && npm prune --production && npm run build:copy && npm run build:zip",
+    "coverage": "nyc npm test"
+  },
+  "bundledDependencies": []
+}

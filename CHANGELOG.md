@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 2022-10-14
+
+### Added
+
+- Support for AWS CDK v2
+- Support for AWS SDK v3
+- Support for AWS Lambda runtime Node.js v16
+- Support for CloudWatch quotas usage monitoring using Service Quotas
+- Support for DynamoDB quotas usage monitoring using Service Quotas
+- Support for EC2 quotas usage monitoring using Service Quotas
+- Support for ECR quotas usage monitoring using Service Quotas
+- Support for Firehose quotas usage monitoring using Service Quotas
+- Support for AWS Organizations wide usage monitoring using CloudFormation StackSets
+- Hub stack to support Organization deployment scenarios
+- Hub-no-ou stack to support non-Organization deployment scenarios
+- Pre-requisite stack to deploy in management account to fulfill pre-requisites for AWS Organizations
+- Trusted Advisor spoke template to provision resources for quota-usage monitoring using Trusted Advisor
+- Service Quotas spoke template to provision resources for quota-usage monitoring using Service Quotas
+- Utility Lambda layer for generic solution utils
+
 ## [5.3.5] - 2022-07-08
 
 ### Changed
@@ -23,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Removed moment dependecy in favor of using native javascipt date objects
+- Removed moment dependency in favor of using native javascript date objects
 - Removed check-ids fH7LL0l7J9 and aW9HH0l8J6, no longer supported by Trusted Advisor
 - Removed global CDK install - now installs locally for build process
 - Updated CDK from v1.64.0 to v1.101.0
@@ -36,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- UUID Depenency changes
+- UUID Dependency changes
 
 ## [5.3.2] - 2020-01-21
 

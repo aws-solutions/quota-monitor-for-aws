@@ -1,0 +1,32 @@
+{
+  "name": "quota-monitor-for-aws",
+  "version": "6.0.0",
+  "description": "Quota Monitor for AWS",
+  "author": "aws-solutions",
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "./node_modules/eslint/bin/eslint.js . --ext .ts",
+    "prettier-format": "./node_modules/prettier/bin-prettier.js --config .prettierrc.yml '**/*.ts' --write",
+    "build:cwPoller": "cd source/lambda/services/cwPoller && npm run build:all",
+    "build:deploymentManager": "cd source/lambda/services/deploymentManager && npm run build:all",
+    "build:helper": "cd source/lambda/services/helper && npm run build:all",
+    "build:preReqManager": "cd source/lambda/services/preReqManager && npm run build:all",
+    "build:quotaListManager": "cd source/lambda/services/quotaListManager && npm run build:all",
+    "build:reporter": "cd source/lambda/services/reporter && npm run build:all",
+    "build:slackNotifier": "cd source/lambda/services/slackNotifier && npm run build:all",
+    "build:taRefresher": "cd source/lambda/services/taRefresher && npm run build:all",
+    "build:utilsLayer": "cd source/lambda/utilsLayer && npm run build:all",
+    "build:all": "npm run build:utilsLayer && npm run build:cwPoller && npm run build:deploymentManager && npm run build:helper && npm run build:preReqManager && npm run build:quotaListManager && npm run build:reporter && npm run build:slackNotifier && npm run build:taRefresher",
+    "test": "cd ./deployment && chmod +x run-unit-tests.sh && ./run-unit-tests.sh"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.3.4",
+    "@typescript-eslint/eslint-plugin": "^5.17.0",
+    "@typescript-eslint/parser": "^5.17.0",
+    "eslint": "^8.15.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.6.2",
+    "typescript": "^4.8.2"
+  }
+}

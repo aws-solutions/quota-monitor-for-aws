@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "noEmit": false,
+    "types": [
+      "jest",
+      "node"
+    ]
+  },
+  "exclude": ["__tests__"]
+}

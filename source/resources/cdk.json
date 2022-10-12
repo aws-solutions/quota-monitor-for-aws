@@ -1,0 +1,13 @@
+{
+  "app": "npx ts-node bin/app.ts",
+  "context": {
+    "SOLUTION_VERSION": "%%VERSION%%",
+    "SOLUTION_NAME": "%%SOLUTION_NAME%%",
+    "SOLUTION_ID": "SO0005",
+    "SOLUTION_BUCKET": "%%LAMBDA_BUCKET%%",
+    "SOLUTION_TEMPLATE_BUCKET": "%%TEMPLATE_BUCKET%%",
+    "CUSTOM_USER_AGENT": "AwsSolution/SO0005/%%VERSION%%",
+    "SEND_METRICS": "yes",
+    "METRICS_ENDPOINT": "https://metrics.awssolutionsbuilder.com/generic"
+  }
+}
