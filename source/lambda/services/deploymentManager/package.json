@@ -1,0 +1,30 @@
+{
+  "name": "deployment-manager",
+  "version": "6.0.0",
+  "description": "microservice to manage event bridge permission and stackset deployments",
+  "main": "./index.js",
+  "author": {
+    "name": "Amazon Web Services",
+    "url": "https://aws.amazon.com/solutions"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/jest": "^28.0.0",
+    "@types/node": "^18.7.16",
+    "jest": "^28.0.0",
+    "ts-jest": "^28.0.8",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.2"
+  },
+  "scripts": {
+    "pretest": "npm ci",
+    "test": "npx jest",
+    "build:clean": "rm -rf ./node_modules && rm -rf ./dist",
+    "build:ts": "npx tsc --project ./tsconfig.json",
+    "postinstall": "npm run build:ts",
+    "build:copy": "cp -r ./node_modules ./dist/services/deploymentManager",
+    "build:zip": "cd ./dist/services/deploymentManager && zip -rq deployment-manager.zip . && mv deployment-manager.zip ../../",
+    "build:all": "npm run build:clean && npm ci && npm prune --production && npm run build:copy && npm run build:zip",
+    "coverage": "nyc npm test"
+  }
+}

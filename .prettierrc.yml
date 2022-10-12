@@ -1,0 +1,12 @@
+# .prettierrc or .prettierrc.yaml
+arrowParens: "always"
+bracketSpacing: true
+endOfLine: "lf"
+htmlWhitespaceSensitivity: "css"
+proseWrap: "preserve"
+trailingComma: "es5"
+tabWidth: 2
+semi: true
+singleQuote: false
+quoteProps: "as-needed"
+printWidth: 80

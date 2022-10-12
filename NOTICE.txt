@@ -1,11 +1,7 @@
-AWS Limit Monitor Solution
+Quota Monitor for AWS Solution
 
-Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-Licensed under the Apache License Version 2.0 (the "License"). You may not use this file except
-in compliance with the License. A copy of the License is located at http://www.apache.org/licenses/
-or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the
-specific language governing permissions and limitations under the License.
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: Apache-2.0
 
 **********************
 THIRD PARTY COMPONENTS
@@ -19,3 +15,37 @@ moment under the Massachusetts Institute of Technology (MIT) license
 underscore under the Massachusetts Institute of Technology (MIT) license
 uuid under the Massachusetts Institute of Technology (MIT) license
 url under the Massachusetts Institute of Technology (MIT) license
+@aws-sdk/client-cloudformation under Apache License 2.0
+@aws-sdk/client-cloudwatch under Apache License 2.0
+@aws-sdk/client-cloudwatch-events under Apache License 2.0
+@aws-sdk/client-dynamodb under Apache License 2.0
+@aws-sdk/client-ec2 under Apache License 2.0
+@aws-sdk/client-organizations under Apache License 2.0
+@aws-sdk/client-service-quotas under Apache License 2.0
+@aws-sdk/client-ssm under Apache License 2.0
+@aws-sdk/client-sqs under Apache License 2.0
+@aws-sdk/client-support under Apache License 2.0
+@aws-sdk/lib-dynamodb under Apache License 2.0
+@aws-sdk/client-dynamodb-streams under Apache License 2.0
+got under the Massachusetts Institute of Technology (MIT) license
+winston under the Massachusetts Institute of Technology (MIT) license
+@types/jest under the Massachusetts Institute of Technology (MIT) license
+@types/node under the Massachusetts Institute of Technology (MIT) license
+aws-sdk-client-mock under the Massachusetts Institute of Technology (MIT) license
+aws-sdk-client-mock-jest under the Massachusetts Institute of Technology (MIT) license
+aws-cdk under Apache License 2.0
+aws-cdk-lib under Apache License 2.0
+cdk-nag under Apache License 2.0
+constructs under Apache License 2.0
+jest under the Massachusetts Institute of Technology (MIT) license
+ts-jest under the Massachusetts Institute of Technology (MIT) license
+ts-node under the Massachusetts Institute of Technology (MIT) license
+typescript under Apache License 2.0
+uuid under the Massachusetts Institute of Technology (MIT) license
+@types/uuid under the Massachusetts Institute of Technology (MIT) license
+@typescript-eslint/eslint-plugin under the Massachusetts Institute of Technology (MIT) license
+@typescript-eslint/parser under BSD-2-Clause license
+eslint under the Massachusetts Institute of Technology (MIT) license
+eslint-config-prettier under the Massachusetts Institute of Technology (MIT) license
+eslint-plugin-prettier under the Massachusetts Institute of Technology (MIT) license
+prettier under the Massachusetts Institute of Technology (MIT) license
