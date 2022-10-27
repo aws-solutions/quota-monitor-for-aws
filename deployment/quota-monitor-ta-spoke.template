@@ -411,7 +411,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/asset7235e90786b83ef1c2a3a302e36aa7049269c30ccca02d02321e08c5a3e93780.zip"
+          "S3Key": "quota-monitor-for-aws/v6.0.0/assetc53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip"
         },
         "CompatibleRuntimes": [
           "nodejs16.x"
@@ -420,7 +420,7 @@
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-ta-spoke/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.7235e90786b83ef1c2a3a302e36aa7049269c30ccca02d02321e08c5a3e93780.zip",
+        "aws:asset:path": "asset.c53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -653,7 +653,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/asset246ca968d90f859a64d896490eec8a55293663511e02d2d5650fbb3c4fd5028f.zip"
+          "S3Key": "quota-monitor-for-aws/v6.0.0/asset489d32e527a908bba05ab3ae16a706f2b4018315c9dbc7d85610a546058ded98.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -701,7 +701,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-ta-spoke/QM-TA-Refresher/QM-TA-Refresher-Lambda/Resource",
-        "aws:asset:path": "asset.246ca968d90f859a64d896490eec8a55293663511e02d2d5650fbb3c4fd5028f.zip",
+        "aws:asset:path": "asset.489d32e527a908bba05ab3ae16a706f2b4018315c9dbc7d85610a546058ded98.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code"
       }

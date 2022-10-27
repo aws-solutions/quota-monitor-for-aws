@@ -43,7 +43,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/asset7235e90786b83ef1c2a3a302e36aa7049269c30ccca02d02321e08c5a3e93780.zip"
+          "S3Key": "quota-monitor-for-aws/v6.0.0/assetc53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip"
         },
         "CompatibleRuntimes": [
           "nodejs16.x"
@@ -52,7 +52,7 @@
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.7235e90786b83ef1c2a3a302e36aa7049269c30ccca02d02321e08c5a3e93780.zip",
+        "aws:asset:path": "asset.c53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -110,7 +110,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/asset2d92ce6d43df5c14df987392aa0f4a6813c471c431174f15512a93ab3453e137.zip"
+          "S3Key": "quota-monitor-for-aws/v6.0.0/asseteaa5615916a5d00cd7d595a88c6329920648177d9a1cfd8d90aced55edb2de8f.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -156,7 +156,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.2d92ce6d43df5c14df987392aa0f4a6813c471c431174f15512a93ab3453e137.zip",
+        "aws:asset:path": "asset.eaa5615916a5d00cd7d595a88c6329920648177d9a1cfd8d90aced55edb2de8f.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code"
       }
@@ -462,7 +462,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/asset0781e66df675ca3a48143c2428dab047a2aee70ad3399fc5620cf82c0a8d2bb8.zip"
+          "S3Key": "quota-monitor-for-aws/v6.0.0/asset9fa74eeca90c47b8338d32e3d72bb6c3096a5321d459c395e316937647b7dab8.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -509,7 +509,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Function/Resource",
-        "aws:asset:path": "asset.0781e66df675ca3a48143c2428dab047a2aee70ad3399fc5620cf82c0a8d2bb8.zip",
+        "aws:asset:path": "asset.9fa74eeca90c47b8338d32e3d72bb6c3096a5321d459c395e316937647b7dab8.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code"
       }
