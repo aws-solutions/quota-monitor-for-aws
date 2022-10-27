@@ -76,12 +76,17 @@ The steps given below can be followed if you are looking to customize the soluti
 
 - Javascript Pre-requisite: node=v16.17.0 | npm=8.15.0
 
-Clone the repository and run the following commands to install dependencies, format and lint as per the project standards
+Clone the repository and run the following commands to install dependencies
 
 ```
 git clone aws-solutions/quota-monitor-for-aws
 cd ./quota-monitor-for-aws
 npm ci
+```
+
+(optional) Run the following commands to format and lint the project per the project standards
+
+```
 npm run prettier-format
 npm run lint
 ```
