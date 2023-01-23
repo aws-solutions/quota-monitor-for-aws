@@ -79,7 +79,7 @@ The steps given below can be followed if you are looking to customize the soluti
 Clone the repository and run the following commands to install dependencies
 
 ```
-git clone aws-solutions/quota-monitor-for-aws
+git clone https://github.com/aws-solutions/quota-monitor-for-aws
 cd ./quota-monitor-for-aws
 npm ci
 ```
