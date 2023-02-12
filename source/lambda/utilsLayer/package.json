@@ -30,7 +30,7 @@
     "@aws-sdk/client-support": "3.179.0",
     "@aws-sdk/lib-dynamodb": "3.179.0",
     "@aws-sdk/client-dynamodb-streams": "3.179.0",
-    "got": "^11.5.2",
+    "got": "^12.5.3",
     "winston": "^3.3.3"
   },
   "devDependencies": {
