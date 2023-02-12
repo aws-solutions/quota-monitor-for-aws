@@ -10,7 +10,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@aws-sdk/client-organizations": "^3.110.0",
-    "got": "^11.5.2",
+    "got": "^12.5.3",
     "winston": "~3.3.3"
   },
   "devDependencies": {
