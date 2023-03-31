@@ -11,13 +11,13 @@ import {
 import {
   IncorrectConfigurationException,
   UnsupportedEventException,
-  SQ_SERVICE_CODES,
 } from "solutions-utils";
 
 const getItemMock = jest.fn();
 const putItemMock = jest.fn();
 const queryQuotasForServiceMock = jest.fn();
 const batchDeleteMock = jest.fn();
+const getServiceCodesMock = jest.fn();
 const getQuotaListMock = jest.fn();
 const getQuotasWithUtilizationMetricsMock = jest.fn();
 
@@ -36,12 +36,15 @@ jest.mock("solutions-utils", () => {
     },
     ServiceQuotasHelper: function () {
       return {
+        getServiceCodes: getServiceCodesMock,
         getQuotaList: getQuotaListMock,
         getQuotasWithUtilizationMetrics: getQuotasWithUtilizationMetricsMock,
       };
     },
   };
 });
+
+const serviceCodes = ["monitoring", "dynamodb", "ec2", "ecr", "firehose"];
 
 const quota1 = {
   QuotaName: "Quota 1",
@@ -66,7 +69,7 @@ const insertEvent = {
       dynamodb: {
         NewImage: {
           ServiceCode: {
-            S: SQ_SERVICE_CODES.EC2,
+            S: "ec2",
           },
           Monitored: {
             BOOL: "Bool",
@@ -84,7 +87,7 @@ const modifyEvent = {
       dynamodb: {
         NewImage: {
           ServiceCode: {
-            S: SQ_SERVICE_CODES.EC2,
+            S: "ec2",
           },
           Monitored: {
             BOOL: "true",
@@ -92,7 +95,7 @@ const modifyEvent = {
         },
         OldImage: {
           ServiceCode: {
-            S: SQ_SERVICE_CODES.EC2,
+            S: "ec2",
           },
           Monitored: {
             BOOL: "false",
@@ -110,7 +113,7 @@ const removeEvent = {
       dynamodb: {
         OldImage: {
           ServiceCode: {
-            S: SQ_SERVICE_CODES.EC2,
+            S: "ec2",
           },
         },
       },
@@ -124,6 +127,7 @@ describe("Quota List Manager Exports", () => {
     putItemMock.mockResolvedValue({});
     queryQuotasForServiceMock.mockResolvedValue(quotas);
     batchDeleteMock.mockResolvedValue({});
+    getServiceCodesMock.mockResolvedValue(serviceCodes);
     getQuotaListMock.mockResolvedValue(quotas);
     getQuotasWithUtilizationMetricsMock.mockResolvedValue(quotas);
 
@@ -137,6 +141,7 @@ describe("Quota List Manager Exports", () => {
   it("should should put the service monitoring status if it doesn't exist", async () => {
     await putServiceMonitoringStatus();
 
+    expect(getServiceCodesMock).toHaveBeenCalledTimes(1);
     expect(getItemMock).toHaveBeenCalledTimes(5);
     expect(putItemMock).toHaveBeenCalledTimes(5);
   });
@@ -262,7 +267,7 @@ describe("Quota List Manager Exports", () => {
   });
 
   it("should put quotas for given service", async () => {
-    await putQuotasForService(SQ_SERVICE_CODES.EC2);
+    await putQuotasForService("ec2");
 
     expect(getQuotaListMock).toHaveBeenCalledTimes(1);
     expect(getQuotasWithUtilizationMetricsMock).toHaveBeenCalledTimes(1);
@@ -273,7 +278,7 @@ describe("Quota List Manager Exports", () => {
     queryQuotasForServiceMock.mockResolvedValueOnce([]);
     getQuotasWithUtilizationMetricsMock.mockResolvedValueOnce([]);
 
-    await putQuotasForService(SQ_SERVICE_CODES.EC2);
+    await putQuotasForService("ec2");
 
     expect(getQuotaListMock).toHaveBeenCalledTimes(1);
     expect(getQuotasWithUtilizationMetricsMock).toHaveBeenCalledTimes(1);
@@ -281,7 +286,7 @@ describe("Quota List Manager Exports", () => {
   });
 
   it("should delete quotas for given service", async () => {
-    await deleteQuotasForService(SQ_SERVICE_CODES.EC2);
+    await deleteQuotasForService("ec2");
 
     expect(queryQuotasForServiceMock).toHaveBeenCalledTimes(1);
   });

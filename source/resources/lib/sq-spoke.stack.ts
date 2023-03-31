@@ -25,12 +25,12 @@ import {
   EVENT_NOTIFICATION_SOURCES,
   QUOTA_TABLE,
   SERVICE_TABLE,
-  SQ_CHECKS_SERVICES,
 } from "./exports";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { StartingPosition } from "aws-cdk-lib/aws-lambda";
-import { KMS } from "./kms.construct";
 import { applyDependsOn } from "./depends.utils";
+import { NagSuppressions } from "cdk-nag";
+import { IConstruct } from "constructs";
 
 /**
  * @description
@@ -137,11 +137,6 @@ export class QuotaMonitorSQSpoke extends Stack {
     const primaryEventBus = new targets.EventBus(_primaryEventBus);
 
     /**
-     * @description kms construct to generate KMS-CMK with needed base policy
-     */
-    const kms = new KMS(this, "KMS-SQSpoke");
-
-    /**
      * @description utility layer for solution microservices
      */
     const utilsLayer = new Layer(
@@ -163,8 +158,7 @@ export class QuotaMonitorSQSpoke extends Stack {
       },
       pointInTimeRecovery: true,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
-      encryptionKey: kms.key,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
       stream: StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -183,8 +177,7 @@ export class QuotaMonitorSQSpoke extends Stack {
       },
       pointInTimeRecovery: true,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
-      encryptionKey: kms.key,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
@@ -201,9 +194,8 @@ export class QuotaMonitorSQSpoke extends Stack {
         PARTITION_KEY: SERVICE_TABLE.PartitionKey,
         SORT: QUOTA_TABLE.SortKey,
       },
-      encryptionKey: kms.key,
       layers: [utilsLayer.layer],
-      timeout: Duration.seconds(15),
+      timeout: Duration.minutes(15),
     });
 
     /**
@@ -228,6 +220,11 @@ export class QuotaMonitorSQSpoke extends Stack {
         actions: [
           "cloudwatch:GetMetricData",
           "servicequotas:ListServiceQuotas",
+          "servicequotas:ListServices",
+          "dynamodb:DescribeLimits",
+          "autoscaling:DescribeAccountLimits",
+          "route53:GetAccountLimit",
+          "rds:DescribeAccountAttributes",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"], // do not support resource level permissions
@@ -266,6 +263,18 @@ export class QuotaMonitorSQSpoke extends Stack {
       new targets.LambdaFunction(quotaListManager.function)
     );
 
+    // cdk-nag suppressions
+    NagSuppressions.addResourceSuppressions(
+      <IConstruct>quotaListManager.function.role,
+      [
+        {
+          id: "AwsSolutions-IAM5",
+          reason: "Actions do not support resource-level permissions",
+        },
+      ],
+      true
+    );
+
     //===========================
     // Quota alerting components
     //===========================
@@ -274,7 +283,6 @@ export class QuotaMonitorSQSpoke extends Stack {
      */
     const cwPoller = new EventsToLambda(this, "QM-CWPoller", {
       eventRule: events.Schedule.expression(frequency.valueAsString),
-      encryptionKey: kms.key,
       assetLocation: `${path.dirname(
         __dirname
       )}/../lambda/services/cwPoller/dist/cw-poller.zip`,
@@ -286,6 +294,7 @@ export class QuotaMonitorSQSpoke extends Stack {
       },
       memorySize: 512,
       layers: [utilsLayer.layer],
+      timeout: Duration.minutes(15),
     });
 
     // permission to read from the dynamodb table
@@ -315,6 +324,15 @@ export class QuotaMonitorSQSpoke extends Stack {
       })
     );
 
+    // permission to get list of services
+    cwPoller.target.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["servicequotas:ListServices"],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"], // do not support resource level permissions
+      })
+    );
+
     /**
      * @description events pattern for quota utilization OK events
      */
@@ -322,9 +340,6 @@ export class QuotaMonitorSQSpoke extends Stack {
       account: [this.account],
       detail: {
         status: ["OK"],
-        "check-item-detail": {
-          Service: SQ_CHECKS_SERVICES,
-        },
       },
       detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
       source: [EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
@@ -349,9 +364,6 @@ export class QuotaMonitorSQSpoke extends Stack {
       account: [this.account],
       detail: {
         status: ["WARN"],
-        "check-item-detail": {
-          Service: SQ_CHECKS_SERVICES,
-        },
       },
       detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
       source: [EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
@@ -376,9 +388,6 @@ export class QuotaMonitorSQSpoke extends Stack {
       account: [this.account],
       detail: {
         status: ["ERROR"],
-        "check-item-detail": {
-          Service: SQ_CHECKS_SERVICES,
-        },
       },
       detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
       source: [EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],

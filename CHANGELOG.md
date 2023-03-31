@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.0] - 2023-03-31
+
+### Added
+- Support for monitoring all usage reporting quotas from all services supported by Service Quotas
+- Ability to mute selected notifications
+- Support for GovCloud regions
+- Ability to select regions for stackset instances
+- Check if Trusted Advisor is available before deploying the corresponding stacks
+- Allow customization to Stack Set deployments configuration
+
+### Changed
+- Use AWS Managed keys for the resources in the spoke templates to help reduce the cost of deployment.
+
 ## [6.0.0] - 2022-10-14
 
 ### Added

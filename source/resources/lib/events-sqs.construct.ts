@@ -48,7 +48,9 @@ export class EventsToSQS<T extends QuotaMonitorEvent>
     });
 
     this.target = new sqs.Queue(this, `${id}-Queue`, {
-      encryption: sqs.QueueEncryption.KMS,
+      encryption: props.encryptionKey
+        ? sqs.QueueEncryption.KMS
+        : sqs.QueueEncryption.KMS_MANAGED,
       encryptionMasterKey: props.encryptionKey,
       visibilityTimeout: Duration.seconds(60),
     });

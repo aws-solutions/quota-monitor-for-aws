@@ -8,10 +8,10 @@ describe("==SQ-Spoke Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("sq-spoke stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs16.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs16.x"],
+        CompatibleRuntimes: ["nodejs18.x"],
       });
     });
 
@@ -21,45 +21,63 @@ describe("==SQ-Spoke Stack Tests==", () => {
       });
     });
 
+    it("should have two tables", () => {
+      template.resourceCountIs("AWS::DynamoDB::Table", 2);
+    });
+
     it("should have a dynamodb table for the Service List", () => {
-      template.hasResourceProperties("AWS::DynamoDB::Table", {
-        KeySchema: [
-          {
-            AttributeName: "ServiceCode",
-            KeyType: "HASH",
+      template.hasResource("AWS::DynamoDB::Table", {
+        UpdateReplacePolicy: "Delete",
+        DeletionPolicy: "Delete",
+        Properties: {
+          KeySchema: [
+            {
+              AttributeName: "ServiceCode",
+              KeyType: "HASH",
+            },
+          ],
+          AttributeDefinitions: [
+            {
+              AttributeName: "ServiceCode",
+              AttributeType: "S",
+            },
+          ],
+          PointInTimeRecoverySpecification: {
+            PointInTimeRecoveryEnabled: true,
           },
-        ],
-        AttributeDefinitions: [
-          {
-            AttributeName: "ServiceCode",
-            AttributeType: "S",
+          SSESpecification: {
+            SSEEnabled: true,
           },
-        ],
+        },
       });
     });
 
     it("should have a dynamodb table for the Quota List", () => {
-      template.hasResourceProperties("AWS::DynamoDB::Table", {
-        KeySchema: [
-          {
-            AttributeName: "ServiceCode",
-            KeyType: "HASH",
-          },
-          {
-            AttributeName: "QuotaCode",
-            KeyType: "RANGE",
-          },
-        ],
-        AttributeDefinitions: [
-          {
-            AttributeName: "ServiceCode",
-            AttributeType: "S",
-          },
-          {
-            AttributeName: "QuotaCode",
-            AttributeType: "S",
-          },
-        ],
+      template.hasResource("AWS::DynamoDB::Table", {
+        UpdateReplacePolicy: "Delete",
+        DeletionPolicy: "Delete",
+        Properties: {
+          KeySchema: [
+            {
+              AttributeName: "ServiceCode",
+              KeyType: "HASH",
+            },
+            {
+              AttributeName: "QuotaCode",
+              KeyType: "RANGE",
+            },
+          ],
+          AttributeDefinitions: [
+            {
+              AttributeName: "ServiceCode",
+              AttributeType: "S",
+            },
+            {
+              AttributeName: "QuotaCode",
+              AttributeType: "S",
+            },
+          ],
+        },
       });
     });
 
@@ -82,6 +100,12 @@ describe("==SQ-Spoke Stack Tests==", () => {
           TargetArn: Match.objectLike(Match.anyValue),
         }),
       });
+    });
+
+    it("should have parameters", () => {
+      const allParams = template.findParameters("*", {});
+      expect(allParams).toHaveProperty("NotificationThreshold");
+      expect(allParams).toHaveProperty("MonitoringFrequency");
     });
   });
 });

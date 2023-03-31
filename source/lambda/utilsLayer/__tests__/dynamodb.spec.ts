@@ -10,7 +10,6 @@ import {
   PutCommand,
   QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { SQ_SERVICE_CODES } from "../lib/services";
 
 describe("Dynamo DB", () => {
   const ddbMock = mockClient(DynamoDBClient);
@@ -37,7 +36,7 @@ describe("Dynamo DB", () => {
     ddbDocMock.on(GetCommand).resolves({ Item: { data: "data" } });
 
     const response = await ddbHelper.getItem(tableName, {
-      ServiceCode: SQ_SERVICE_CODES.DYNAMODB,
+      ServiceCode: "dynamodb",
     });
     expect(ddbDocMock).toHaveReceivedCommandTimes(GetCommand, 1);
     expect(response).toEqual({ data: "data" });
@@ -50,7 +49,7 @@ describe("Dynamo DB", () => {
 
     const response = await ddbHelper.queryQuotasForService(
       tableName,
-      SQ_SERVICE_CODES.DYNAMODB
+      "dynamodb"
     );
 
     expect(ddbDocMock).toHaveReceivedCommandTimes(QueryCommand, 1);

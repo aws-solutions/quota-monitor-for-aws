@@ -56,7 +56,7 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       runtime: LAMBDA_RUNTIME_NODE,
       environment: {
         ...props.environment,
-        LOG_LEVEL: LOG_LEVEL.INFO, //change as needed
+        LOG_LEVEL: this.node.tryGetContext("LOG_LEVEL") || LOG_LEVEL.INFO, //change as needed
         CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext(
           "SOLUTION_ID"
         )}/${this.node.tryGetContext("SOLUTION_VERSION")}`,

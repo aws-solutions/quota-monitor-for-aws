@@ -8,10 +8,10 @@ describe("==TA-Spoke Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("ta-spoke stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs16.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs16.x"],
+        CompatibleRuntimes: ["nodejs18.x"],
       });
     });
 
@@ -26,6 +26,11 @@ describe("==TA-Spoke Stack Tests==", () => {
           TargetArn: Match.objectLike(Match.anyValue),
         }),
       });
+    });
+
+    it("should have parameters", () => {
+      const allParams = template.findParameters("*", {});
+      expect(allParams).toHaveProperty("EventBusArn");
     });
   });
 

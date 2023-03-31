@@ -7,6 +7,8 @@ import {
 import {
   MetricInfo,
   paginateListServiceQuotas,
+  paginateListServices,
+  ServiceInfo,
   ServiceQuota,
   ServiceQuotasClient,
   ServiceQuotasServiceException,
@@ -14,12 +16,10 @@ import {
 import { CloudWatchHelper } from "./cloudwatch";
 import { catchDecorator } from "./catch";
 import {
-  IncorrectConfigurationException,
   UnsupportedQuotaException,
 } from "./error";
 import { ServiceHelper } from "./exports";
 import { logger } from "./logger";
-import { SQ_SERVICE_CODES } from "./services";
 
 /**
  * @description helper class for Service Quotas
@@ -44,7 +44,35 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
    * @returns
    */
   @catchDecorator(ServiceQuotasServiceException, true)
-  async getQuotaList(serviceCode: SQ_SERVICE_CODES) {
+  async getServiceCodes(): Promise<string[]> {
+    logger.debug({
+      label: this.moduleName,
+      message: "getting services in Service quotas",
+    });
+
+    const services: ServiceInfo[] = [];
+    const paginator = paginateListServices(
+      {
+        client: this.client,
+      },
+      {}
+    );
+
+    for await (const page of paginator) {
+      services.push(...(page.Services as ServiceInfo[]));
+    }
+    return services
+      .map((value) => value.ServiceCode)
+      .filter((value) => value !== undefined)
+      .map((value) => <string>value);
+  }
+
+  /**
+   * @description returns a list of services supported by the Servrice Quotas
+   * @returns
+   */
+  @catchDecorator(ServiceQuotasServiceException, true)
+  async getQuotaList(serviceCode: string) {
     logger.debug({
       label: this.moduleName,
       message: `getting quota list for ${serviceCode}`,
@@ -78,15 +106,24 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
   /**
    * @description returns list of quotas that support utilization monitoring
    * @param quotas
+   * @param serviceCode optional parameter needed only for logging
    */
   @catchDecorator(CloudWatchServiceException, true)
-  async getQuotasWithUtilizationMetrics(quotas: ServiceQuota[]) {
+  async getQuotasWithUtilizationMetrics(
+    quotas: ServiceQuota[],
+    serviceCode?: string
+  ) {
     logger.debug({
       label: this.moduleName,
       message: `getting quotas that support utilization metrics`,
     });
-    if (quotas.length === 0)
-      throw new IncorrectConfigurationException(`no quotas found`);
+    if (quotas.length === 0) {
+      logger.info({
+        label: this.moduleName,
+        message: `no quotas found for ${serviceCode}`,
+      });
+      return [];
+    }
 
     const cw = new CloudWatchHelper();
     const validatedQuotas: ServiceQuota[] = [];
@@ -158,6 +195,26 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
   }
 
   /**
+   * generates a metric query id with a pattern, so that it can be used again
+   * @param metricInfo
+   */
+  public generateMetricQueryId(metricInfo: MetricInfo): string {
+    logger.debug({
+      label: `generateMetricQueryId/metricInfo`,
+      message: JSON.stringify(metricInfo),
+    });
+    return (
+      metricInfo.MetricDimensions?.Service.toLowerCase() +
+      "_" +
+      metricInfo.MetricDimensions?.Resource.toLowerCase() +
+      "_" +
+      metricInfo.MetricDimensions?.Class.toLowerCase().replace("/", "") +
+      "_" +
+      metricInfo.MetricDimensions?.Type.toLowerCase()
+    );
+  }
+
+  /**
    * @description get usage query to fetch quota usage
    * @param metricInfo
    * @param period - period to apply metric statistic
@@ -165,14 +222,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
    */
   private generateUsageQuery(metricInfo: MetricInfo, period: number) {
     const usageQuery: MetricDataQuery = {
-      Id:
-        metricInfo.MetricDimensions?.Service.toLowerCase() +
-        "_" +
-        metricInfo.MetricDimensions?.Resource.toLowerCase() +
-        "_" +
-        metricInfo.MetricDimensions?.Class.toLowerCase().replace("/", "") +
-        "_" +
-        metricInfo.MetricDimensions?.Type.toLowerCase(),
+      Id: this.generateMetricQueryId(metricInfo),
       MetricStat: {
         Metric: {
           Namespace: metricInfo.MetricNamespace,

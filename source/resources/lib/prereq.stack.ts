@@ -109,6 +109,7 @@ export class PreReqStack extends Stack {
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
         SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        QM_STACK_ID: id,
       },
     });
 

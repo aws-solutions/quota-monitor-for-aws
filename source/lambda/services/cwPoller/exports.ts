@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { ServiceQuota } from "@aws-sdk/client-service-quotas";
+import { MetricInfo, ServiceQuota } from "@aws-sdk/client-service-quotas";
 import { MetricDataQuery, MetricDataResult } from "@aws-sdk/client-cloudwatch";
 import { PutEventsRequestEntry } from "@aws-sdk/client-cloudwatch-events";
 import {
@@ -9,7 +9,6 @@ import {
   DynamoDBHelper,
   EventsHelper,
   ServiceQuotasHelper,
-  SQ_SERVICE_CODES,
 } from "solutions-utils";
 
 /**
@@ -40,7 +39,9 @@ export enum QUOTA_STATUS {
 interface IQuotaUtilizationEvent {
   status: QUOTA_STATUS;
   "check-item-detail": {
+    "Limit Code": string;
     "Limit Name": string;
+    Resource: string;
     Service: string;
     Region: string;
     "Current Usage": string;
@@ -68,10 +69,7 @@ function getFrequencyInHours(
  * @param service service for which to fetch quotas
  * @returns
  */
-export async function getQuotasForService(
-  table: string,
-  service: SQ_SERVICE_CODES
-) {
+export async function getQuotasForService(table: string, service: string) {
   const ddb = new DynamoDBHelper();
   const items = await ddb.queryQuotasForService(table, service);
   return items ?? [];
@@ -94,6 +92,24 @@ export function generateCWQueriesForAllQuotas(quotas: ServiceQuota[]) {
   return queries;
 }
 
+export type MetricQueryIdToQuotaMap = { [key: string]: ServiceQuota };
+
+/**
+ * generates a map of metric query ids and the corresponding quota objects from which the ids are generated
+ * @param quotas
+ */
+export function generateMetricQueryIdMap(quotas: ServiceQuota[]) {
+  const sq = new ServiceQuotasHelper();
+  const dict: MetricQueryIdToQuotaMap = {};
+  for (const quota of quotas) {
+    const metricQueryId = sq.generateMetricQueryId(
+      <MetricInfo>quota.UsageMetric
+    );
+    dict[metricQueryId] = quota;
+  }
+  return dict;
+}
+
 /**
  * @description get all metric data points for quota utilization
  * @param queries
@@ -110,24 +126,26 @@ export async function getCWDataForQuotaUtilization(queries: MetricDataQuery[]) {
 }
 
 /**
- * @description performs string manipulation on metric data id to get service and quota name
+ * @description returns the metric query id from the result query id
  * @param metricData
- * @returns
  */
-function getQuotaNameFromMetricData(
+function getMetricQueryIdFromMetricData(
   metricData: Omit<MetricDataResult, "Label">
 ) {
-  const quotaName = (<string>metricData.Id).split("_pct_utilization")[0];
-  const names = quotaName.split("_");
-  return { ServiceName: names[0], QuotaName: names[1] };
+  return (<string>metricData.Id).split("_pct_utilization")[0];
 }
 
 /**
  * @description evaluate metric data and create quota utilization events
  * @param metricData
+ * @param metricQueryIdToQuotaMap
  */
-export function createQuotaUtilizationEvents(metricData: MetricDataResult) {
-  const quotaIdentifier = getQuotaNameFromMetricData(metricData);
+export function createQuotaUtilizationEvents(
+  metricData: MetricDataResult,
+  metricQueryIdToQuotaMap: MetricQueryIdToQuotaMap
+) {
+  const metricQueryId = getMetricQueryIdFromMetricData(metricData);
+  const quota = metricQueryIdToQuotaMap[metricQueryId];
   const utilizationValues = <number[]>metricData.Values;
 
   const items: IQuotaUtilizationEvent[] = [];
@@ -136,8 +154,10 @@ export function createQuotaUtilizationEvents(metricData: MetricDataResult) {
     const quotaEvents: IQuotaUtilizationEvent = {
       status: QUOTA_STATUS.OK,
       "check-item-detail": {
-        "Limit Name": quotaIdentifier.QuotaName,
-        Service: quotaIdentifier.ServiceName,
+        "Limit Code": <string>quota.QuotaCode,
+        "Limit Name": <string>quota.QuotaName,
+        Resource: <string>quota.UsageMetric?.MetricDimensions?.Resource,
+        Service: <string>quota.UsageMetric?.MetricDimensions?.Service,
         Region: <string>process.env.AWS_REGION,
         "Current Usage": "",
         "Limit Amount": "100", // max utilization is 100%

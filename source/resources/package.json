@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "description": "cdk resources to provision needed infrastructure",
   "author": {
     "name": "Amazon Web Services",
@@ -13,13 +13,14 @@
     "watch": "npx tsc -w",
     "pretest": "npm ci",
     "test": "npx jest",
-    "cdk": "npx cdk"
+    "cdk": "npx cdk",
+    "cdk:deploy": "echo 'fixing stackset template paths for cdk assets by forcing it to synth twice' && rm -rf cdk.out && cdk synth && cdk deploy"
   },
   "devDependencies": {
     "@types/jest": "^27.5.1",
     "@types/node": "^17.0.37",
-    "aws-cdk": "^2.45.0",
-    "aws-cdk-lib": "^2.45.0",
+    "aws-cdk": "^2.51.1",
+    "aws-cdk-lib": "^2.51.1",
     "cdk-nag": "^2.14.39",
     "constructs": "^10.0.0",
     "jest": "^28.1.0",

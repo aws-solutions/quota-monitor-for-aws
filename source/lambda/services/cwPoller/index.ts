@@ -4,14 +4,14 @@
 import {
   LambdaTriggers,
   logger,
-  SQ_SERVICE_CODES,
-  SUPPORTED_SERVICES,
+  ServiceQuotasHelper,
   UnsupportedEventException,
 } from "solutions-utils";
 import { ServiceQuota } from "@aws-sdk/client-service-quotas";
 import {
   createQuotaUtilizationEvents,
   generateCWQueriesForAllQuotas,
+  generateMetricQueryIdMap,
   getCWDataForQuotaUtilization,
   getQuotasForService,
   sendQuotaUtilizationEventsToBridge,
@@ -32,10 +32,16 @@ export const handler = async (event: any) => {
   });
 
   if (!LambdaTriggers.isScheduledEvent(event))
-    throw new UnsupportedEventException("this event type is not support");
+    throw new UnsupportedEventException("this event type is not supported");
 
+  const sq = new ServiceQuotasHelper();
+  const serviceCodes: string[] = await sq.getServiceCodes();
+  logger.debug({
+    label: `${MODULE_NAME}/handler/serviceCodes`,
+    message: JSON.stringify(serviceCodes),
+  });
   await Promise.allSettled(
-    SUPPORTED_SERVICES.map(async (service) => {
+    serviceCodes.map(async (service) => {
       await handleQuotasForService(service);
     })
   );
@@ -45,21 +51,32 @@ export const handler = async (event: any) => {
   // https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_GetMetricData.html
 };
 
-async function handleQuotasForService(service: SQ_SERVICE_CODES) {
+async function handleQuotasForService(service: string) {
   const quotaItems = await getQuotasForService(
     <string>process.env.SQ_QUOTA_TABLE,
     service
   );
   if (!quotaItems || quotaItems.length == 0) return; // no quota items found
   const queries = generateCWQueriesForAllQuotas(<ServiceQuota[]>quotaItems);
+  const metricQueryIdToQuotaMap = generateMetricQueryIdMap(
+    <ServiceQuota[]>quotaItems
+  );
   const metrics = await getCWDataForQuotaUtilization(queries);
   await Promise.allSettled(
     metrics.map(async (metric) => {
-      const utilizationEvents = createQuotaUtilizationEvents(metric);
+      const utilizationEvents = createQuotaUtilizationEvents(
+        metric,
+        metricQueryIdToQuotaMap
+      );
+      logger.debug({
+        label: `${MODULE_NAME}/handler/UtilizationEvents`,
+        message: JSON.stringify(utilizationEvents),
+      });
       await sendQuotaUtilizationEventsToBridge(
         <string>process.env.SPOKE_EVENT_BUS,
         utilizationEvents
       );
     })
   );
+  logger.debug(`${service} utilizationEvents sent to spoke event bridge bus`);
 }

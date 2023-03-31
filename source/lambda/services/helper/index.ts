@@ -1,7 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 import { v4 as uuidv4 } from "uuid";
-import { logger, sendAnonymousMetric } from "solutions-utils";
+import {
+  logger,
+  sendAnonymousMetric,
+  stringEqualsIgnoreCase
+} from "solutions-utils";
 
 /**
  * @description interface for cloudformation events
@@ -56,7 +60,7 @@ export const handler = async (
   // Send launch metric
   else if (
     event.ResourceType === "Custom::LaunchData" &&
-    process.env.SEND_METRIC === "Yes"
+    stringEqualsIgnoreCase(<string>process.env.SEND_METRIC, "Yes")
   ) {
     const metric = {
       Solution: <string>process.env.SOLUTION_ID,
@@ -64,7 +68,11 @@ export const handler = async (
       TimeStamp: new Date().toISOString().replace("T", " ").replace("Z", ""), // Date and time instant in a java.sql.Timestamp compatible format,
       Data: {
         Event: `Solution${event.RequestType}`,
-        Version: <string>process.env.SOLUTION_VERSION,
+        Version: <string>process.env.VERSION,
+        Region: <string>process.env.AWS_REGION,
+        Stack: <string>process.env.QM_STACK_ID,
+        SlackNotification: <string>process.env.QM_SLACK_NOTIFICATION,
+        EmailNotification: <string>process.env.QM_EMAIL_NOTIFICATION,
       },
     };
     try {

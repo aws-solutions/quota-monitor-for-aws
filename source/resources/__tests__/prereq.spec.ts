@@ -8,10 +8,10 @@ describe("==Pre-requisite Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("Pre-requisite stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs16.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs16.x"],
+        CompatibleRuntimes: ["nodejs18.x"],
       });
     });
 
@@ -27,6 +27,10 @@ describe("==Pre-requisite Stack Tests==", () => {
     });
     it("should have custom resource for UUID", () => {
       template.resourceCountIs("Custom::PreReqManagerCR", 1);
+    });
+    it("should have parameters", () => {
+      const allParams = template.findParameters("*", {});
+      expect(allParams).toHaveProperty("MonitoringAccountId");
     });
   });
 

@@ -15,11 +15,11 @@ import { Construct, IConstruct } from "constructs";
 import { enforceSSL } from "./enforce-SSL.utils";
 import {
   IRuleToTarget,
-  QuotaMonitorEvent,
-  LambdaProps,
-  RuleTargetProps,
   LAMBDA_RUNTIME_NODE,
+  LambdaProps,
   LOG_LEVEL,
+  QuotaMonitorEvent,
+  RuleTargetProps,
 } from "./exports";
 import { KMS } from "./kms.construct";
 
@@ -66,7 +66,9 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
       this,
       `${id}-Lambda-Dead-Letter-Queue`,
       {
-        encryption: QueueEncryption.KMS,
+        encryption: props.encryptionKey
+          ? QueueEncryption.KMS
+          : QueueEncryption.KMS_MANAGED,
         encryptionMasterKey: props.encryptionKey,
       }
     );
@@ -81,7 +83,7 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
       handler: "index.handler",
       environment: {
         ...props.environment,
-        LOG_LEVEL: LOG_LEVEL.INFO, //change as needed
+        LOG_LEVEL: this.node.tryGetContext("LOG_LEVEL") || LOG_LEVEL.INFO, //change as needed
         CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext(
           "SOLUTION_ID"
         )}/${this.node.tryGetContext("SOLUTION_VERSION")}`,
@@ -99,11 +101,13 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
     this.rule.addTarget(new targets.LambdaFunction(this.target));
 
     // permissions to access KMS key
-    KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach(
-      (policyStatement) => {
-        this.target.addToRolePolicy(policyStatement);
-      }
-    );
+    if (props.encryptionKey) {
+      KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach(
+        (policyStatement) => {
+          this.target.addToRolePolicy(policyStatement);
+        }
+      );
+    }
 
     // cdk-nag suppressions
     NagSuppressions.addResourceSuppressions(

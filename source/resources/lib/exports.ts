@@ -13,7 +13,7 @@ import { ILayerVersion } from "aws-cdk-lib/aws-lambda";
 /**
  * @description supported lambda runtime in the solution
  */
-export const LAMBDA_RUNTIME_NODE = lambda.Runtime.NODEJS_16_X;
+export const LAMBDA_RUNTIME_NODE = lambda.Runtime.NODEJS_18_X;
 
 /**
  * @description partition key and sort key for service table
@@ -92,7 +92,7 @@ export interface RuleTargetProps<T> {
   /**
    * @description kms key to be used for encryption
    */
-  encryptionKey: kms.Key;
+  encryptionKey?: kms.Key;
   /**
    * @description event bus on to attach the rule to, if undefined rule will be attached to default bus
    */

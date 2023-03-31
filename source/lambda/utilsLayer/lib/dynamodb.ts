@@ -15,7 +15,6 @@ import {
 import { catchDecorator } from "./catch";
 import { ServiceHelper } from "./exports";
 import { logger } from "./logger";
-import { SQ_SERVICE_CODES } from "./services";
 
 /**
  * @description helper class for Event Bridge
@@ -67,7 +66,7 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
   async getItem(tableName: string, key: { [_: string]: string }) {
     logger.debug({
       label: this.moduleName,
-      message: `getting item from ${tableName}`,
+      message: `getting item from ${tableName} for ${JSON.stringify(key)}`,
     });
     const response = await this.ddbDocClient.send(
       new GetCommand({
@@ -77,7 +76,7 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
     );
     logger.debug({
       label: this.moduleName,
-      message: `get item respone: ${JSON.stringify(response)}`,
+      message: `get item response: ${JSON.stringify(response)}`,
     });
     return response.Item;
   }
@@ -91,7 +90,7 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
   @catchDecorator(DynamoDBServiceException, false)
   async queryQuotasForService(
     tableName: string,
-    serviceCode: SQ_SERVICE_CODES
+    serviceCode: string
   ) {
     logger.debug({
       label: this.moduleName,

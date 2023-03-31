@@ -70,7 +70,10 @@ export class LimitReport {
         usageMessage.detail["check-item-detail"]["Timestamp"] ??
         usageMessage.time,
       Region: usageMessage.detail["check-item-detail"]["Region"],
+      Source: usageMessage.source,
       Service: usageMessage.detail["check-item-detail"]["Service"],
+      Resource: usageMessage.detail["check-item-detail"]["Resource"],
+      LimitCode: usageMessage.detail["check-item-detail"]["Limit Code"],
       LimitName: usageMessage.detail["check-item-detail"]["Limit Name"],
       CurrentUsage:
         usageMessage.detail["check-item-detail"]["Current Usage"] ?? "0",

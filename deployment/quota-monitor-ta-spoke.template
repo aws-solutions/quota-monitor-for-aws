@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-TA) - quota-monitor-for-aws version:v6.0.0 - Trusted Advisor Template",
+  "Description": "(SO0005-TA) - quota-monitor-for-aws version:v6.1.0 - Trusted Advisor Template",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -36,62 +36,6 @@
     }
   },
   "Resources": {
-    "KMSTASpokeQMEncryptionKeyE9C4794C": {
-      "Type": "AWS::KMS::Key",
-      "Properties": {
-        "KeyPolicy": {
-          "Statement": [
-            {
-              "Action": "kms:*",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":root"
-                    ]
-                  ]
-                }
-              },
-              "Resource": "*"
-            }
-          ],
-          "Version": "2012-10-17"
-        },
-        "Description": "CMK for AWS resources provisioned by Quota Monitor in this account",
-        "Enabled": true,
-        "EnableKeyRotation": true
-      },
-      "UpdateReplacePolicy": "Retain",
-      "DeletionPolicy": "Retain",
-      "Metadata": {
-        "aws:cdk:path": "quota-monitor-ta-spoke/KMS-TASpoke/QM-EncryptionKey/Resource"
-      }
-    },
-    "KMSTASpokeQMEncryptionKeyAlias58970D74": {
-      "Type": "AWS::KMS::Alias",
-      "Properties": {
-        "AliasName": "alias/CMK-KMS-TASpoke",
-        "TargetKeyId": {
-          "Fn::GetAtt": [
-            "KMSTASpokeQMEncryptionKeyE9C4794C",
-            "Arn"
-          ]
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "quota-monitor-ta-spoke/KMS-TASpoke/QM-EncryptionKey/Alias/Resource"
-      }
-    },
     "TAOkRule3B6A3866": {
       "Type": "AWS::Events::Rule",
       "Properties": {
@@ -411,16 +355,16 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/assetc53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset5c94614665208d4c5db69acecb627e670f229588b1d2fa53a87a7ed577e052cf.zip"
         },
         "CompatibleRuntimes": [
-          "nodejs16.x"
+          "nodejs18.x"
         ],
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-ta-spoke/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.c53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip",
+        "aws:asset:path": "asset.5c94614665208d4c5db69acecb627e670f229588b1d2fa53a87a7ed577e052cf.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -478,12 +422,7 @@
     "QMTARefresherQMTARefresherLambdaDeadLetterQueueC938ED3A": {
       "Type": "AWS::SQS::Queue",
       "Properties": {
-        "KmsMasterKeyId": {
-          "Fn::GetAtt": [
-            "KMSTASpokeQMEncryptionKeyE9C4794C",
-            "Arn"
-          ]
-        }
+        "KmsMasterKeyId": "alias/aws/sqs"
       },
       "UpdateReplacePolicy": "Delete",
       "DeletionPolicy": "Delete",
@@ -597,25 +536,6 @@
               }
             },
             {
-              "Action": [
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:CreateGrant"
-              ],
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::GetAtt": [
-                  "KMSTASpokeQMEncryptionKeyE9C4794C",
-                  "Arn"
-                ]
-              }
-            },
-            {
-              "Action": "kms:ListAliases",
-              "Effect": "Allow",
-              "Resource": "*"
-            },
-            {
               "Action": "support:RefreshTrustedAdvisorCheck",
               "Effect": "Allow",
               "Resource": "*"
@@ -653,7 +573,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/asset489d32e527a908bba05ab3ae16a706f2b4018315c9dbc7d85610a546058ded98.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/assetd333a41d44ddd78fc67eba78fbbc158e7c0a6363a79e45beb2784af3d6ae81d0.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -674,25 +594,19 @@
           "Variables": {
             "AWS_SERVICES": "AutoScaling,CloudFormation,DynamoDB,EBS,EC2,ELB,IAM,Kinesis,RDS,Route53,SES,VPC",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.0.0",
-            "VERSION": "v6.0.0",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.1.0",
+            "VERSION": "v6.1.0",
             "SOLUTION_ID": "SO0005"
           }
         },
         "Handler": "index.handler",
-        "KmsKeyArn": {
-          "Fn::GetAtt": [
-            "KMSTASpokeQMEncryptionKeyE9C4794C",
-            "Arn"
-          ]
-        },
         "Layers": [
           {
             "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
           }
         ],
         "MemorySize": 128,
-        "Runtime": "nodejs16.x",
+        "Runtime": "nodejs18.x",
         "Timeout": 60
       },
       "DependsOn": [
@@ -701,220 +615,16 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-ta-spoke/QM-TA-Refresher/QM-TA-Refresher-Lambda/Resource",
-        "aws:asset:path": "asset.489d32e527a908bba05ab3ae16a706f2b4018315c9dbc7d85610a546058ded98.zip",
+        "aws:asset:path": "asset.d333a41d44ddd78fc67eba78fbbc158e7c0a6363a79e45beb2784af3d6ae81d0.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code"
       }
-    },
-    "CDKMetadata": {
-      "Type": "AWS::CDK::Metadata",
-      "Properties": {
-        "Analytics": "v2:deflate64:H4sIAAAAAAAA/11QyU7DMBD9Fu6OoWzi2lbiAogQJK7V1BmqabwEj11URf53bKcViIvfMk+j57mWt3fy6gK+uVH90Gjayuk9gBrE+tO24MFgQF/EC4wj2Z3I0c00GJbTEx7LoMBSE3ARlSSBB7QhR7qosdgFkyAw2XInq2DrNKm6ZWZJaDDbHuT0DEf0H+iZnC3z/7pFb4ireoxWhZN95knwzQaYMbdYFsharqIaMKyAUfBXbvcWMdYuM6nvb6M/MiXRIbvoFYq6LZ9oV46RY68xjDHUH50jma+d7WkuYl2Pcs+Xh8W9XDzkY++ZqPHRBjIouxl/ACAKPqSIAQAA"
-      },
-      "Metadata": {
-        "aws:cdk:path": "quota-monitor-ta-spoke/CDKMetadata/Default"
-      },
-      "Condition": "CDKMetadataAvailable"
     }
   },
   "Outputs": {
     "ServiceChecks": {
       "Description": "service limit checks monitored in the account",
       "Value": "AutoScaling,CloudFormation,DynamoDB,EBS,EC2,ELB,IAM,Kinesis,RDS,Route53,SES,VPC"
-    }
-  },
-  "Conditions": {
-    "CDKMetadataAvailable": {
-      "Fn::Or": [
-        {
-          "Fn::Or": [
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "af-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-east-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-northeast-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-northeast-2"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-southeast-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-southeast-2"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ca-central-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "cn-north-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "cn-northwest-1"
-              ]
-            }
-          ]
-        },
-        {
-          "Fn::Or": [
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-central-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-north-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-west-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-west-2"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-west-3"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "me-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "sa-east-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-east-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-east-2"
-              ]
-            }
-          ]
-        },
-        {
-          "Fn::Or": [
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-west-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-west-2"
-              ]
-            }
-          ]
-        }
-      ]
     }
   }
 }

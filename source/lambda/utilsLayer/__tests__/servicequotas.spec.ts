@@ -2,14 +2,13 @@ import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
 
 import {
+  ListServicesCommand,
   ListServiceQuotasCommand,
   ServiceQuota,
   ServiceQuotasClient,
 } from "@aws-sdk/client-service-quotas";
 
 import { ServiceQuotasHelper } from "../lib/servicequotas";
-import { SQ_SERVICE_CODES } from "../lib/services";
-import { IncorrectConfigurationException } from "../lib/error";
 
 jest.mock("../lib/cloudwatch", () => {
   const getMetricDataMock = { getMetricData: jest.fn().mockReturnValue([]) };
@@ -23,6 +22,35 @@ describe("Service Quotas Helper", () => {
   beforeEach(() => {
     sqMock.reset();
     sqHelper = new ServiceQuotasHelper();
+  });
+
+  it("should get the list of services", async () => {
+    sqMock.on(ListServicesCommand).resolves({
+      Services: [
+        {
+          ServiceCode: "codepipeline",
+          ServiceName: "AWS CodePipeline",
+        },
+        {
+          ServiceCode: "ec2",
+          ServiceName: "Amazon Elastic Compute Cloud (Amazon EC2)",
+        },
+        {
+          ServiceCode: "elasticache",
+          ServiceName: "Amazon ElastiCache",
+        },
+        {
+          ServiceCode: undefined,
+          ServiceName: undefined,
+        },
+      ],
+    });
+
+    const expectedResponse = ["codepipeline", "ec2", "elasticache"];
+
+    const response = await sqHelper.getServiceCodes();
+
+    expect(response).toEqual(expectedResponse);
   });
 
   it("should get the Quota List", async () => {
@@ -76,7 +104,7 @@ describe("Service Quotas Helper", () => {
       },
     ];
 
-    const response = await sqHelper.getQuotaList(SQ_SERVICE_CODES.EC2);
+    const response = await sqHelper.getQuotaList("ec2");
 
     expect(response).toEqual(expectedResponse);
   });
@@ -119,16 +147,8 @@ describe("Service Quotas Helper", () => {
     expect(response).toEqual([]);
   });
 
-  it("should throw an exception if no quotas found", async () => {
-    let error: Error | undefined;
-    try {
-      await sqHelper.getQuotasWithUtilizationMetrics([]);
-    } catch (err) {
-      error = err;
-    }
-
-    expect(error).toEqual(
-      new IncorrectConfigurationException("no quotas found")
-    );
+  it("should work with empty list argument", async () => {
+    const response = await sqHelper.getQuotasWithUtilizationMetrics([]);
+    expect(response).toEqual([]);
   });
 });

@@ -29,11 +29,13 @@ new QuotaMonitorTASpoke(app, "quota-monitor-ta-spoke", {
   synthesizer: new DefaultStackSynthesizer({
     generateBootstrapVersionRule: false,
   }),
+  analyticsReporting: false,
 });
 new QuotaMonitorSQSpoke(app, "quota-monitor-sq-spoke", {
   synthesizer: new DefaultStackSynthesizer({
     generateBootstrapVersionRule: false,
   }),
+  analyticsReporting: false,
 });
 
 Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));

@@ -28,6 +28,11 @@ const mockEvent: IEvent = {
   ResourceProperties: {},
   ResponseURL: "url",
 };
+const TEST_VERSION = "1.0.0";
+const TEST_REGION = "us-west-2";
+const TEST_STACK = "stack1";
+const TEST_QM_SLACK_NOTIFICATION = "Yes";
+const TEST_QM_EMAIL_NOTIFICATION = "No";
 
 describe("Helper", function () {
   let sendAnonymousMetricMock: jest.Mock;
@@ -35,6 +40,11 @@ describe("Helper", function () {
   beforeAll(() => {
     sendAnonymousMetricMock = sendAnonymousMetric as jest.Mock;
     sendAnonymousMetricMock.mockResolvedValue({});
+    process.env.VERSION = TEST_VERSION;
+    process.env.AWS_REGION = TEST_REGION;
+    process.env.QM_STACK_ID = TEST_STACK;
+    process.env.QM_SLACK_NOTIFICATION = TEST_QM_SLACK_NOTIFICATION;
+    process.env.QM_EMAIL_NOTIFICATION = TEST_QM_EMAIL_NOTIFICATION;
   });
 
   describe("CreateUUID Event", () => {
@@ -74,6 +84,11 @@ describe("Helper", function () {
         expect.objectContaining({
           Data: {
             Event: "SolutionCreate",
+            Version: TEST_VERSION,
+            Region: TEST_REGION,
+            Stack: TEST_STACK,
+            SlackNotification: TEST_QM_SLACK_NOTIFICATION,
+            EmailNotification: TEST_QM_EMAIL_NOTIFICATION,
           },
         })
       );
@@ -89,6 +104,11 @@ describe("Helper", function () {
         expect.objectContaining({
           Data: {
             Event: "SolutionDelete",
+            Version: TEST_VERSION,
+            Region: TEST_REGION,
+            Stack: TEST_STACK,
+            SlackNotification: TEST_QM_SLACK_NOTIFICATION,
+            EmailNotification: TEST_QM_EMAIL_NOTIFICATION,
           },
         })
       );
