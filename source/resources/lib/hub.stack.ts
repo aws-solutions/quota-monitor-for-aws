@@ -564,13 +564,15 @@ export class QuotaMonitorHub extends Stack {
         permissionModel: "SERVICE_MANAGED",
         description:
           "StackSet for deploying Quota Monitor Trusted Advisor spokes in Organization",
-        templateUrl: `https://${this.node.tryGetContext(
-          "SOLUTION_TEMPLATE_BUCKET"
-        )}.s3.amazonaws.com/${this.node.tryGetContext(
-          "SOLUTION_NAME"
-        )}/${this.node.tryGetContext(
-          "SOLUTION_VERSION"
-        )}/quota-monitor-ta-spoke.template`,
+        templateUrl: Fn.sub(
+          "https://" +
+            `${this.node.tryGetContext("SOLUTION_BUCKET")}` +
+            "-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/" +
+            `${this.node.tryGetContext(
+              "SOLUTION_NAME"
+            )}/${this.node.tryGetContext(
+              "SOLUTION_VERSION"
+            )}/quota-monitor-ta-spoke.template`),
         parameters: [
           {
             parameterKey: "EventBusArn",
@@ -597,13 +599,15 @@ export class QuotaMonitorHub extends Stack {
         permissionModel: "SERVICE_MANAGED",
         description:
           "StackSet for deploying Quota Monitor Service Quota spokes in Organization",
-        templateUrl: `https://${this.node.tryGetContext(
-          "SOLUTION_TEMPLATE_BUCKET"
-        )}.s3.amazonaws.com/${this.node.tryGetContext(
-          "SOLUTION_NAME"
-        )}/${this.node.tryGetContext(
-          "SOLUTION_VERSION"
-        )}/quota-monitor-sq-spoke.template`,
+        templateUrl: Fn.sub(
+          "https://" +
+            `${this.node.tryGetContext("SOLUTION_BUCKET")}` +
+            "-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/" +
+            `${this.node.tryGetContext(
+              "SOLUTION_NAME"
+            )}/${this.node.tryGetContext(
+              "SOLUTION_VERSION"
+            )}/quota-monitor-sq-spoke.template`),
         parameters: [
           {
             parameterKey: "EventBusArn",

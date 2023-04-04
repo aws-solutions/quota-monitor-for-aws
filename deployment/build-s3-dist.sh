@@ -137,6 +137,10 @@ done
 
 cp -R *.zip $build_dist_dir
 
+# the spoke templates need to be in a regional S3 bucket for GovCloud regions
+# copy all templates to regional assets folder (less brittle against refactoring ...)
+cp $template_dist_dir/* $build_dist_dir
+
 headline "[Cleanup] Remove temporary files"
 rm -rf *.zip
 rm -rf $staging_dist_dir

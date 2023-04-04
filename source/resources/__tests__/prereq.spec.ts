@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { Template } from "aws-cdk-lib/assertions";
 import { PreReqStack } from "../lib/prereq.stack";
 import { App } from "aws-cdk-lib";
@@ -8,10 +11,10 @@ describe("==Pre-requisite Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("Pre-requisite stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs16.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs18.x"],
+        CompatibleRuntimes: ["nodejs16.x"],
       });
     });
 

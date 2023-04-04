@@ -163,6 +163,17 @@ export class PreReqStack extends Stack {
       ],
       true
     );
+    NagSuppressions.addResourceSuppressions(
+      <IConstruct>preReqManager.function,
+      [
+        {
+          id: "AwsSolutions-L1",
+          reason:
+            "GovCloud regions support only up to nodejs 16, risk is tolerable",
+        },
+      ],
+      true
+    );
 
     preReqManager.addCustomResource("PreReqManagerCR", {
       QMMonitoringAccountId: monitoringAccountId.valueAsString,

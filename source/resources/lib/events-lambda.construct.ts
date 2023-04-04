@@ -126,6 +126,17 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
       ],
       true
     );
+    NagSuppressions.addResourceSuppressions(
+      <IConstruct>this.target,
+      [
+        {
+          id: "AwsSolutions-L1",
+          reason:
+            "GovCloud regions support only up to nodejs 16, risk is tolerable",
+        },
+      ],
+      true
+    );
     NagSuppressions.addResourceSuppressions(deadLetterQueue, [
       {
         id: "AwsSolutions-SQS3",

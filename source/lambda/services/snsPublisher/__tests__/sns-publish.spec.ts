@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { SNSPublisher } from "../lib/sns-publish";
 import { handler } from "../index";
 

@@ -98,6 +98,17 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       true
     );
     NagSuppressions.addResourceSuppressions(
+      <IConstruct>this.function,
+      [
+        {
+          id: "AwsSolutions-L1",
+          reason:
+            "GovCloud regions support only up to nodejs 16, risk is tolerable",
+        },
+      ],
+      true
+    );
+    NagSuppressions.addResourceSuppressions(
       this.provider,
       [
         {

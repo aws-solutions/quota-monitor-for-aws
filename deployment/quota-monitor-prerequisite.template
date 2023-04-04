@@ -43,16 +43,16 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.1.0/asset5c94614665208d4c5db69acecb627e670f229588b1d2fa53a87a7ed577e052cf.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset979a71b15e0dab967bf770490d228a3b4d1006014eb54d58c15564627fa15952.zip"
         },
         "CompatibleRuntimes": [
-          "nodejs18.x"
+          "nodejs16.x"
         ],
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.5c94614665208d4c5db69acecb627e670f229588b1d2fa53a87a7ed577e052cf.zip",
+        "aws:asset:path": "asset.979a71b15e0dab967bf770490d228a3b4d1006014eb54d58c15564627fa15952.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -98,6 +98,10 @@
             {
               "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
               "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
             }
           ]
         }
@@ -110,7 +114,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.1.0/asset7289714dbed8903174db4101e34735954bbb6ec91e1a859979baa9f17024bbc8.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset1c64cf46fc85dd555be210661754910ff3c99032c3569840f221878b8e4caf72.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -149,7 +153,7 @@
           }
         ],
         "MemorySize": 128,
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs16.x",
         "Timeout": 5
       },
       "DependsOn": [
@@ -157,9 +161,17 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.7289714dbed8903174db4101e34735954bbb6ec91e1a859979baa9f17024bbc8.zip",
+        "aws:asset:path": "asset.1c64cf46fc85dd555be210661754910ff3c99032c3569840f221878b8e4caf72.zip",
         "aws:asset:is-bundled": false,
-        "aws:asset:property": "Code"
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
       }
     },
     "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB": {
@@ -280,7 +292,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.1.0/asset2157f4ab8972014e220d70707296b292b3b7301f163f7cd641ccda0ee663530f.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset903be65b9594a9f17d7120273620367e7830b6d087fc9591f31dc5a080049e46.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -309,7 +321,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Provider/framework-onEvent/Resource",
-        "aws:asset:path": "asset.2157f4ab8972014e220d70707296b292b3b7301f163f7cd641ccda0ee663530f",
+        "aws:asset:path": "asset.903be65b9594a9f17d7120273620367e7830b6d087fc9591f31dc5a080049e46",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -411,6 +423,10 @@
               "id": "AwsSolutions-IAM5"
             },
             {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            },
+            {
               "reason": "Actions do not support resource-level permissions",
               "id": "AwsSolutions-IAM5"
             }
@@ -451,6 +467,10 @@
             {
               "reason": "Actions do not support resource-level permissions",
               "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
             }
           ]
         }
@@ -463,7 +483,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.1.0/assetb41c925b38df41d76c2e899461e1e63f1014dfd02c309d48253c45e2348a44ae.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/assete0948c9e11669bfca17088f61ca70c895b457b3d135537e3f39e49bc9f26b7ce.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -501,7 +521,7 @@
           }
         ],
         "MemorySize": 128,
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs16.x",
         "Timeout": 5
       },
       "DependsOn": [
@@ -510,9 +530,17 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Function/Resource",
-        "aws:asset:path": "asset.b41c925b38df41d76c2e899461e1e63f1014dfd02c309d48253c45e2348a44ae.zip",
+        "aws:asset:path": "asset.e0948c9e11669bfca17088f61ca70c895b457b3d135537e3f39e49bc9f26b7ce.zip",
         "aws:asset:is-bundled": false,
-        "aws:asset:property": "Code"
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
       }
     },
     "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRole15413DEC": {
@@ -633,7 +661,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.1.0/asset2157f4ab8972014e220d70707296b292b3b7301f163f7cd641ccda0ee663530f.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset903be65b9594a9f17d7120273620367e7830b6d087fc9591f31dc5a080049e46.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -662,7 +690,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Provider/framework-onEvent/Resource",
-        "aws:asset:path": "asset.2157f4ab8972014e220d70707296b292b3b7301f163f7cd641ccda0ee663530f",
+        "aws:asset:path": "asset.903be65b9594a9f17d7120273620367e7830b6d087fc9591f31dc5a080049e46",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -717,7 +745,7 @@
     "CDKMetadata": {
       "Type": "AWS::CDK::Metadata",
       "Properties": {
-        "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WQQWvDMAyFf8vujtp10Pta6GljIYNeg2qrRU1sB8tuKSH/fbHbju303kNP4kMrWC9h+YJXqbTpqp4PMH5H1J3aHl2NAS1FCjl84jCwO6m52o492oNBGD/wRmFPQdi7XPqXd8np+Bg8/aTkrUURigLvWeYMm6Q7ihsUUowWxsb3lJeK1r5nfSs4xU2TKosz5SnzNCQ+BU1KJ4netuGRBergL2wyfZn8FvPlP/4rxSHF7LbeGb5TOm8IzrK4vK5hlT90FuYqJBfZEjR3/QG/IJ16PQEAAA=="
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WOwWrDMBBEvyV3eZu4kJ6bQE8tNQ70ajbSNmxsSUYrpQTjf6+lpKU9zQwzu7wanmrYrPBLKm36auAjTIeIulf7T9dgQEuRQg5vOI7sTmqZdtOA9mgQple8UvigIOxdHv3LL8npeC9+/KzksUMRigLPWZYMu6R7ijsUUowWptYPlI+KNn5gfS04xc2zKocL5SnztCQ+BU1KJ4neduGeBZrgL2wyfWl+h/nzH/+e4phidnvvDN8onTcEZ3m4bLZQr2G9OgtzFZKLbAnam34DgdkBoT0BAAA="
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/CDKMetadata/Default"
