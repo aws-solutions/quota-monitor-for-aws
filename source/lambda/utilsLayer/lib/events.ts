@@ -3,16 +3,14 @@
 import {
   CloudWatchEventsClient,
   CloudWatchEventsServiceException,
-  DescribeEventBusCommand,
   PutEventsCommand,
   PutEventsRequestEntry,
   PutPermissionCommand,
-  RemovePermissionCommand,
+  RemovePermissionCommand
 } from "@aws-sdk/client-cloudwatch-events";
 import { catchDecorator } from "./catch";
 import {
   ServiceHelper,
-  IPolicyStatement,
   ORG_REGEX,
   ACCOUNT_REGEX,
   OU_REGEX,
@@ -38,101 +36,94 @@ export class EventsHelper extends ServiceHelper<CloudWatchEventsClient> {
   }
 
   /**
-   * @description put permission for principal on the event bridge
-   * @param principal
-   * @param org_id
-   * @param event_bus
+   * @description put permission for principals on the event bridge bus
+   * @param principals
+   * @param orgId
+   * @param eventBusArn
+   * @param eventBusName
    */
-  @catchDecorator(CloudWatchEventsServiceException, false)
-  async createTrust(
-    principal: string,
-    org_id: string,
-    event_bus: string = <string>process.env.EVENT_BUS_NAME
+  @catchDecorator(CloudWatchEventsServiceException, true)
+  async createEventBusPolicy(
+    principals: string[],
+    orgId: string,
+    eventBusArn: string,
+    eventBusName: string
   ) {
-    let _cweCommandInput: PutPermissionCommand;
-
-    if (principal.match(ORG_REGEX)) {
-      // put permission for organization
-      _cweCommandInput = new PutPermissionCommand({
-        EventBusName: event_bus,
+    const policyStatements = [];
+    const orgIds = principals.filter((principal) => principal.match(ORG_REGEX));
+    const ouIds = principals.filter((principal) => principal.match(OU_REGEX));
+    const accountIds = principals.filter((principal) =>
+      principal.match(ACCOUNT_REGEX)
+    );
+    if (orgIds.length > 0) {
+      //the caller shouldn't provide multiple orgIds, this is checked upstream
+      policyStatements.push({
+        Sid: "allowed_orgIds",
+        Effect: "Allow",
         Principal: "*",
-        StatementId: principal,
         Action: "events:PutEvents",
+        Resource: eventBusArn,
         Condition: {
-          Type: "StringEquals",
-          Key: "aws:PrincipalOrgID",
-          Value: principal,
-        },
-      });
-      await this.client.send(_cweCommandInput);
-    } else if (principal.match(OU_REGEX)) {
-      // put permission for organizational unit
-      const orgUnitPolicy = JSON.stringify({
-        Version: "2012-10-17",
-        Statement: {
-          Sid: principal,
-          Effect: "Allow",
-          Principal: "*",
-          Action: "events:PutEvents",
-          Resource: <string>process.env.EVENT_BUS_ARN,
-          Condition: {
-            "ForAnyValue:StringLike": {
-              "aws:PrincipalOrgPaths": [`${org_id}/*/${principal}/*`],
-            },
+          StringEquals: {
+            "aws:PrincipalOrgID": orgIds,
           },
         },
       });
-      _cweCommandInput = new PutPermissionCommand({
-        EventBusName: event_bus,
-        Policy: orgUnitPolicy,
-      });
-      await this.client.send(_cweCommandInput);
-    } else if (principal.match(ACCOUNT_REGEX)) {
-      // put permission for account
-      _cweCommandInput = new PutPermissionCommand({
-        EventBusName: event_bus,
-        Principal: principal,
-        StatementId: principal,
+    }
+    if (ouIds.length > 0) {
+      const orgPaths = ouIds.map((ouId) => `${orgId}/*/${ouId}/*`);
+      policyStatements.push({
+        Sid: "allowed_ouIds",
+        Effect: "Allow",
+        Principal: "*",
         Action: "events:PutEvents",
+        Resource: eventBusArn,
+        Condition: {
+          "ForAnyValue:StringLike": {
+            "aws:PrincipalOrgPaths": orgPaths,
+          },
+        },
+      });
+    }
+    if (accountIds.length > 0) {
+      policyStatements.push({
+        Sid: "allowed_accounts",
+        Effect: "Allow",
+        Principal: { AWS: accountIds },
+        Action: "events:PutEvents",
+        Resource: eventBusArn,
+      });
+    }
+    if (policyStatements.length !== 0) {
+      const _cweCommandInput = new PutPermissionCommand({
+        EventBusName: eventBusName,
+        Policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: policyStatements,
+        }),
       });
       await this.client.send(_cweCommandInput);
+    } else {
+      //no valid principals, remove all the permissions
+      await this.removeAllPermissions(eventBusName);
     }
   }
 
   /**
    * @description remove permission from the event bridge
-   * @param sid - statement id for the policy to remove
-   * @param event_bus - name of the event bus
+   * @param eventBusName - name of the event bus
    */
   @catchDecorator(CloudWatchEventsServiceException, false)
-  async removeTrust(
-    sid: string,
-    event_bus: string = <string>process.env.EVENT_BUS_NAME
-  ) {
+  async removeAllPermissions(eventBusName: string) {
     logger.debug({
       label: this.moduleName,
-      message: `removing permission on event bridge for principal ${sid.slice(
-        -4
-      )}`, // only logging last 4 characters for auditing purposes
+      message: `removing all permissions from the bus ${eventBusName}`,
     });
     const _cweCommandInput = new RemovePermissionCommand({
-      EventBusName: event_bus,
-      StatementId: sid,
+      EventBusName: eventBusName,
+      RemoveAllPermissions: true,
     });
     await this.client.send(_cweCommandInput);
-  }
-
-  /**
-   * @description - get permission on the bus
-   * @param event_bus - the event bus name
-   * @returns
-   */
-  @catchDecorator(CloudWatchEventsServiceException, true)
-  async getPermissions(event_bus: string = <string>process.env.EVENT_BUS_NAME) {
-    const response = await this.client.send(
-      new DescribeEventBusCommand({ Name: event_bus })
-    );
-    return <IPolicyStatement[]>JSON.parse(<string>response.Policy)["Statement"];
   }
 
   /**

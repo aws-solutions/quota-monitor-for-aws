@@ -52,6 +52,9 @@ npm test
 cd $source_dir/slackNotifier
 npm test
 
+cd $source_dir/snsPublisher
+npm test
+
 cd $source_dir/taRefresher
 npm test
 

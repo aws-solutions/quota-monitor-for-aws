@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
 import {
@@ -7,6 +10,8 @@ import {
   OrganizationsClient,
   OrganizationsServiceException,
   RegisterDelegatedAdministratorCommand,
+  ListAccountsCommand,
+  ListAccountsForParentCommand,
 } from "@aws-sdk/client-organizations";
 
 import { OrganizationsHelper } from "../lib/organizations";
@@ -164,4 +169,59 @@ describe("Organizations Helper", () => {
 
     await expect(testCase).rejects.toThrow(OrganizationsServiceException);
   });
+
+  it("should get the number of accounts in an org from ListAccountsCommand", async () => {
+    const listAccountsResponse = {
+      Accounts: [{}, {}],
+    };
+    orgMock.on(ListAccountsCommand).resolves(listAccountsResponse);
+
+    const response = await orgHelper.getNumberOfAccountsInOrg();
+
+    expect(response).toEqual(2);
+  });
+
+  it("should throw an exception if ListAccountsCommand fails", async () => {
+    orgMock.on(ListAccountsCommand).rejectsOnce(
+      new OrganizationsServiceException({
+        name: "OrganizationsServiceException",
+        $fault: "server",
+        $metadata: {},
+      })
+    );
+
+    const testCase = async () => {
+      await orgHelper.getNumberOfAccountsInOrg();
+    };
+
+    await expect(testCase).rejects.toThrow(OrganizationsServiceException);
+  });
+
+  it("should get the number of accounts in an org unit from ListAccountsForParentCommand", async () => {
+    const listAccountsResponse = {
+      Accounts: [{}, {}],
+    };
+    orgMock.on(ListAccountsForParentCommand).resolves(listAccountsResponse);
+
+    const response = await orgHelper.getNumberOfAccountsInOU("");
+
+    expect(response).toEqual(2);
+  });
+
+  it("should throw an exception if ListAccountsForParentCommand fails", async () => {
+    orgMock.on(ListAccountsForParentCommand).rejectsOnce(
+      new OrganizationsServiceException({
+        name: "OrganizationsServiceException",
+        $fault: "server",
+        $metadata: {},
+      })
+    );
+
+    const testCase = async () => {
+      await orgHelper.getNumberOfAccountsInOU("");
+    };
+
+    await expect(testCase).rejects.toThrow(OrganizationsServiceException);
+  });
+
 });

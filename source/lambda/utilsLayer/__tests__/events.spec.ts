@@ -1,10 +1,12 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
 
 import {
   CloudWatchEventsClient,
   CloudWatchEventsServiceException,
-  DescribeEventBusCommand,
   PutEventsCommand,
   PutEventsRequestEntry,
   PutPermissionCommand,
@@ -16,107 +18,306 @@ import { EventsHelper } from "../lib/events";
 describe("Event Helper", () => {
   const eventsClient = mockClient(CloudWatchEventsClient);
   let eventsHelper: EventsHelper;
-  const event_bus = <string>process.env.EVENT_BUS_NAME;
-  const principal_o = "o-0000000000";
-  const principal_ou = "ou-0000-00000000";
-  const principal_account = "000000000000";
-  const org_id = "o-00000000";
+  const eventBusName = "MyBus";
+  const eventBusArn = "arn:aws:events:us-east-1:000000000000:event-bus/MyBus";
+  const principalOrg = "o-0000000000";
+  const principalOU = "ou-0000-00000000";
+  const principalOU2 = "ou-0000-00000002";
+  const principalAccount = "000000000000";
+  const principalAccount2 = "123456789012";
+  const orgId = "o-00000000";
 
   beforeEach(() => {
     eventsClient.reset();
     eventsHelper = new EventsHelper();
   });
 
-  it("should create a trust for an org", async () => {
+  it("should create a resource based policy for an org", async () => {
     eventsClient.on(PutPermissionCommand).resolves({});
-
     const expectedCommand = {
-      EventBusName: event_bus,
-      Principal: "*",
-      StatementId: principal_o,
-      Action: "events:PutEvents",
-      Condition: {
-        Type: "StringEquals",
-        Key: "aws:PrincipalOrgID",
-        Value: principal_o,
-      },
-    };
-
-    await eventsHelper.createTrust(principal_o, org_id, event_bus);
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
-  });
-
-  it("should create a trust for an ou", async () => {
-    eventsClient.on(PutPermissionCommand).resolves({});
-
-    const orgUnitPolicy = JSON.stringify({
-      Version: "2012-10-17",
-      Statement: {
-        Sid: principal_ou,
-        Effect: "Allow",
-        Principal: "*",
-        Action: "events:PutEvents",
-        Resource: <string>process.env.EVENT_BUS_ARN,
-        Condition: {
-          "ForAnyValue:StringLike": {
-            "aws:PrincipalOrgPaths": [`${org_id}/*/${principal_ou}/*`],
+      EventBusName: eventBusName,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "allowed_orgIds",
+            Effect: "Allow",
+            Principal: "*",
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+            Condition: {
+              StringEquals: {
+                "aws:PrincipalOrgID": [principalOrg],
+              },
+            },
           },
-        },
-      },
-    });
-
-    const expectedCommand = {
-      EventBusName: event_bus,
-      Policy: orgUnitPolicy,
+        ],
+      }),
     };
 
-    await eventsHelper.createTrust(principal_ou, org_id, event_bus);
+    await eventsHelper.createEventBusPolicy(
+      [principalOrg],
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
     expect(eventsClient).toHaveReceivedCommandWith(
       PutPermissionCommand,
       expectedCommand
     );
   });
 
-  it("should create a trust for an account", async () => {
+  it("should create a resource based policy for an ou", async () => {
     eventsClient.on(PutPermissionCommand).resolves({});
-
     const expectedCommand = {
-      EventBusName: event_bus,
-      Principal: principal_account,
-      StatementId: principal_account,
-      Action: "events:PutEvents",
+      EventBusName: eventBusName,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "allowed_ouIds",
+            Effect: "Allow",
+            Principal: "*",
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+            Condition: {
+              "ForAnyValue:StringLike": {
+                "aws:PrincipalOrgPaths": [orgId + "/*/" + principalOU + "/*"],
+              },
+            },
+          },
+        ],
+      }),
     };
 
-    await eventsHelper.createTrust(principal_account, org_id);
+    await eventsHelper.createEventBusPolicy(
+      [principalOU],
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
     expect(eventsClient).toHaveReceivedCommandWith(
       PutPermissionCommand,
       expectedCommand
     );
   });
 
-  it("should remove a trust", async () => {
+  it("should create a resource based policy for multiple ous", async () => {
+    eventsClient.on(PutPermissionCommand).resolves({});
+    const expectedCommand = {
+      EventBusName: eventBusName,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "allowed_ouIds",
+            Effect: "Allow",
+            Principal: "*",
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+            Condition: {
+              "ForAnyValue:StringLike": {
+                "aws:PrincipalOrgPaths": [
+                  orgId + "/*/" + principalOU + "/*",
+                  orgId + "/*/" + principalOU2 + "/*",
+                ],
+              },
+            },
+          },
+        ],
+      }),
+    };
+
+    await eventsHelper.createEventBusPolicy(
+      [principalOU, principalOU2],
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
+    expect(eventsClient).toHaveReceivedCommandWith(
+      PutPermissionCommand,
+      expectedCommand
+    );
+  });
+
+  it("should create a resource based policy for an account", async () => {
+    eventsClient.on(PutPermissionCommand).resolves({});
+    const expectedCommand = {
+      EventBusName: eventBusName,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "allowed_accounts",
+            Effect: "Allow",
+            Principal: {
+              AWS: [principalAccount],
+            },
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+          },
+        ],
+      }),
+    };
+
+    await eventsHelper.createEventBusPolicy(
+      [principalAccount],
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
+    expect(eventsClient).toHaveReceivedCommandWith(
+      PutPermissionCommand,
+      expectedCommand
+    );
+  });
+
+  it("should create a resource based policy for multiple accounts", async () => {
+    eventsClient.on(PutPermissionCommand).resolves({});
+    const expectedCommand = {
+      EventBusName: eventBusName,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "allowed_accounts",
+            Effect: "Allow",
+            Principal: {
+              AWS: [principalAccount, principalAccount2],
+            },
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+          },
+        ],
+      }),
+    };
+
+    await eventsHelper.createEventBusPolicy(
+      [principalAccount, principalAccount2],
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
+    expect(eventsClient).toHaveReceivedCommandWith(
+      PutPermissionCommand,
+      expectedCommand
+    );
+  });
+
+  it("should create a resource based policy for multiple ous and accounts", async () => {
+    eventsClient.on(PutPermissionCommand).resolves({});
+    const expectedCommand = {
+      EventBusName: eventBusName,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "allowed_ouIds",
+            Effect: "Allow",
+            Principal: "*",
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+            Condition: {
+              "ForAnyValue:StringLike": {
+                "aws:PrincipalOrgPaths": [
+                  orgId + "/*/" + principalOU + "/*",
+                  orgId + "/*/" + principalOU2 + "/*",
+                ],
+              },
+            },
+          },
+          {
+            Sid: "allowed_accounts",
+            Effect: "Allow",
+            Principal: {
+              AWS: [principalAccount, principalAccount2],
+            },
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+          },
+        ],
+      }),
+    };
+
+    await eventsHelper.createEventBusPolicy(
+      [principalOU, principalOU2, principalAccount, principalAccount2],
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
+    expect(eventsClient).toHaveReceivedCommandWith(
+      PutPermissionCommand,
+      expectedCommand
+    );
+  });
+
+  it("should create a resource based policy for org and accounts", async () => {
+    eventsClient.on(PutPermissionCommand).resolves({});
+    const expectedCommand = {
+      EventBusName: eventBusName,
+      Policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "allowed_orgIds",
+            Effect: "Allow",
+            Principal: "*",
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+            Condition: {
+              StringEquals: {
+                "aws:PrincipalOrgID": [principalOrg],
+              },
+            },
+          },
+          {
+            Sid: "allowed_accounts",
+            Effect: "Allow",
+            Principal: {
+              AWS: [principalAccount, principalAccount2],
+            },
+            Action: "events:PutEvents",
+            Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
+          },
+        ],
+      }),
+    };
+
+    await eventsHelper.createEventBusPolicy(
+      [principalOrg, principalAccount, principalAccount2],
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
+    expect(eventsClient).toHaveReceivedCommandWith(
+      PutPermissionCommand,
+      expectedCommand
+    );
+  });
+
+  it("should try to remove existing policy for empty/invalid inputs", async () => {
     eventsClient.on(RemovePermissionCommand).resolves({});
+    const expectedRemoveCommand = {
+      EventBusName: eventBusName,
+      RemoveAllPermissions: true,
+    };
 
-    await eventsHelper.removeTrust("12345");
-
-    expect(eventsClient).toHaveReceivedCommandTimes(RemovePermissionCommand, 1);
+    await eventsHelper.createEventBusPolicy(
+      [principalOrg, principalAccount, principalAccount2].map(
+        (s) => "INVALID_" + s
+      ),
+      orgId,
+      eventBusArn,
+      eventBusName
+    );
+    expect(eventsClient).toHaveReceivedCommandWith(
+      RemovePermissionCommand,
+      expectedRemoveCommand
+    );
   });
 
-  it("should get permissions", async () => {
-    eventsClient.on(DescribeEventBusCommand).resolves({
-      Policy: '{"Statement": "policy_statement"}',
-    });
-
-    const response = await eventsHelper.getPermissions();
-
-    expect(response).toEqual("policy_statement");
-  });
-
-  it("should throw an exception if DescribeEventBusCommand fails", async () => {
-    eventsClient.on(DescribeEventBusCommand).rejectsOnce(
+  it("should throw an exception if PutPermissionCommand fails", async () => {
+    eventsClient.on(PutPermissionCommand).rejectsOnce(
       new CloudWatchEventsServiceException({
         name: "CloudWatchEventsServiceException",
         $fault: "server",
@@ -125,7 +326,12 @@ describe("Event Helper", () => {
     );
 
     const testCase = async () => {
-      await eventsHelper.getPermissions();
+      await eventsHelper.createEventBusPolicy(
+        [principalOrg],
+        orgId,
+        eventBusArn,
+        eventBusName
+      );
     };
 
     await expect(testCase).rejects.toThrow(CloudWatchEventsServiceException);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
+  DescribeTrustedAdvisorChecksCommand,
   RefreshTrustedAdvisorCheckCommand,
   SupportClient,
   SupportServiceException,
@@ -30,6 +31,10 @@ export class SupportHelper extends ServiceHelper<SupportClient> {
     this.moduleName = <string>__filename.split("/").pop();
   }
 
+  /**
+   * requests a Trusted Advisor check
+   * @param checkId
+   */
   @catchDecorator(SupportServiceException, true)
   async refreshTrustedAdvisorCheck(checkId: string) {
     logger.debug({
@@ -41,5 +46,37 @@ export class SupportHelper extends ServiceHelper<SupportClient> {
       checkId: checkId,
     });
     await this.client.send(command);
+  }
+
+  /**
+   * retrieves the list of the checkIds of available Trusted Advisor Checks
+   */
+  @catchDecorator(SupportServiceException, true)
+  async listTrustedAdvisorCheckIds() {
+    logger.debug({
+      label: this.moduleName,
+      message: "describing list of TA checks",
+    });
+
+    const command = new DescribeTrustedAdvisorChecksCommand({ language: "en" });
+    const response = await this.client.send(command);
+    return response.checks?.map((check) => check.id);
+  }
+
+  /**
+   * checks if the account has support plan that includes Trusted Advisor by trying to list the available checks
+   */
+  async isTrustedAdvisorAvailable() {
+    try {
+      await this.listTrustedAdvisorCheckIds();
+      return true;
+    } catch (e) {
+      logger.warn({
+        label: this.moduleName,
+        message:
+          "Trusted Advisor check failed, thus this account doesn't have a support plan that includes Trusted Advisor",
+      });
+      return false;
+    }
   }
 }

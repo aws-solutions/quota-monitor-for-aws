@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { Template } from "aws-cdk-lib/assertions";
 import { PreReqStack } from "../lib/prereq.stack";
 import { App } from "aws-cdk-lib";
@@ -27,6 +30,10 @@ describe("==Pre-requisite Stack Tests==", () => {
     });
     it("should have custom resource for UUID", () => {
       template.resourceCountIs("Custom::PreReqManagerCR", 1);
+    });
+    it("should have parameters", () => {
+      const allParams = template.findParameters("*", {});
+      expect(allParams).toHaveProperty("MonitoringAccountId");
     });
   });
 

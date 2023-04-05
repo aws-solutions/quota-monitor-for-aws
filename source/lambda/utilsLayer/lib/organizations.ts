@@ -6,6 +6,8 @@ import {
   ListRootsCommand,
   OrganizationsClient,
   OrganizationsServiceException,
+  paginateListAccounts,
+  paginateListAccountsForParent,
   RegisterDelegatedAdministratorCommand,
 } from "@aws-sdk/client-organizations";
 import { catchDecorator } from "./catch";
@@ -90,5 +92,36 @@ export class OrganizationsHelper extends ServiceHelper<OrganizationsClient> {
     });
     const _org = await this.client.send(new DescribeOrganizationCommand({}));
     return _org.Organization;
+  }
+
+  @catchDecorator(OrganizationsServiceException, true)
+  async getNumberOfAccountsInOrg(): Promise<number> {
+    let count = 0;
+    const paginator = paginateListAccounts({
+        client: this.client,
+      },
+      {}
+    );
+    for await (const page of paginator) {
+      count += page.Accounts?.length || 0;
+    }
+    return count;
+  }
+
+  @catchDecorator(OrganizationsServiceException, true)
+  async getNumberOfAccountsInOU(ouId: string): Promise<number> {
+    let count = 0;
+    const paginator = paginateListAccountsForParent(
+      {
+        client: this.client,
+      },
+      {
+        ParentId: ouId,
+      }
+    );
+    for await (const page of paginator) {
+      count += page.Accounts?.length || 0;
+    }
+    return count;
   }
 }

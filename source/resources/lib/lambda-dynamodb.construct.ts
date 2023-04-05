@@ -50,7 +50,7 @@ export class LambdaToDDB
           handler: "index.handler",
           environment: {
             ...props.environment,
-            LOG_LEVEL: LOG_LEVEL.INFO, //change as needed
+            LOG_LEVEL: this.node.tryGetContext("LOG_LEVEL") || LOG_LEVEL.INFO, //change as needed
             CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext(
               "SOLUTION_ID"
             )}/${this.node.tryGetContext("SOLUTION_VERSION")}`,
@@ -79,8 +79,7 @@ export class LambdaToDDB
           readCapacity: 2,
           writeCapacity: 2,
           billingMode: dynamodb.BillingMode.PROVISIONED,
-          encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
-          encryptionKey: props.encryptionKey,
+          encryption: dynamodb.TableEncryption.AWS_MANAGED,
         });
 
     // adding dynamodb permissions to lambda role

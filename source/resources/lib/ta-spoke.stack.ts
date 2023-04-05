@@ -15,7 +15,6 @@ import {
 import * as path from "path";
 import { EventsToLambda } from "./events-lambda.construct";
 import { TA_CHECKS_SERVICES } from "./exports";
-import { KMS } from "./kms.construct";
 import { Layer } from "./lambda-layer.construct";
 
 /**
@@ -78,10 +77,6 @@ export class QuotaMonitorTASpoke extends Stack {
     //=============================================================================================
     // Resources
     //=============================================================================================
-    /**
-     * @description kms construct to generate KMS-CMK with needed base policy
-     */
-    const kms = new KMS(this, "KMS-TASpoke");
 
     /**
      * @description primary event bus to send events to
@@ -175,7 +170,6 @@ export class QuotaMonitorTASpoke extends Stack {
         eventRule: events.Schedule.expression(
           map.findInMap("RefreshRate", "Default")
         ),
-        encryptionKey: kms.key,
         assetLocation: `${path.dirname(
           __dirname
         )}/../lambda/services/taRefresher/dist/ta-refresher.zip`,

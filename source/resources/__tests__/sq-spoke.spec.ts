@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { QuotaMonitorSQSpoke } from "../lib/sq-spoke.stack";
 import { App } from "aws-cdk-lib";
@@ -21,45 +24,63 @@ describe("==SQ-Spoke Stack Tests==", () => {
       });
     });
 
+    it("should have two tables", () => {
+      template.resourceCountIs("AWS::DynamoDB::Table", 2);
+    });
+
     it("should have a dynamodb table for the Service List", () => {
-      template.hasResourceProperties("AWS::DynamoDB::Table", {
-        KeySchema: [
-          {
-            AttributeName: "ServiceCode",
-            KeyType: "HASH",
+      template.hasResource("AWS::DynamoDB::Table", {
+        UpdateReplacePolicy: "Delete",
+        DeletionPolicy: "Delete",
+        Properties: {
+          KeySchema: [
+            {
+              AttributeName: "ServiceCode",
+              KeyType: "HASH",
+            },
+          ],
+          AttributeDefinitions: [
+            {
+              AttributeName: "ServiceCode",
+              AttributeType: "S",
+            },
+          ],
+          PointInTimeRecoverySpecification: {
+            PointInTimeRecoveryEnabled: true,
           },
-        ],
-        AttributeDefinitions: [
-          {
-            AttributeName: "ServiceCode",
-            AttributeType: "S",
+          SSESpecification: {
+            SSEEnabled: true,
           },
-        ],
+        },
       });
     });
 
     it("should have a dynamodb table for the Quota List", () => {
-      template.hasResourceProperties("AWS::DynamoDB::Table", {
-        KeySchema: [
-          {
-            AttributeName: "ServiceCode",
-            KeyType: "HASH",
-          },
-          {
-            AttributeName: "QuotaCode",
-            KeyType: "RANGE",
-          },
-        ],
-        AttributeDefinitions: [
-          {
-            AttributeName: "ServiceCode",
-            AttributeType: "S",
-          },
-          {
-            AttributeName: "QuotaCode",
-            AttributeType: "S",
-          },
-        ],
+      template.hasResource("AWS::DynamoDB::Table", {
+        UpdateReplacePolicy: "Delete",
+        DeletionPolicy: "Delete",
+        Properties: {
+          KeySchema: [
+            {
+              AttributeName: "ServiceCode",
+              KeyType: "HASH",
+            },
+            {
+              AttributeName: "QuotaCode",
+              KeyType: "RANGE",
+            },
+          ],
+          AttributeDefinitions: [
+            {
+              AttributeName: "ServiceCode",
+              AttributeType: "S",
+            },
+            {
+              AttributeName: "QuotaCode",
+              AttributeType: "S",
+            },
+          ],
+        },
       });
     });
 
@@ -82,6 +103,12 @@ describe("==SQ-Spoke Stack Tests==", () => {
           TargetArn: Match.objectLike(Match.anyValue),
         }),
       });
+    });
+
+    it("should have parameters", () => {
+      const allParams = template.findParameters("*", {});
+      expect(allParams).toHaveProperty("NotificationThreshold");
+      expect(allParams).toHaveProperty("MonitoringFrequency");
     });
   });
 });

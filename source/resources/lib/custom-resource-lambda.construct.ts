@@ -56,7 +56,7 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       runtime: LAMBDA_RUNTIME_NODE,
       environment: {
         ...props.environment,
-        LOG_LEVEL: LOG_LEVEL.INFO, //change as needed
+        LOG_LEVEL: this.node.tryGetContext("LOG_LEVEL") || LOG_LEVEL.INFO, //change as needed
         CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext(
           "SOLUTION_ID"
         )}/${this.node.tryGetContext("SOLUTION_VERSION")}`,
@@ -93,6 +93,17 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
           id: "AwsSolutions-IAM5",
           reason:
             "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+        },
+      ],
+      true
+    );
+    NagSuppressions.addResourceSuppressions(
+      <IConstruct>this.function,
+      [
+        {
+          id: "AwsSolutions-L1",
+          reason:
+            "GovCloud regions support only up to nodejs 16, risk is tolerable",
         },
       ],
       true

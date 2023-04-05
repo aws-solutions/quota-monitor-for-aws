@@ -1,0 +1,10 @@
+{
+  "name": "cdk-solution-helper",
+  "version": "0.1.0",
+  "description": "cleans up the template files for release",
+  "author": {
+    "name": "Amazon Web Services",
+    "url": "https://aws.amazon.com/solutions"
+  },
+  "license": "Apache-2.0"
+}

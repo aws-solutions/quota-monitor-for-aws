@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-SQ) - quota-monitor-for-aws version:v6.0.0 - Service Quotas Template",
+  "Description": "(SO0005-SQ) - quota-monitor-for-aws version:v6.1.0 - Service Quotas Template",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -74,62 +74,6 @@
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-Spoke-Bus/Resource"
       }
     },
-    "KMSSQSpokeQMEncryptionKeyD0CC10C0": {
-      "Type": "AWS::KMS::Key",
-      "Properties": {
-        "KeyPolicy": {
-          "Statement": [
-            {
-              "Action": "kms:*",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":iam::",
-                      {
-                        "Ref": "AWS::AccountId"
-                      },
-                      ":root"
-                    ]
-                  ]
-                }
-              },
-              "Resource": "*"
-            }
-          ],
-          "Version": "2012-10-17"
-        },
-        "Description": "CMK for AWS resources provisioned by Quota Monitor in this account",
-        "Enabled": true,
-        "EnableKeyRotation": true
-      },
-      "UpdateReplacePolicy": "Retain",
-      "DeletionPolicy": "Retain",
-      "Metadata": {
-        "aws:cdk:path": "quota-monitor-sq-spoke/KMS-SQSpoke/QM-EncryptionKey/Resource"
-      }
-    },
-    "KMSSQSpokeQMEncryptionKeyAlias27FFB28B": {
-      "Type": "AWS::KMS::Alias",
-      "Properties": {
-        "AliasName": "alias/CMK-KMS-SQSpoke",
-        "TargetKeyId": {
-          "Fn::GetAtt": [
-            "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-            "Arn"
-          ]
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "quota-monitor-sq-spoke/KMS-SQSpoke/QM-EncryptionKey/Alias/Resource"
-      }
-    },
     "QMUtilsLayerquotamonitorsqspokeQMUtilsLayerquotamonitorsqspokeLayerF6FD536E": {
       "Type": "AWS::Lambda::LayerVersion",
       "Properties": {
@@ -137,7 +81,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/assetc53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset979a71b15e0dab967bf770490d228a3b4d1006014eb54d58c15564627fa15952.zip"
         },
         "CompatibleRuntimes": [
           "nodejs16.x"
@@ -146,7 +90,7 @@
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke-Layer/Resource",
-        "aws:asset:path": "asset.c53e0b0960d6e36a833fed437ed76aeeeed1316f8af0ce9c1fced08eeb465b4d.zip",
+        "aws:asset:path": "asset.979a71b15e0dab967bf770490d228a3b4d1006014eb54d58c15564627fa15952.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -171,14 +115,7 @@
           "PointInTimeRecoveryEnabled": true
         },
         "SSESpecification": {
-          "KMSMasterKeyId": {
-            "Fn::GetAtt": [
-              "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-              "Arn"
-            ]
-          },
-          "SSEEnabled": true,
-          "SSEType": "KMS"
+          "SSEEnabled": true
         },
         "StreamSpecification": {
           "StreamViewType": "NEW_AND_OLD_IMAGES"
@@ -218,14 +155,7 @@
           "PointInTimeRecoveryEnabled": true
         },
         "SSESpecification": {
-          "KMSMasterKeyId": {
-            "Fn::GetAtt": [
-              "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-              "Arn"
-            ]
-          },
-          "SSEEnabled": true,
-          "SSEType": "KMS"
+          "SSEEnabled": true
         }
       },
       "UpdateReplacePolicy": "Delete",
@@ -275,6 +205,14 @@
             {
               "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
               "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            },
+            {
+              "reason": "Actions do not support resource-level permissions",
+              "id": "AwsSolutions-IAM5"
             }
           ]
         }
@@ -285,25 +223,6 @@
       "Properties": {
         "PolicyDocument": {
           "Statement": [
-            {
-              "Action": [
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:CreateGrant"
-              ],
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::GetAtt": [
-                  "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-                  "Arn"
-                ]
-              }
-            },
-            {
-              "Action": "kms:ListAliases",
-              "Effect": "Allow",
-              "Resource": "*"
-            },
             {
               "Action": [
                 "dynamodb:GetItem",
@@ -339,7 +258,12 @@
             {
               "Action": [
                 "cloudwatch:GetMetricData",
-                "servicequotas:ListServiceQuotas"
+                "servicequotas:ListServiceQuotas",
+                "servicequotas:ListServices",
+                "dynamodb:DescribeLimits",
+                "autoscaling:DescribeAccountLimits",
+                "route53:GetAccountLimit",
+                "rds:DescribeAccountAttributes"
               ],
               "Effect": "Allow",
               "Resource": "*"
@@ -378,11 +302,7 @@
         "cdk_nag": {
           "rules_to_suppress": [
             {
-              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
-              "id": "AwsSolutions-IAM4"
-            },
-            {
-              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "reason": "Actions do not support resource-level permissions",
               "id": "AwsSolutions-IAM5"
             }
           ]
@@ -396,7 +316,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/assetce264647fafa7ec9179d34834c7f26e84e32d0f2c0c3ccc111e6991490259a8e.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset4155960d12ebe64148d5629c9472816c53bff673faf6ce3e818d3f307ffe5631.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -416,18 +336,12 @@
             "PARTITION_KEY": "ServiceCode",
             "SORT": "QuotaCode",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.0.0",
-            "VERSION": "v6.0.0",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.1.0",
+            "VERSION": "v6.1.0",
             "SOLUTION_ID": "SO0005"
           }
         },
         "Handler": "index.handler",
-        "KmsKeyArn": {
-          "Fn::GetAtt": [
-            "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-            "Arn"
-          ]
-        },
         "Layers": [
           {
             "Ref": "QMUtilsLayerquotamonitorsqspokeQMUtilsLayerquotamonitorsqspokeLayerF6FD536E"
@@ -435,7 +349,7 @@
         ],
         "MemorySize": 128,
         "Runtime": "nodejs16.x",
-        "Timeout": 15
+        "Timeout": 900
       },
       "DependsOn": [
         "QMListManagerQMListManagerFunctionServiceRoleDefaultPolicy314665D0",
@@ -443,9 +357,17 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-ListManager/QM-ListManager-Function/Resource",
-        "aws:asset:path": "asset.ce264647fafa7ec9179d34834c7f26e84e32d0f2c0c3ccc111e6991490259a8e.zip",
+        "aws:asset:path": "asset.4155960d12ebe64148d5629c9472816c53bff673faf6ce3e818d3f307ffe5631.zip",
         "aws:asset:is-bundled": false,
-        "aws:asset:property": "Code"
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
       }
     },
     "QMListManagerQMListManagerFunctionDynamoDBEventSourcequotamonitorsqspokeSQServiceTableDFB54B66D184A01F": {
@@ -585,7 +507,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/assete7c95e1a12d903d913ebdd526c735f1ac58b2024882a5562110221fe685ebe85.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/asset903be65b9594a9f17d7120273620367e7830b6d087fc9591f31dc5a080049e46.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -614,7 +536,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-ListManager/QM-ListManager-Provider/framework-onEvent/Resource",
-        "aws:asset:path": "asset.e7c95e1a12d903d913ebdd526c735f1ac58b2024882a5562110221fe685ebe85",
+        "aws:asset:path": "asset.903be65b9594a9f17d7120273620367e7830b6d087fc9591f31dc5a080049e46",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -644,7 +566,7 @@
             "Arn"
           ]
         },
-        "VERSION": "v6.0.0"
+        "VERSION": "v6.1.0"
       },
       "DependsOn": [
         "SQQuotaTableD0BC5741"
@@ -748,12 +670,7 @@
     "QMCWPollerQMCWPollerLambdaDeadLetterQueueE535D49E": {
       "Type": "AWS::SQS::Queue",
       "Properties": {
-        "KmsMasterKeyId": {
-          "Fn::GetAtt": [
-            "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-            "Arn"
-          ]
-        }
+        "KmsMasterKeyId": "alias/aws/sqs"
       },
       "UpdateReplacePolicy": "Delete",
       "DeletionPolicy": "Delete",
@@ -846,6 +763,10 @@
             {
               "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
               "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
             }
           ]
         }
@@ -865,25 +786,6 @@
                   "Arn"
                 ]
               }
-            },
-            {
-              "Action": [
-                "kms:Encrypt",
-                "kms:Decrypt",
-                "kms:CreateGrant"
-              ],
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::GetAtt": [
-                  "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-                  "Arn"
-                ]
-              }
-            },
-            {
-              "Action": "kms:ListAliases",
-              "Effect": "Allow",
-              "Resource": "*"
             },
             {
               "Action": "dynamodb:Query",
@@ -909,6 +811,11 @@
                   "Arn"
                 ]
               }
+            },
+            {
+              "Action": "servicequotas:ListServices",
+              "Effect": "Allow",
+              "Resource": "*"
             }
           ],
           "Version": "2012-10-17"
@@ -931,6 +838,10 @@
             {
               "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
               "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
             }
           ]
         }
@@ -943,7 +854,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.0.0/asset948be3ab6888d7b63b7f76ebb72890bcd9fb20ca019ae16e5299d123b3afbd37.zip"
+          "S3Key": "quota-monitor-for-aws/v6.1.0/assetc41460a54aaa07780165ba5213474d1a41e06943c2f733ebe6f1bf231fabcc3c.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -975,18 +886,12 @@
               "Ref": "NotificationThreshold"
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.0.0",
-            "VERSION": "v6.0.0",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.1.0",
+            "VERSION": "v6.1.0",
             "SOLUTION_ID": "SO0005"
           }
         },
         "Handler": "index.handler",
-        "KmsKeyArn": {
-          "Fn::GetAtt": [
-            "KMSSQSpokeQMEncryptionKeyD0CC10C0",
-            "Arn"
-          ]
-        },
         "Layers": [
           {
             "Ref": "QMUtilsLayerquotamonitorsqspokeQMUtilsLayerquotamonitorsqspokeLayerF6FD536E"
@@ -994,7 +899,7 @@
         ],
         "MemorySize": 512,
         "Runtime": "nodejs16.x",
-        "Timeout": 60
+        "Timeout": 900
       },
       "DependsOn": [
         "QMCWPollerQMCWPollerLambdaServiceRoleDefaultPolicy626BCE22",
@@ -1002,9 +907,17 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-CWPoller/QM-CWPoller-Lambda/Resource",
-        "aws:asset:path": "asset.948be3ab6888d7b63b7f76ebb72890bcd9fb20ca019ae16e5299d123b3afbd37.zip",
+        "aws:asset:path": "asset.c41460a54aaa07780165ba5213474d1a41e06943c2f733ebe6f1bf231fabcc3c.zip",
         "aws:asset:is-bundled": false,
-        "aws:asset:property": "Code"
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
       }
     },
     "QMUtilizationOK588DBAE8": {
@@ -1023,16 +936,7 @@
           "detail": {
             "status": [
               "OK"
-            ],
-            "check-item-detail": {
-              "Service": [
-                "monitoring",
-                "dynamodb",
-                "ec2",
-                "ecr",
-                "firehose"
-              ]
-            }
+            ]
           },
           "detail-type": [
             "Service Quotas Utilization Notification"
@@ -1123,16 +1027,7 @@
           "detail": {
             "status": [
               "WARN"
-            ],
-            "check-item-detail": {
-              "Service": [
-                "monitoring",
-                "dynamodb",
-                "ec2",
-                "ecr",
-                "firehose"
-              ]
-            }
+            ]
           },
           "detail-type": [
             "Service Quotas Utilization Notification"
@@ -1223,16 +1118,7 @@
           "detail": {
             "status": [
               "ERROR"
-            ],
-            "check-item-detail": {
-              "Service": [
-                "monitoring",
-                "dynamodb",
-                "ec2",
-                "ecr",
-                "firehose"
-              ]
-            }
+            ]
           },
           "detail-type": [
             "Service Quotas Utilization Notification"
@@ -1306,210 +1192,6 @@
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-Utilization-Err/EventsRole/DefaultPolicy/Resource"
       }
-    },
-    "CDKMetadata": {
-      "Type": "AWS::CDK::Metadata",
-      "Properties": {
-        "Analytics": "v2:deflate64:H4sIAAAAAAAA/2VRTU8DIRD9Ld4pWr/itdvoRU3WrfHaTGFs6C5QGahpNvvfZdi21njhvZl5wHtwLW/v5NUFfNNE6XbSmZXsFxFUK+afroYAFiMGLl5huzVuLbJ02eMOXSTZPzJWiVhw4k3qkBuMg2ht1j3jnjsMs85A0RcyiA7sSoPsX2CP4QMDGe94/Kd+Sk7Fw+DEy4ULn4LCo7mjjX/dGoM1xGcNgm6WQITZ/4wh17JKqsVYAaHQewfW6/wO77AagxQyCANW9o0/hGOsfWdUSTayfPZXTvuWMBXRSMr6Kz0rh0E0SMWrKF7y06/ZsUoUvV2Gw5BkHfzOaP6JMjntYidnfO6dNrGkdF6j3NDlbnovpw/5jzdkzCQkF41F2Yz4AzRT9gT/AQAA"
-      },
-      "Metadata": {
-        "aws:cdk:path": "quota-monitor-sq-spoke/CDKMetadata/Default"
-      },
-      "Condition": "CDKMetadataAvailable"
-    }
-  },
-  "Conditions": {
-    "CDKMetadataAvailable": {
-      "Fn::Or": [
-        {
-          "Fn::Or": [
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "af-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-east-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-northeast-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-northeast-2"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-southeast-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ap-southeast-2"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "ca-central-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "cn-north-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "cn-northwest-1"
-              ]
-            }
-          ]
-        },
-        {
-          "Fn::Or": [
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-central-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-north-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-west-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-west-2"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "eu-west-3"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "me-south-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "sa-east-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-east-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-east-2"
-              ]
-            }
-          ]
-        },
-        {
-          "Fn::Or": [
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-west-1"
-              ]
-            },
-            {
-              "Fn::Equals": [
-                {
-                  "Ref": "AWS::Region"
-                },
-                "us-west-2"
-              ]
-            }
-          ]
-        }
-      ]
     }
   }
 }

@@ -138,6 +138,7 @@ _Note:_
 
 - STACK_NAME, substitute the name of the stack that you want to deploy, check cdk [app](./source/resources/bin/app.ts)
 - PROFILE_NAME, substitute the name of an AWS CLI profile that contains appropriate credentials for deploying in your preferred region
+- Use npm `run cdk:deploy` to deploy the stack quota-monitor-hub
 
 _✅ Solution stack is deployed with your customized code._
 
@@ -184,6 +185,7 @@ The project consists of several microservices, shared utility lambda layer and C
       |-quotaListManager/         [ microservice for managing quota list that supports usage monitoring ]
       |-reporter/                 [ microservice for putting quota usage details on dynamodb ]
       |-slackNotifier/            [ microservice for raising alerts on slack ]
+      |-snsPublisher/             [ microservice for publishing alerts to SNS ]
       |-taRefresher/              [ microservice for refreshing trusted advisor checks ]
     |-utilsLayer/                 [ lambda layer with shared modules, like logger, metrics, try/catch wrapper ]
   |-resources                     [ cdk resources to provision infrastructure ]

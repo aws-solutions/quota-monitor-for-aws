@@ -92,7 +92,7 @@ export interface RuleTargetProps<T> {
   /**
    * @description kms key to be used for encryption
    */
-  encryptionKey: kms.Key;
+  encryptionKey?: kms.Key;
   /**
    * @description event bus on to attach the rule to, if undefined rule will be attached to default bus
    */

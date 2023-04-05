@@ -7,20 +7,27 @@ import { ResourceNotFoundException } from "solutions-utils";
 
 let statusCode = 200;
 let statusMessage = "success";
+// the mock isn't hoisted unless it's var
+var requestMock: jest.Mock; //NOSONAR
 
-jest.mock("https", () => ({
-  ...jest.requireActual("https"), // import and retain the original functionalities
-  request: (_url: any, _post_option: any, cb: any) =>
+jest.mock("https", () => {
+  requestMock = jest.fn();
+  requestMock.mockImplementation((_url: any, _post_option: any, cb: any) =>
     cb({
       setEncoding: jest.fn(),
       on: (_data: any, cb2: any) => cb2(Buffer.from("", "utf8")),
       statusCode: statusCode,
       statusMessage: statusMessage,
-    }),
-  on: jest.fn(),
-  write: jest.fn(),
-  end: jest.fn(),
-}));
+    })
+  );
+  return {
+    ...jest.requireActual("https"), // import and retain the original functionalities
+    request: requestMock,
+    on: jest.fn(),
+    write: jest.fn(),
+    end: jest.fn(),
+  };
+});
 
 const getParameterMock = jest.fn();
 
@@ -67,6 +74,23 @@ const errorEvent = {
   },
 };
 
+const eventForNotification = {
+  account: "",
+  time: "",
+  detail: {
+    status: "ERROR",
+    "check-item-detail": {
+      Region: "",
+      Service: "ec2",
+      Resource: "vCPU",
+      "Limit Code": "L-6E869C2A",
+      "Limit Name": "Running On-Demand DL instances",
+      "Current Usage": "",
+      "Limit Amount": "",
+    },
+  },
+};
+
 describe("slacknotify", function () {
   describe("#sendNotification", function () {
     const slackNotifier = new SlackNotifier();
@@ -81,8 +105,8 @@ describe("slacknotify", function () {
     });
 
     it("should return success when notification sent successfully", async () => {
-      const result = await slackNotifier.sendNotification(event);
-      expect(result.result).toEqual("Message posted successfully");
+      await slackNotifier.sendNotification(event);
+      expect(requestMock).toHaveBeenCalledTimes(1);
     });
 
     it("should return error when the call to ssm fails", async () => {
@@ -91,6 +115,7 @@ describe("slacknotify", function () {
       );
 
       const result = await slackNotifier.sendNotification(errorEvent);
+      expect(requestMock).toHaveBeenCalledTimes(0);
       expect(result.result).toEqual("error");
     });
 
@@ -113,8 +138,45 @@ describe("slacknotify", function () {
     });
 
     it("should succeed when called from handler", async () => {
-      const result = await handler(event);
-      expect(result.result).toEqual("Message posted successfully");
+      await handler(event);
+      expect(requestMock).toHaveBeenCalledTimes(1);
     });
+
+    it("should not send the message successfully if service is muted", async () => {
+      getParameterMock.mockResolvedValue(["ec2", "VPC"]);
+      await handler(eventForNotification);
+      expect(requestMock).toHaveBeenCalledTimes(0);
+    });
+
+    it("should not send the message successfully if quota code is muted", async () => {
+      getParameterMock.mockResolvedValue(["ec2:L-6E869C2A", "VPC"]);
+      await handler(eventForNotification);
+      expect(requestMock).toHaveBeenCalledTimes(0);
+    });
+
+    it("should send the message successfully if a different quota code is muted", async () => {
+      getParameterMock.mockResolvedValue(["ec2:L-6E869C2A_ABC", "VPC"]);
+      await handler(eventForNotification);
+      expect(requestMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not send the message successfully if quota name is muted", async () => {
+      getParameterMock.mockResolvedValue(["EC2:Running On-Demand DL instances", "VPC"]);
+      await handler(eventForNotification);
+      expect(requestMock).toHaveBeenCalledTimes(0);
+    });
+
+    it("should not send the message successfully if resource is muted", async () => {
+      getParameterMock.mockResolvedValue(["EC2:vCPU", "VPC"]);
+      await handler(eventForNotification);
+      expect(requestMock).toHaveBeenCalledTimes(0);
+    });
+
+    it("should not send the message successfully if same quota from different service is muted", async () => {
+      getParameterMock.mockResolvedValue(["cloudformation:L-6E869C2A", "VPC"]);
+      await handler(eventForNotification);
+      expect(requestMock).toHaveBeenCalledTimes(1);
+    });
+
   });
 });

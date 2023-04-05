@@ -15,6 +15,6 @@ export function applyDependsOn(
   if (dependee) {
     if (dependee instanceof Resource)
       dependee = dependee.node.defaultChild as CfnResource;
-    dependee.addDependsOn(parent.node.defaultChild as CfnResource);
+    dependee.addDependency(parent.node.defaultChild as CfnResource);
   }
 }

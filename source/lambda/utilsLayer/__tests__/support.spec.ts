@@ -1,6 +1,10 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
 import {
+  DescribeTrustedAdvisorChecksCommand,
   RefreshTrustedAdvisorCheckCommand,
   SupportClient,
   SupportServiceException,
@@ -41,5 +45,27 @@ describe("Support Client", () => {
     };
 
     await expect(testCase).rejects.toThrow(SupportServiceException);
+  });
+
+  it("isTAEnabled should return false when refreshTA fails", async () => {
+    supportMock.on(DescribeTrustedAdvisorChecksCommand).rejects(
+      new SupportServiceException({
+        name: "SupportServiceException",
+        $fault: "server",
+        $metadata: {},
+      })
+    );
+    const result = await (async () => {
+      return supportHelper.isTrustedAdvisorAvailable();
+    })();
+    expect(result).toEqual(false);
+  });
+
+  it("isTAEnabled should return true when refreshTA returns value", async () => {
+    supportMock.on(DescribeTrustedAdvisorChecksCommand).resolves({});
+    const result = await (async () => {
+      return supportHelper.isTrustedAdvisorAvailable();
+    })();
+    expect(result).toEqual(true);
   });
 });

@@ -109,6 +109,7 @@ export class PreReqStack extends Stack {
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
         SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        QM_STACK_ID: id,
       },
     });
 
@@ -158,6 +159,17 @@ export class PreReqStack extends Stack {
         {
           id: "AwsSolutions-IAM5",
           reason: "Actions do not support resource-level permissions",
+        },
+      ],
+      true
+    );
+    NagSuppressions.addResourceSuppressions(
+      <IConstruct>preReqManager.function,
+      [
+        {
+          id: "AwsSolutions-L1",
+          reason:
+            "GovCloud regions support only up to nodejs 16, risk is tolerable",
         },
       ],
       true

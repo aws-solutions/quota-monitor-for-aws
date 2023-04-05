@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { QuotaMonitorTASpoke } from "../lib/ta-spoke.stack";
 import { App } from "aws-cdk-lib";
@@ -26,6 +29,11 @@ describe("==TA-Spoke Stack Tests==", () => {
           TargetArn: Match.objectLike(Match.anyValue),
         }),
       });
+    });
+
+    it("should have parameters", () => {
+      const allParams = template.findParameters("*", {});
+      expect(allParams).toHaveProperty("EventBusArn");
     });
   });
 

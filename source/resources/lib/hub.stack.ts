@@ -20,22 +20,20 @@ import {
   Aws,
   CfnCapabilities,
   StackProps,
+  aws_s3_assets,
 } from "aws-cdk-lib";
 import { Subscription } from "aws-cdk-lib/aws-sns";
 import * as path from "path";
 import { ConditionAspect } from "./condition.utils";
 import { CustomResourceLambda } from "./custom-resource-lambda.construct";
 import { EventsToLambda } from "./events-lambda.construct";
-import { EventsToSNS } from "./events-sns.construct";
 import { EventsToSQS } from "./events-sqs.construct";
 import {
   EVENT_NOTIFICATION_DETAIL_TYPE,
   EVENT_NOTIFICATION_SOURCES,
-  SQ_CHECKS_SERVICES,
-  TA_CHECKS_SERVICES,
 } from "./exports";
-import { KMS } from "./kms.construct";
 import { Layer } from "./lambda-layer.construct";
+import { EventsToLambdaToSNS } from "./events-lambda-sns.construct";
 
 /**
  * @description
@@ -71,6 +69,49 @@ export class QuotaMonitorHub extends Stack {
       default: "Organizations",
     });
 
+    const regionsListCfnParam = new CfnParameter(this, "RegionsList", {
+      description:
+        "Comma separated list of regions like us-east-1,us-east-2 or ALL or leave it blank for ALL",
+      default: "ALL",
+    });
+
+    const stackSetRegionConcurrencyType = new CfnParameter(
+      this,
+      "RegionConcurrency",
+      {
+        allowedValues: ["PARALLEL", "SEQUENTIAL"],
+        default: "PARALLEL",
+        description:
+          "Choose to deploy StackSets into regions sequentially or in parallel",
+      }
+    );
+
+    const stackSetMaxConcurrentPercentage = new CfnParameter(
+      this,
+      "MaxConcurrentPercentage",
+      {
+        type: "Number",
+        default: 100,
+        minValue: 1,
+        maxValue: 100,
+        description:
+          "Percentage of accounts per region to which you can deploy stacks at one time. The higher the number, the faster the operation",
+      }
+    );
+
+    const stackSetFailureTolerancePercentage = new CfnParameter(
+      this,
+      "FailureTolerancePercentage",
+      {
+        type: "Number",
+        default: 0,
+        minValue: 0,
+        maxValue: 100,
+        description:
+          "Percentage of account, per region, for which stacks can fail before CloudFormation stops the operation in that region. If the operation is stopped in one region, it does not continue in other regions. The lower the number the safer the operation",
+      }
+    );
+
     //=============================================================================================
     // Mapping & Conditions
     //=============================================================================================
@@ -88,8 +129,18 @@ export class QuotaMonitorHub extends Stack {
     map.setValue("SSMParameters", "SlackHook", "/QuotaMonitor/SlackHook");
     map.setValue("SSMParameters", "Accounts", "/QuotaMonitor/Accounts");
     map.setValue("SSMParameters", "OrganizationalUnits", "/QuotaMonitor/OUs");
+    map.setValue(
+      "SSMParameters",
+      "NotificationMutingConfig",
+      "/QuotaMonitor/NotificationConfiguration"
+    );
+    map.setValue(
+      "SSMParameters",
+      "RegionsList",
+      "/QuotaMonitor/RegionsToDeploy"
+    );
 
-    const snsTrue = new CfnCondition(this, "SNSTrueCondition", {
+    const emailTrue = new CfnCondition(this, "EmailTrueCondition", {
       expression: Fn.conditionNot(
         Fn.conditionEquals(snsEmail.valueAsString, "")
       ),
@@ -99,21 +150,11 @@ export class QuotaMonitorHub extends Stack {
       expression: Fn.conditionEquals(slackNotification.valueAsString, "Yes"),
     });
 
-    const orgDeployCondition = new CfnCondition(this, "OrgDeployCondition", {
-      expression: Fn.conditionOr(
-        Fn.conditionEquals(deploymentModel, "Organizations"),
-        Fn.conditionEquals(deploymentModel, "Hybrid")
-      ),
-    });
-
     const accountDeployCondition = new CfnCondition(
       this,
       "AccountDeployCondition",
       {
-        expression: Fn.conditionOr(
-          Fn.conditionEquals(deploymentModel, "Accounts"),
-          Fn.conditionEquals(deploymentModel, "Hybrid")
-        ),
+        expression: Fn.conditionEquals(deploymentModel, "Hybrid"),
       }
     );
 
@@ -127,7 +168,17 @@ export class QuotaMonitorHub extends Stack {
             Label: {
               default: "Deployment Configuration",
             },
-            Parameters: ["DeploymentModel"],
+            Parameters: ["DeploymentModel", "RegionsList"],
+          },
+          {
+            Label: {
+              default: "Stackset Deployment Options",
+            },
+            Parameters: [
+              "RegionConcurrency",
+              "MaxConcurrentPercentage",
+              "FailureTolerancePercentage",
+            ],
           },
           {
             Label: {
@@ -146,6 +197,19 @@ export class QuotaMonitorHub extends Stack {
           },
           SlackNotification: {
             default: "Do you want slack notifications?",
+          },
+          RegionsList: {
+            default:
+              "List of regions to deploy resources to monitor service quotas",
+          },
+          RegionConcurrencyType: {
+            default: "Region Concurrency",
+          },
+          MaxConcurrentPercentage: {
+            default: "Percentage Maximum concurrent accounts",
+          },
+          FailureTolerancePercentage: {
+            default: "Percentage Failure tolerance",
           },
         },
       },
@@ -172,11 +236,6 @@ export class QuotaMonitorHub extends Stack {
     });
 
     /**
-     * @description kms construct to generate KMS-CMK with needed base policy
-     */
-    const kms = new KMS(this, "KMS-Hub");
-
-    /**
      * @description slack hook url for sending quota monitor events
      */
     const ssmSlackHook = new ssm.StringParameter(this, "QM-SlackHook", {
@@ -197,7 +256,6 @@ export class QuotaMonitorHub extends Stack {
       stringListValue: ["NOP"],
       simpleName: false,
     });
-    Aspects.of(ssmQMOUs).add(new ConditionAspect(orgDeployCondition));
 
     /**
      * @description list of targeted AWS Accounts for quota monitoring
@@ -212,6 +270,36 @@ export class QuotaMonitorHub extends Stack {
     Aspects.of(ssmQMAccounts).add(new ConditionAspect(accountDeployCondition));
 
     /**
+     * @description list of muted services and limits (quotas) for quota monitoring
+     * value could be list of serviceCode[:quota_name|quota_code|resource]
+     */
+    const ssmNotificationMutingConfig = new ssm.StringListParameter(
+      this,
+      "QM-NotificationMutingConfig",
+      {
+        parameterName: map.findInMap(
+          "SSMParameters",
+          "NotificationMutingConfig"
+        ),
+        stringListValue: ["NOP"],
+        description:
+          "Muting configuration for services, limits e.g. ec2:L-1216C47A,ec2:Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances,dynamodb,logs:*,geo:L-05EFD12D",
+        simpleName: false,
+      }
+    );
+
+    /**
+     * @description list of regions to deploy spoke resources
+     */
+    const ssmRegionsList = new ssm.StringListParameter(this, "QM-RegionsList", {
+      parameterName: map.findInMap("SSMParameters", "RegionsList"),
+      description:
+        "list of regions to deploy spoke resources (eg. us-east-1,us-west-2)",
+      stringListValue: regionsListCfnParam.valueAsString.split(","), //initialize it with the template parameter
+      simpleName: false,
+    });
+
+    /**
      * @description utility layer for solution microservices
      */
     const utilsLayer = new Layer(
@@ -219,6 +307,36 @@ export class QuotaMonitorHub extends Stack {
       "QM-UtilsLayer",
       `${path.dirname(__dirname)}/../lambda/utilsLayer/dist/utilsLayer.zip`
     );
+
+    //===========================
+    // Solution helper components
+    //===========================
+    /**
+     * @description construct to deploy lambda backed custom resource
+     */
+    const helper = new CustomResourceLambda(this, "QM-Helper", {
+      assetLocation: `${path.dirname(
+        __dirname
+      )}/../lambda/services/helper/dist/helper.zip`,
+      layers: [utilsLayer.layer],
+      environment: {
+        METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
+        SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        QM_STACK_ID: id,
+        QM_SLACK_NOTIFICATION: slackNotification.valueAsString,
+        QM_EMAIL_NOTIFICATION: Fn.conditionIf(
+          "EmailTrueCondition",
+          "Yes",
+          "No"
+        ).toString(),
+      },
+    });
+
+    // Custom resources
+    const createUUID = helper.addCustomResource("CreateUUID");
+    helper.addCustomResource("LaunchData", {
+      SOLUTION_UUID: createUUID.getAttString("UUID"),
+    });
 
     //=========================
     // Slack workflow component
@@ -229,9 +347,6 @@ export class QuotaMonitorHub extends Stack {
     const slackRulePattern: events.EventPattern = {
       detail: {
         status: ["WARN", "ERROR"],
-        "check-item-detail": {
-          Service: [...TA_CHECKS_SERVICES, ...SQ_CHECKS_SERVICES],
-        },
       },
       detailType: [
         EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
@@ -249,7 +364,10 @@ export class QuotaMonitorHub extends Stack {
     const slackNotifierSSMReadPolicy = new iam.PolicyStatement({
       actions: ["ssm:GetParameter"],
       effect: iam.Effect.ALLOW,
-      resources: [ssmSlackHook.parameterArn],
+      resources: [
+        ssmSlackHook.parameterArn,
+        ssmNotificationMutingConfig.parameterArn,
+      ],
     });
 
     /**
@@ -264,10 +382,11 @@ export class QuotaMonitorHub extends Stack {
         )}/../lambda/services/slackNotifier/dist/slack-notifier.zip`,
         environment: {
           SLACK_HOOK: map.findInMap("SSMParameters", "SlackHook"),
+          QM_NOTIFICATION_MUTING_CONFIG_PARAMETER:
+            ssmNotificationMutingConfig.parameterName,
         },
         layers: [utilsLayer.layer],
         eventRule: slackRulePattern,
-        encryptionKey: kms.key,
         eventBus: quotaMonitorBus,
       }
     );
@@ -285,9 +404,6 @@ export class QuotaMonitorHub extends Stack {
     const snsRulePattern: events.EventPattern = {
       detail: {
         status: ["WARN", "ERROR"],
-        "check-item-detail": {
-          Service: [...TA_CHECKS_SERVICES, ...SQ_CHECKS_SERVICES],
-        },
       },
       detailType: [
         EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
@@ -300,30 +416,51 @@ export class QuotaMonitorHub extends Stack {
     };
 
     /**
-     * @description construct for events-sns
+     * @description policy statement allowing READ on SSM parameter store
      */
-    const snsNotifier = new EventsToSNS<events.EventPattern>(
+    const snsPublisherSSMReadPolicy = new iam.PolicyStatement({
+      actions: ["ssm:GetParameter"],
+      effect: iam.Effect.ALLOW,
+      resources: [ssmNotificationMutingConfig.parameterArn],
+    });
+
+    /**
+     * @description construct for events-lambda
+     */
+
+    const snsPublisher = new EventsToLambdaToSNS<events.EventPattern>(
       this,
-      "QM-SNSNotifier",
+      "QM-SNSPublisher",
       {
+        assetLocation: `${path.dirname(
+          __dirname
+        )}/../lambda/services/snsPublisher/dist/sns-publisher.zip`,
+        environment: {
+          QM_NOTIFICATION_MUTING_CONFIG_PARAMETER:
+            ssmNotificationMutingConfig.parameterName,
+          SOLUTION_UUID: createUUID.getAttString("UUID"),
+          METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
+          SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        },
+        layers: [utilsLayer.layer],
         eventRule: snsRulePattern,
-        encryptionKey: kms.key,
         eventBus: quotaMonitorBus,
       }
     );
+
+    snsPublisher.target.addToRolePolicy(snsPublisherSSMReadPolicy);
 
     /**
      * @description subscription for email notifications for quota monitor
      */
     const qmSubscription = new Subscription(this, "QM-EmailSubscription", {
-      topic: snsNotifier.target,
+      topic: snsPublisher.snsTopic,
       protocol: sns.SubscriptionProtocol.EMAIL,
       endpoint: snsEmail.valueAsString,
     });
 
     // applying condition on all child nodes
-    Aspects.of(qmSubscription).add(new ConditionAspect(snsTrue));
-    Aspects.of(snsNotifier).add(new ConditionAspect(snsTrue));
+    Aspects.of(qmSubscription).add(new ConditionAspect(emailTrue));
 
     //==============================
     // Summarizer workflow component
@@ -334,9 +471,6 @@ export class QuotaMonitorHub extends Stack {
     const summarizerRulePattern: events.EventPattern = {
       detail: {
         status: ["OK", "WARN", "ERROR"],
-        "check-item-detail": {
-          Service: [...TA_CHECKS_SERVICES, ...SQ_CHECKS_SERVICES],
-        },
       },
       detailType: [
         EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
@@ -356,7 +490,6 @@ export class QuotaMonitorHub extends Stack {
       "QM-Summarizer-EventQueue",
       {
         eventRule: summarizerRulePattern,
-        encryptionKey: kms.key,
         eventBus: quotaMonitorBus,
       }
     );
@@ -375,8 +508,7 @@ export class QuotaMonitorHub extends Stack {
       },
       pointInTimeRecovery: true,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
-      encryptionKey: kms.key,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
     });
 
     /**
@@ -387,7 +519,6 @@ export class QuotaMonitorHub extends Stack {
       "QM-Reporter",
       {
         eventRule: events.Schedule.rate(Duration.minutes(5)),
-        encryptionKey: kms.key,
         assetLocation: `${path.dirname(
           __dirname
         )}/../lambda/services/reporter/dist/reporter.zip`,
@@ -433,13 +564,15 @@ export class QuotaMonitorHub extends Stack {
         permissionModel: "SERVICE_MANAGED",
         description:
           "StackSet for deploying Quota Monitor Trusted Advisor spokes in Organization",
-        templateUrl: `https://${this.node.tryGetContext(
-          "SOLUTION_TEMPLATE_BUCKET"
-        )}.s3.amazonaws.com/${this.node.tryGetContext(
-          "SOLUTION_NAME"
-        )}/${this.node.tryGetContext(
-          "SOLUTION_VERSION"
-        )}/quota-monitor-ta-spoke.template`,
+        templateUrl: Fn.sub(
+          "https://" +
+            `${this.node.tryGetContext("SOLUTION_BUCKET")}` +
+            "-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/" +
+            `${this.node.tryGetContext(
+              "SOLUTION_NAME"
+            )}/${this.node.tryGetContext(
+              "SOLUTION_VERSION"
+            )}/quota-monitor-ta-spoke.template`),
         parameters: [
           {
             parameterKey: "EventBusArn",
@@ -457,7 +590,6 @@ export class QuotaMonitorHub extends Stack {
         callAs: "DELEGATED_ADMIN",
       }
     );
-    Aspects.of(qmTAStackSet).add(new ConditionAspect(orgDeployCondition));
 
     const qmSQStackSet = new cloudformation.CfnStackSet(
       this,
@@ -467,13 +599,15 @@ export class QuotaMonitorHub extends Stack {
         permissionModel: "SERVICE_MANAGED",
         description:
           "StackSet for deploying Quota Monitor Service Quota spokes in Organization",
-        templateUrl: `https://${this.node.tryGetContext(
-          "SOLUTION_TEMPLATE_BUCKET"
-        )}.s3.amazonaws.com/${this.node.tryGetContext(
-          "SOLUTION_NAME"
-        )}/${this.node.tryGetContext(
-          "SOLUTION_VERSION"
-        )}/quota-monitor-sq-spoke.template`,
+        templateUrl: Fn.sub(
+          "https://" +
+            `${this.node.tryGetContext("SOLUTION_BUCKET")}` +
+            "-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/" +
+            `${this.node.tryGetContext(
+              "SOLUTION_NAME"
+            )}/${this.node.tryGetContext(
+              "SOLUTION_VERSION"
+            )}/quota-monitor-sq-spoke.template`),
         parameters: [
           {
             parameterKey: "EventBusArn",
@@ -491,7 +625,41 @@ export class QuotaMonitorHub extends Stack {
         callAs: "DELEGATED_ADMIN",
       }
     );
-    Aspects.of(qmSQStackSet).add(new ConditionAspect(orgDeployCondition));
+
+    // the spoke templates which are parameters of the stacksets as assets for cdk deploy to work
+    // use `npm run cdk:deploy quota-monitor-hub` to generate the template that can be deployed by cdk
+    // `npm run cdk:deploy` runs cdk synth twice, once for generating the spoke templates for the stacksets
+    // (with parameterized templateUrls that are to be substituted by deployment scripts)
+    // and once more for generating the corresponding cdk assets and updating the corresponding templateUrls
+    try {
+      console.log(
+        "Attempting to generate cdk assets for the stackset templates"
+      );
+      const stackSetCdkTemplateTA = new aws_s3_assets.Asset(
+        this,
+        "QM-TA-Spoke-StackSet-Template",
+        {
+          path: `${path.dirname(
+            __dirname
+          )}/cdk.out/quota-monitor-ta-spoke.template.json`,
+        }
+      );
+      const stackSetCdkTemplateSQ = new aws_s3_assets.Asset(
+        this,
+        "QM-SQ-Spoke-StackSet-Template",
+        {
+          path: `${path.dirname(
+            __dirname
+          )}/cdk.out/quota-monitor-sq-spoke.template.json`,
+        }
+      );
+      console.log("Updating stackset templateUrls for cdk deployment");
+      qmTAStackSet.templateUrl = stackSetCdkTemplateTA.httpUrl;
+      qmSQStackSet.templateUrl = stackSetCdkTemplateSQ.httpUrl;
+    } catch (error) {
+      //Error is expected the first time the templates are synthesized
+      console.log("Not updating templateUrls for cdk deployment");
+    }
 
     /**
      * @description event rule pattern for SSM parameters
@@ -500,16 +668,13 @@ export class QuotaMonitorHub extends Stack {
       detailType: ["Parameter Store Change"],
       source: ["aws.ssm"],
       resources: [
-        Fn.conditionIf(
-          orgDeployCondition.logicalId,
-          ssmQMOUs.parameterArn,
-          Aws.NO_VALUE
-        ).toString(),
+        ssmQMOUs.parameterArn,
         Fn.conditionIf(
           accountDeployCondition.logicalId,
           ssmQMAccounts.parameterArn,
           Aws.NO_VALUE
         ).toString(),
+        ssmRegionsList.parameterArn,
       ],
     };
 
@@ -521,34 +686,31 @@ export class QuotaMonitorHub extends Stack {
       "QM-Deployment-Manager",
       {
         eventRule: ssmRulePattern,
-        encryptionKey: kms.key,
         assetLocation: `${path.dirname(
           __dirname
         )}/../lambda/services/deploymentManager/dist/deployment-manager.zip`,
         environment: {
           EVENT_BUS_NAME: quotaMonitorBus.eventBusName,
           EVENT_BUS_ARN: quotaMonitorBus.eventBusArn,
-          TA_STACKSET_ID: Fn.conditionIf(
-            orgDeployCondition.logicalId,
-            qmTAStackSet.attrStackSetId,
-            Aws.NO_VALUE
-          ).toString(),
-          SQ_STACKSET_ID: Fn.conditionIf(
-            orgDeployCondition.logicalId,
-            qmSQStackSet.attrStackSetId,
-            Aws.NO_VALUE
-          ).toString(),
-          QM_OU_PARAMETER: Fn.conditionIf(
-            orgDeployCondition.logicalId,
-            ssmQMOUs.parameterName,
-            Aws.NO_VALUE
-          ).toString(),
+          TA_STACKSET_ID: qmTAStackSet.attrStackSetId.toString(),
+          SQ_STACKSET_ID: qmSQStackSet.attrStackSetId.toString(),
+          QM_OU_PARAMETER: ssmQMOUs.parameterName.toString(),
           QM_ACCOUNT_PARAMETER: Fn.conditionIf(
             accountDeployCondition.logicalId,
             ssmQMAccounts.parameterName,
             Aws.NO_VALUE
           ).toString(),
           DEPLOYMENT_MODEL: deploymentModel.valueAsString,
+          REGIONS_LIST: regionsListCfnParam.valueAsString,
+          QM_REGIONS_LIST_PARAMETER: ssmRegionsList.parameterName.toString(),
+          REGIONS_CONCURRENCY_TYPE: stackSetRegionConcurrencyType.valueAsString,
+          MAX_CONCURRENT_PERCENTAGE:
+            stackSetMaxConcurrentPercentage.valueAsString,
+          FAILURE_TOLERANCE_PERCENTAGE:
+            stackSetFailureTolerancePercentage.valueAsString,
+          SOLUTION_UUID: createUUID.getAttString("UUID"),
+          METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
+          SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
         },
         layers: [utilsLayer.layer],
         memorySize: 512,
@@ -578,16 +740,13 @@ export class QuotaMonitorHub extends Stack {
       actions: ["ssm:GetParameter"],
       effect: iam.Effect.ALLOW,
       resources: [
-        Fn.conditionIf(
-          orgDeployCondition.logicalId,
-          ssmQMOUs.parameterArn,
-          Aws.NO_VALUE
-        ).toString(),
+        ssmQMOUs.parameterArn,
         Fn.conditionIf(
           accountDeployCondition.logicalId,
           ssmQMAccounts.parameterArn,
           Aws.NO_VALUE
         ).toString(),
+        ssmRegionsList.parameterArn,
       ],
     });
     deploymentManager.target.addToRolePolicy(helperSSMReadPolicy);
@@ -600,6 +759,8 @@ export class QuotaMonitorHub extends Stack {
         "organizations:DescribeOrganization",
         "organizations:ListRoots",
         "organizations:ListDelegatedAdministrators",
+        "organizations:ListAccounts",
+        "organizations:ListAccountsForParent",
       ],
       effect: iam.Effect.ALLOW,
       resources: ["*"], // do not support resource-level permissions
@@ -614,9 +775,10 @@ export class QuotaMonitorHub extends Stack {
         "cloudformation:DescribeStackSet",
         "cloudformation:CreateStackInstances",
         "cloudformation:DeleteStackInstances",
+        "cloudformation:ListStackInstances",
       ],
       effect: iam.Effect.ALLOW,
-      resources: ["*"], // StackSet resources willl be conditionally created based on deployment mode
+      resources: ["*"], // StackSet resources will be conditionally created based on deployment mode
     });
     deploymentManager.target.addToRolePolicy(deployerStackSetPolicy);
 
@@ -630,28 +792,17 @@ export class QuotaMonitorHub extends Stack {
     });
     deploymentManager.target.addToRolePolicy(deployerRegionPolicy);
 
-    //===========================
-    // Solution helper components
-    //===========================
     /**
-     * @description construct to deploy lambda backed custom resource
+     * used to check whether trusted advisor is available (have the support plan needed) in the account
      */
-    const helper = new CustomResourceLambda(this, "QM-Helper", {
-      assetLocation: `${path.dirname(
-        __dirname
-      )}/../lambda/services/helper/dist/helper.zip`,
-      layers: [utilsLayer.layer],
-      environment: {
-        METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-        SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
-      },
+    const taDescribeTrustedAdvisorChecksPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ["support:DescribeTrustedAdvisorChecks"],
+      resources: ["*"], // does not allow resource-level permissions
     });
-
-    // Custom resources
-    const createUUID = helper.addCustomResource("CreateUUID");
-    helper.addCustomResource("LaunchData", {
-      SOLUTION_UUID: createUUID.getAttString("UUID"),
-    });
+    deploymentManager.target.addToRolePolicy(
+      taDescribeTrustedAdvisorChecksPolicy
+    );
 
     //=============================================================================================
     // Outputs
@@ -671,6 +822,11 @@ export class QuotaMonitorHub extends Stack {
     new CfnOutput(this, "EventBus", {
       value: quotaMonitorBus.eventBusArn,
       description: "Event Bus Arn in hub",
+    });
+
+    new CfnOutput(this, "SNSTopic", {
+      value: snsPublisher.snsTopic.topicArn,
+      description: "The SNS Topic where notifications are published to",
     });
   }
 }

@@ -7,7 +7,8 @@
     "SOLUTION_BUCKET": "%%LAMBDA_BUCKET%%",
     "SOLUTION_TEMPLATE_BUCKET": "%%TEMPLATE_BUCKET%%",
     "CUSTOM_USER_AGENT": "AwsSolution/SO0005/%%VERSION%%",
-    "SEND_METRICS": "yes",
-    "METRICS_ENDPOINT": "https://metrics.awssolutionsbuilder.com/generic"
+    "SEND_METRICS": "Yes",
+    "METRICS_ENDPOINT": "https://metrics.awssolutionsbuilder.com/generic",
+    "LOG_LEVEL": "info"
   }
 }

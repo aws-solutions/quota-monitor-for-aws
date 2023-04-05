@@ -23,16 +23,13 @@ import * as path from "path";
 import { ConditionAspect } from "./condition.utils";
 import { CustomResourceLambda } from "./custom-resource-lambda.construct";
 import { EventsToLambda } from "./events-lambda.construct";
-import { EventsToSNS } from "./events-sns.construct";
 import { EventsToSQS } from "./events-sqs.construct";
 import {
   EVENT_NOTIFICATION_DETAIL_TYPE,
   EVENT_NOTIFICATION_SOURCES,
-  SQ_CHECKS_SERVICES,
-  TA_CHECKS_SERVICES,
 } from "./exports";
-import { KMS } from "./kms.construct";
 import { Layer } from "./lambda-layer.construct";
+import { EventsToLambdaToSNS } from "./events-lambda-sns.construct";
 
 /**
  * @description
@@ -80,8 +77,13 @@ export class QuotaMonitorHubNoOU extends Stack {
     );
     map.setValue("SSMParameters", "SlackHook", "/QuotaMonitor/SlackHook");
     map.setValue("SSMParameters", "Accounts", "/QuotaMonitor/Accounts");
+    map.setValue(
+      "SSMParameters",
+      "NotificationMutingConfig",
+      "/QuotaMonitor/NotificationConfiguration"
+    );
 
-    const snsTrue = new CfnCondition(this, "SNSTrueCondition", {
+    const emailTrue = new CfnCondition(this, "EmailTrueCondition", {
       expression: Fn.conditionNot(
         Fn.conditionEquals(snsEmail.valueAsString, "")
       ),
@@ -138,11 +140,6 @@ export class QuotaMonitorHubNoOU extends Stack {
     });
 
     /**
-     * @description kms construct to generate KMS-CMK with needed base policy
-     */
-    const kms = new KMS(this, "KMS-Hub");
-
-    /**
      * @description slack hook url for sending quota monitor events
      */
     const ssmSlackHook = new ssm.StringParameter(this, "QM-SlackHook", {
@@ -165,6 +162,25 @@ export class QuotaMonitorHubNoOU extends Stack {
     });
 
     /**
+     * @description list of muted services and limits (quotas) for quota monitoring
+     * value could be list of serviceCode[:quota_name|quota_code|resource]
+     */
+    const ssmNotificationMutingConfig = new ssm.StringListParameter(
+      this,
+      "QM-NotificationMutingConfig",
+      {
+        parameterName: map.findInMap(
+          "SSMParameters",
+          "NotificationMutingConfig"
+        ),
+        stringListValue: ["NOP"],
+        description:
+          "Muting configuration for services, limits e.g. ec2:L-1216C47A,ec2:Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances,dynamodb,logs:*,geo:L-05EFD12D",
+        simpleName: false,
+      }
+    );
+
+    /**
      * @description utility layer for solution microservices
      */
     const utilsLayer = new Layer(
@@ -182,9 +198,6 @@ export class QuotaMonitorHubNoOU extends Stack {
     const slackRulePattern: events.EventPattern = {
       detail: {
         status: ["WARN", "ERROR"],
-        "check-item-detail": {
-          Service: [...TA_CHECKS_SERVICES, ...SQ_CHECKS_SERVICES],
-        },
       },
       detailType: [
         EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
@@ -202,7 +215,10 @@ export class QuotaMonitorHubNoOU extends Stack {
     const slackNotifierSSMReadPolicy = new iam.PolicyStatement({
       actions: ["ssm:GetParameter"],
       effect: iam.Effect.ALLOW,
-      resources: [ssmSlackHook.parameterArn],
+      resources: [
+        ssmSlackHook.parameterArn,
+        ssmNotificationMutingConfig.parameterArn,
+      ],
     });
 
     /**
@@ -217,10 +233,11 @@ export class QuotaMonitorHubNoOU extends Stack {
         )}/../lambda/services/slackNotifier/dist/slack-notifier.zip`,
         environment: {
           SLACK_HOOK: map.findInMap("SSMParameters", "SlackHook"),
+          QM_NOTIFICATION_MUTING_CONFIG_PARAMETER:
+            ssmNotificationMutingConfig.parameterName,
         },
         layers: [utilsLayer.layer],
         eventRule: slackRulePattern,
-        encryptionKey: kms.key,
         eventBus: quotaMonitorBus,
       }
     );
@@ -238,9 +255,6 @@ export class QuotaMonitorHubNoOU extends Stack {
     const snsRulePattern: events.EventPattern = {
       detail: {
         status: ["WARN", "ERROR"],
-        "check-item-detail": {
-          Service: [...TA_CHECKS_SERVICES, ...SQ_CHECKS_SERVICES],
-        },
       },
       detailType: [
         EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
@@ -253,30 +267,48 @@ export class QuotaMonitorHubNoOU extends Stack {
     };
 
     /**
-     * @description construct for events-sns
+     * @description policy statement allowing READ on SSM parameter store
      */
-    const snsNotifier = new EventsToSNS<events.EventPattern>(
+    const snsPublisherSSMReadPolicy = new iam.PolicyStatement({
+      actions: ["ssm:GetParameter"],
+      effect: iam.Effect.ALLOW,
+      resources: [ssmNotificationMutingConfig.parameterArn],
+    });
+
+    /**
+     * @description construct for events-lambda
+     */
+
+    const snsPublisher = new EventsToLambdaToSNS<events.EventPattern>(
       this,
-      "QM-SNSNotifier",
+      "QM-SNSPublisher",
       {
+        assetLocation: `${path.dirname(
+          __dirname
+        )}/../lambda/services/snsPublisher/dist/sns-publisher.zip`,
+        environment: {
+          QM_NOTIFICATION_MUTING_CONFIG_PARAMETER:
+            ssmNotificationMutingConfig.parameterName,
+        },
+        layers: [utilsLayer.layer],
         eventRule: snsRulePattern,
-        encryptionKey: kms.key,
         eventBus: quotaMonitorBus,
       }
     );
+
+    snsPublisher.target.addToRolePolicy(snsPublisherSSMReadPolicy);
 
     /**
      * @description subscription for email notifications for quota monitor
      */
     const qmSubscription = new Subscription(this, "QM-EmailSubscription", {
-      topic: snsNotifier.target,
+      topic: snsPublisher.snsTopic,
       protocol: sns.SubscriptionProtocol.EMAIL,
       endpoint: snsEmail.valueAsString,
     });
 
     // applying condition on all child nodes
-    Aspects.of(qmSubscription).add(new ConditionAspect(snsTrue));
-    Aspects.of(snsNotifier).add(new ConditionAspect(snsTrue));
+    Aspects.of(qmSubscription).add(new ConditionAspect(emailTrue));
 
     //==============================
     // Summarizer workflow component
@@ -287,9 +319,6 @@ export class QuotaMonitorHubNoOU extends Stack {
     const summarizerRulePattern: events.EventPattern = {
       detail: {
         status: ["OK", "WARN", "ERROR"],
-        "check-item-detail": {
-          Service: [...TA_CHECKS_SERVICES, ...SQ_CHECKS_SERVICES],
-        },
       },
       detailType: [
         EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
@@ -309,7 +338,6 @@ export class QuotaMonitorHubNoOU extends Stack {
       "QM-Summarizer-EventQueue",
       {
         eventRule: summarizerRulePattern,
-        encryptionKey: kms.key,
         eventBus: quotaMonitorBus,
       }
     );
@@ -328,8 +356,7 @@ export class QuotaMonitorHubNoOU extends Stack {
       },
       pointInTimeRecovery: true,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
-      encryptionKey: kms.key,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
     });
 
     /**
@@ -340,7 +367,6 @@ export class QuotaMonitorHubNoOU extends Stack {
       "QM-Reporter",
       {
         eventRule: events.Schedule.rate(Duration.minutes(5)),
-        encryptionKey: kms.key,
         assetLocation: `${path.dirname(
           __dirname
         )}/../lambda/services/reporter/dist/reporter.zip`,
@@ -395,7 +421,6 @@ export class QuotaMonitorHubNoOU extends Stack {
       "QM-Deployment-Manager",
       {
         eventRule: ssmRulePattern,
-        encryptionKey: kms.key,
         assetLocation: `${path.dirname(
           __dirname
         )}/../lambda/services/deploymentManager/dist/deployment-manager.zip`,
@@ -436,6 +461,18 @@ export class QuotaMonitorHubNoOU extends Stack {
     });
     deploymentManager.target.addToRolePolicy(helperSSMReadPolicy);
 
+    /**
+     * used to check whether trusted advisor is available (have the support plan needed) in the account
+     */
+    const taDescribeTrustedAdvisorChecksPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ["support:DescribeTrustedAdvisorChecks"],
+      resources: ["*"], // does not allow resource-level permissions
+    });
+    deploymentManager.target.addToRolePolicy(
+      taDescribeTrustedAdvisorChecksPolicy
+    );
+
     //===========================
     // Solution helper components
     //===========================
@@ -450,6 +487,7 @@ export class QuotaMonitorHubNoOU extends Stack {
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
         SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        QM_STACK_ID: id,
       },
     });
 
@@ -477,6 +515,11 @@ export class QuotaMonitorHubNoOU extends Stack {
     new CfnOutput(this, "EventBus", {
       value: quotaMonitorBus.eventBusArn,
       description: "Event Bus Arn in hub",
+    });
+
+    new CfnOutput(this, "SNSTopic", {
+      value: snsPublisher.snsTopic.topicArn,
+      description: "The SNS Topic where notifications are published to",
     });
   }
 }

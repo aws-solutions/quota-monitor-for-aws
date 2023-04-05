@@ -7,17 +7,21 @@ import {
   DynamoDBHelper,
   ServiceQuotasHelper,
   IncorrectConfigurationException,
-  SQ_SERVICE_CODES,
-  SUPPORTED_SERVICES,
   createChunksFromArray,
   LambdaTriggers,
+  logger,
 } from "solutions-utils";
+
+/**
+ * @description executing module name
+ */
+const MODULE_NAME = __filename.split("/").pop();
 
 /**
  * @description generic interface for service table items
  */
 interface IServiceTableItem extends Record<string, any> {
-  ServiceCode: SQ_SERVICE_CODES;
+  ServiceCode: string;
   Monitored: boolean;
 }
 
@@ -29,8 +33,14 @@ export async function putServiceMonitoringStatus(
   serviceTable: string = <string>process.env.SQ_SERVICE_TABLE
 ) {
   const ddb = new DynamoDBHelper();
+  const sq = new ServiceQuotasHelper();
+  const serviceCodes: string[] = await sq.getServiceCodes();
+  logger.debug({
+    label: `${MODULE_NAME}/serviceCodes`,
+    message: JSON.stringify(serviceCodes),
+  });
   await Promise.allSettled(
-    SUPPORTED_SERVICES.map(async (service) => {
+    serviceCodes.map(async (service) => {
       const getItemResponse = <IServiceTableItem>await ddb.getItem(
         serviceTable,
         {
@@ -55,8 +65,10 @@ export async function getServiceMonitoringStatus(
 ) {
   const ddb = new DynamoDBHelper();
   const statusItems: IServiceTableItem[] = [];
+  const sq = new ServiceQuotasHelper();
+  const serviceCodes = await sq.getServiceCodes();
   await Promise.allSettled(
-    SUPPORTED_SERVICES.map(async (service) => {
+    serviceCodes.map(async (service) => {
       const getItemResponse = <IServiceTableItem>await ddb.getItem(
         serviceTable,
         {
@@ -108,7 +120,7 @@ export function readDynamoDBStreamEvent(event: Record<string, any>) {
  * @description adding quotas to monitor on dynamodb table
  * @param serviceCode
  */
-export async function putQuotasForService(serviceCode: SQ_SERVICE_CODES) {
+export async function putQuotasForService(serviceCode: string) {
   const _quotas = await _getQuotasWithUtilizationMetrics(serviceCode);
   await _putMonitoredQuotas(_quotas, <string>process.env.SQ_QUOTA_TABLE);
 }
@@ -118,16 +130,14 @@ export async function putQuotasForService(serviceCode: SQ_SERVICE_CODES) {
  * @param serviceCode - service code for which to get the quotas
  * @returns
  */
-async function _getQuotasWithUtilizationMetrics(serviceCode: SQ_SERVICE_CODES) {
-  if (SUPPORTED_SERVICES.includes(serviceCode)) {
-    const sq = new ServiceQuotasHelper();
-    const quotas = (await sq.getQuotaList(serviceCode)) || [];
-    const quotasWithMetric = await sq.getQuotasWithUtilizationMetrics(quotas);
-    return quotasWithMetric;
-  } else
-    throw new IncorrectConfigurationException(
-      `service ${serviceCode} is not supported`
-    );
+async function _getQuotasWithUtilizationMetrics(serviceCode: string) {
+  const sq = new ServiceQuotasHelper();
+  const quotas = (await sq.getQuotaList(serviceCode)) || [];
+  const quotasWithMetric = await sq.getQuotasWithUtilizationMetrics(
+    quotas,
+    serviceCode
+  );
+  return quotasWithMetric;
 }
 
 /**
@@ -148,7 +158,7 @@ async function _putMonitoredQuotas(quotas: ServiceQuota[], table: string) {
  * @description delete all quotas from table for a given service
  * @param serviceCode
  */
-export async function deleteQuotasForService(serviceCode: SQ_SERVICE_CODES) {
+export async function deleteQuotasForService(serviceCode: string) {
   const ddb = new DynamoDBHelper();
   const quotaItems = await ddb.queryQuotasForService(
     <string>process.env.SQ_QUOTA_TABLE,
@@ -192,23 +202,23 @@ export async function handleDynamoDBStreamEvent(event: Record<string, any>) {
   switch (readDynamoDBStreamEvent(event)) {
     case "INSERT": {
       await putQuotasForService(
-        <SQ_SERVICE_CODES>_record.dynamodb?.NewImage?.ServiceCode.S
+        <string>_record.dynamodb?.NewImage?.ServiceCode.S
       );
       break;
     }
     case "MODIFY": {
       await deleteQuotasForService(
-        <SQ_SERVICE_CODES>_record.dynamodb?.NewImage?.ServiceCode.S
+        <string>_record.dynamodb?.NewImage?.ServiceCode.S
       );
       if (_record.dynamodb?.NewImage?.Monitored?.BOOL)
         await putQuotasForService(
-          <SQ_SERVICE_CODES>_record.dynamodb?.NewImage?.ServiceCode.S
+          <string>_record.dynamodb?.NewImage?.ServiceCode.S
         );
       break;
     }
     case "REMOVE": {
       await deleteQuotasForService(
-        <SQ_SERVICE_CODES>_record.dynamodb?.OldImage?.ServiceCode.S
+        <string>_record.dynamodb?.OldImage?.ServiceCode.S
       );
       break;
     }
