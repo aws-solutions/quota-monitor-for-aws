@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow customization to Stack Set deployments configuration
 
 ### Changed
-- Use AWS Managed keys for the resources in the spoke templates to help reduce the cost of deployment.
+- Use AWS Managed keys for the resources in the templates to help reduce the cost of deployment.
 
 ## [6.0.0] - 2022-10-14
 
