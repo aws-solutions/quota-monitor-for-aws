@@ -10,7 +10,6 @@ import {
 import {
   aws_events as events,
   aws_iam as iam,
-  aws_kms as kms,
   aws_lambda as lambda,
   aws_sns as sns,
   Stack,
@@ -48,11 +47,7 @@ export class EventsToLambdaToSNS<T extends QuotaMonitorEvent>
      */
     super(scope, id);
     this.snsTopic = new sns.Topic(this, `${id}-SNSTopic`, {
-      masterKey: kms.Alias.fromAliasName(
-        this,
-        "DefaultSNSKey",
-        "alias/aws/sns"
-      ),
+      masterKey: props.encryptionKey,
     });
     const eventsToLambda = new EventsToLambda<events.EventPattern>(
       scope,

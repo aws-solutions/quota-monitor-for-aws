@@ -29,6 +29,7 @@ jest.mock("solutions-utils", () => {
   return {
     ...originalModule,
     __esModule: true,
+    sleep: jest.fn(),
     DynamoDBHelper: function () {
       return {
         getItem: getItemMock,
@@ -314,6 +315,11 @@ describe("Quota List Manager Exports", () => {
 });
 
 describe("Handler", () => {
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should handle a Create event", async () => {
     const event = {
       RequestType: "Create",
@@ -325,20 +331,38 @@ describe("Handler", () => {
     expect(putItemMock).toHaveBeenCalledTimes(0);
   });
 
-  it("should handle an update event", async () => {
+  it("should handle an update event on a clean slate", async () => {
     const event = {
       RequestType: "Update",
       ResourceType: "",
     };
 
     await handler(event);
-    expect(getItemMock).toHaveBeenCalledTimes(10);
+    expect(getItemMock).toHaveBeenCalledTimes(5);
+    expect(putItemMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("should handle an update event with service table not empty", async () => {
+    const event = {
+      RequestType: "Update",
+      ResourceType: "",
+    };
+    getItemMock.mockResolvedValueOnce({
+      Service: "ec2",
+      Monitored: true,
+    });
+    getItemMock.mockResolvedValueOnce({
+      Service: "ec2",
+      Monitored: false,
+    });
+    await handler(event);
+    expect(getItemMock).toHaveBeenCalledTimes(5);
     expect(putItemMock).toHaveBeenCalledTimes(0);
   });
 
   it("should handle a dynamo db stream event", async () => {
     await handler(insertEvent);
-    expect(batchDeleteMock).toHaveBeenCalledTimes(1);
+    expect(batchDeleteMock).toHaveBeenCalledTimes(0);
     expect(putItemMock).toHaveBeenCalledTimes(2);
   });
 
@@ -348,9 +372,41 @@ describe("Handler", () => {
     };
     await handler(event);
 
-    expect(getItemMock).toHaveBeenCalledTimes(15);
-    expect(batchDeleteMock).toHaveBeenCalledTimes(6);
-    expect(putItemMock).toHaveBeenCalledTimes(2);
+    expect(getItemMock).toHaveBeenCalledTimes(5);
+    expect(batchDeleteMock).toHaveBeenCalledTimes(0);
+    expect(putItemMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("should should handle a scheduled event with service table not empty", async () => {
+    const event = {
+      "detail-type": "Scheduled Event",
+    };
+    // return 4 monitored items and one unmonitored
+    getItemMock.mockResolvedValueOnce({
+      Service: "ec2",
+      Monitored: true,
+    });
+    getItemMock.mockResolvedValueOnce({
+      Service: "ec2",
+      Monitored: true,
+    });
+    getItemMock.mockResolvedValueOnce({
+      Service: "ec2",
+      Monitored: true,
+    });
+    getItemMock.mockResolvedValueOnce({
+      Service: "ec2",
+      Monitored: true,
+    });
+    getItemMock.mockResolvedValueOnce({
+      Service: "ec2",
+      Monitored: false,
+    });
+    await handler(event);
+
+    expect(getItemMock).toHaveBeenCalledTimes(5);
+    expect(batchDeleteMock).toHaveBeenCalledTimes(0);
+    expect(putItemMock).toHaveBeenCalledTimes(8); // the 4 monitored items are modified twice
   });
 
   it("should throw an exception for any other type of event", async () => {

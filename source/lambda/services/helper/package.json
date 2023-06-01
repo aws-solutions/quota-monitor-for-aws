@@ -9,12 +9,12 @@
   "license": "Apache-2.0",
   "main": "./index.js",
   "dependencies": {
-    "uuid": "^8.3.2"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/jest": "^28.0.0",
-    "@types/node": "^18.7.16",
-    "@types/uuid": "^8.3.4",
+    "@types/node": "^16.18.33",
+    "@types/uuid": "^9.0.0",
     "jest": "^28.0.0",
     "ts-jest": "^28.0.8",
     "ts-node": "^10.9.1",
