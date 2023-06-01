@@ -116,10 +116,6 @@ describe("Exports", () => {
 
   describe("array difference", () => {
     it("should perform a case-insensitive contains on the array", () => {
-      console.log(
-        "diff",
-        arrayDiff(["us-east-1"], ["us-east-1"])
-      );
       expect(
         arrayDiff(["us-east-1", "us-west-1"], ["us-east-1", "us-west-1"])
       ).toEqual([]);

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.0] - 2023-06-01
+
+### Added
+- Support for monitoring resources with Service Catalog AppRegistry
+
+### Changed
+- Customer Managed Keys for the resources in hub stacks
+
+### Fixed
+- Bugs resulting in dynamoDb tables not being populated
+
 ## [6.1.0] - 2023-04-05
 
 ### Added

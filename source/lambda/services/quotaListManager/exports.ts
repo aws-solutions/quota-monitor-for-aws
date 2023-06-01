@@ -28,13 +28,19 @@ interface IServiceTableItem extends Record<string, any> {
 /**
  * @description performs put on service table, updates monitoring status
  * @param {string} serviceTable - dynamodb table name for service table
+ * @param {boolean} refresh - if true forces re-populating of the quotas for services
  */
 export async function putServiceMonitoringStatus(
-  serviceTable: string = <string>process.env.SQ_SERVICE_TABLE
+  serviceTable: string = <string>process.env.SQ_SERVICE_TABLE,
+  refresh = false
 ) {
   const ddb = new DynamoDBHelper();
   const sq = new ServiceQuotasHelper();
   const serviceCodes: string[] = await sq.getServiceCodes();
+  const monitoredServices: string[] = [];
+  const disabledServices: string[] = [];
+  const newServices: string[] = [];
+
   logger.debug({
     label: `${MODULE_NAME}/serviceCodes`,
     message: JSON.stringify(serviceCodes),
@@ -47,13 +53,63 @@ export async function putServiceMonitoringStatus(
           ServiceCode: service,
         }
       );
-      if (!getItemResponse)
+      if (!getItemResponse) newServices.push(service);
+      else if (getItemResponse.Monitored) monitoredServices.push(service);
+      else disabledServices.push(service);
+    })
+  );
+  logger.debug({
+    label: `${MODULE_NAME}/monitoredServices`,
+    message: JSON.stringify(monitoredServices),
+  });
+  logger.debug({
+    label: `${MODULE_NAME}/disabledServices`,
+    message: JSON.stringify(disabledServices),
+  });
+  logger.debug({
+    label: `${MODULE_NAME}/newServices`,
+    message: JSON.stringify(newServices),
+  });
+  if (newServices.length > 0) {
+    logger.debug({
+      label: `${MODULE_NAME}/putServiceMonitoringStatus`,
+      message: "Adding new services",
+    });
+    await Promise.allSettled(
+      newServices.map(async (service) => {
         await ddb.putItem(serviceTable, {
           ServiceCode: service,
           Monitored: true,
         });
-    })
-  );
+      })
+    );
+  }
+  if (refresh) {
+    logger.debug({
+      label: `${MODULE_NAME}/putServiceMonitoringStatus`,
+      message: "Refresh: Toggling the monitored services Monitored to false",
+    });
+    await Promise.allSettled(
+      monitoredServices.map(async (service) => {
+        await ddb.putItem(serviceTable, {
+          ServiceCode: service,
+          Monitored: false,
+        });
+      })
+    );
+    logger.debug({
+      label: `${MODULE_NAME}/putServiceMonitoringStatus`,
+      message: "Refresh: Setting monitored services Monitored flag to true",
+    });
+    await Promise.allSettled(
+      monitoredServices.map(async (service) => {
+        await ddb.putItem(serviceTable, {
+          ServiceCode: service,
+          Monitored: true,
+        });
+      })
+    );
+  }
 }
 
 /**

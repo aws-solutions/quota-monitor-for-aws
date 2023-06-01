@@ -31,6 +31,7 @@ import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { applyDependsOn } from "./depends.utils";
 import { NagSuppressions } from "cdk-nag";
 import { IConstruct } from "constructs";
+import { AppRegistryApplication } from "./app-registry-application";
 
 /**
  * @description
@@ -232,21 +233,11 @@ export class QuotaMonitorSQSpoke extends Stack {
     );
 
     // dynamodb stream trigger for lambda
-    quotaListManager.function.addEventSource(
-      new DynamoEventSource(serviceTable, {
-        batchSize: 1,
-        startingPosition: StartingPosition.LATEST, // trigger updates for changes in service table
-      })
-    );
-
-    // Create/Update service list
-    const generateQuotaList = quotaListManager.addCustomResource(
-      "SQServiceList",
-      {
-        VERSION: this.node.tryGetContext("SOLUTION_VERSION"), // this is to trigger updates for different versions
-      }
-    );
-    applyDependsOn(generateQuotaList, quotaTable);
+    const eventSourceMapping = new DynamoEventSource(serviceTable, {
+      batchSize: 1,
+      startingPosition: StartingPosition.LATEST, // trigger updates for changes in service table
+    });
+    quotaListManager.function.addEventSource(eventSourceMapping);
 
     // cron schdedule to trigger lambda
     const quotaListManagerScheduleRule = new events.Rule(
@@ -396,7 +387,7 @@ export class QuotaMonitorSQSpoke extends Stack {
     /**
      * @description rule to send quota utilization ERROR events to centralized event bus
      */
-    new events.Rule(this, `QM-Utilization-Err`, {
+    const eventsRuleError = new events.Rule(this, `QM-Utilization-Err`, {
       description: `${this.node.tryGetContext(
         "SOLUTION_ID"
       )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-EventsRule`,
@@ -404,5 +395,26 @@ export class QuotaMonitorSQSpoke extends Stack {
       eventBus: spokeBus,
       targets: [primaryEventBus],
     });
+
+    /**
+    * app registry application for SQ stack
+    */
+
+    new AppRegistryApplication(this, 'SQSpokeAppRegistryApplication', {
+      appRegistryApplicationName: this.node.tryGetContext("APP_REG_SQ_SPOKE_APPLICATION_NAME"),
+      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-SQ`
+    });
+
+    // add mode depends on the custom resource so that it fires the lambda function at last
+    // Create/Update service list
+    const generateQuotaList = quotaListManager.addCustomResource(
+      "SQServiceList",
+      {
+        VERSION: this.node.tryGetContext("SOLUTION_VERSION"), // this is to trigger updates for different versions
+      }
+    );
+    applyDependsOn(generateQuotaList, quotaTable);
+    applyDependsOn(generateQuotaList, serviceTable);
+    applyDependsOn(generateQuotaList, eventsRuleError);
   }
 }

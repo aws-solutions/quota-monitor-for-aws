@@ -30,6 +30,8 @@ import {
 } from "./exports";
 import { Layer } from "./lambda-layer.construct";
 import { EventsToLambdaToSNS } from "./events-lambda-sns.construct";
+import { KMS } from "./kms.construct";
+import { AppRegistryApplication } from "./app-registry-application";
 
 /**
  * @description
@@ -140,6 +142,11 @@ export class QuotaMonitorHubNoOU extends Stack {
     });
 
     /**
+     * @description kms construct to generate KMS-CMK with needed base policy
+     */
+    const kms = new KMS(this, "KMS-Hub");
+
+    /**
      * @description slack hook url for sending quota monitor events
      */
     const ssmSlackHook = new ssm.StringParameter(this, "QM-SlackHook", {
@@ -239,6 +246,7 @@ export class QuotaMonitorHubNoOU extends Stack {
         layers: [utilsLayer.layer],
         eventRule: slackRulePattern,
         eventBus: quotaMonitorBus,
+        encryptionKey: kms.key,
       }
     );
     slackNotifier.target.addToRolePolicy(slackNotifierSSMReadPolicy);
@@ -293,6 +301,7 @@ export class QuotaMonitorHubNoOU extends Stack {
         layers: [utilsLayer.layer],
         eventRule: snsRulePattern,
         eventBus: quotaMonitorBus,
+        encryptionKey: kms.key,
       }
     );
 
@@ -338,6 +347,7 @@ export class QuotaMonitorHubNoOU extends Stack {
       "QM-Summarizer-EventQueue",
       {
         eventRule: summarizerRulePattern,
+        encryptionKey: kms.key,
         eventBus: quotaMonitorBus,
       }
     );
@@ -356,7 +366,8 @@ export class QuotaMonitorHubNoOU extends Stack {
       },
       pointInTimeRecovery: true,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+      encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
+      encryptionKey: kms.key,
     });
 
     /**
@@ -367,6 +378,7 @@ export class QuotaMonitorHubNoOU extends Stack {
       "QM-Reporter",
       {
         eventRule: events.Schedule.rate(Duration.minutes(5)),
+        encryptionKey: kms.key,
         assetLocation: `${path.dirname(
           __dirname
         )}/../lambda/services/reporter/dist/reporter.zip`,
@@ -421,6 +433,7 @@ export class QuotaMonitorHubNoOU extends Stack {
       "QM-Deployment-Manager",
       {
         eventRule: ssmRulePattern,
+        encryptionKey: kms.key,
         assetLocation: `${path.dirname(
           __dirname
         )}/../lambda/services/deploymentManager/dist/deployment-manager.zip`,
@@ -496,6 +509,16 @@ export class QuotaMonitorHubNoOU extends Stack {
     helper.addCustomResource("LaunchData", {
       SOLUTION_UUID: createUUID.getAttString("UUID"),
     });
+
+
+    /**
+    * app registry application for hub-no-ou-stack
+    */
+
+    new AppRegistryApplication(this, 'HubNoOUAppRegistryApplication', {
+      appRegistryApplicationName: this.node.tryGetContext("APP_REG_HUB_NO_OU_APPLICATION_NAME"),
+      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-NoOU`
+    })
 
     //=============================================================================================
     // Outputs

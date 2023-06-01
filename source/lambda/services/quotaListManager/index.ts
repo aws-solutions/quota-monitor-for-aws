@@ -24,12 +24,10 @@ import {
   logger,
   UnsupportedEventException,
   LambdaTriggers,
+  sleep,
 } from "solutions-utils";
 import {
   putServiceMonitoringStatus,
-  deleteQuotasForService,
-  putQuotasForService,
-  getServiceMonitoringStatus,
   handleDynamoDBStreamEvent,
 } from "./exports";
 
@@ -49,18 +47,33 @@ export const handler = async (event: any) => {
 
   if (LambdaTriggers.isCfnEvent(event)) {
     if (event.RequestType === "Create" || event.RequestType === "Update") {
-      await putServiceMonitoringStatus();
+      // we had a bug where the quota table was sometimes not populated
+      // it was not populated because the stream change events from the services table weren't firing
+      // this happened only in this function right after the stack is deployed
+      // waiting on the related resources didn't work
+      // rather than re-architecting, this sleep is added in v6.2.0
+      const delay =
+        parseInt(<string>process.env.RESOURCES_WAIT_TIME_SECONDS ?? "120") *
+        1000;
+      logger.info({
+        label: `${MODULE_NAME}/handler`,
+        message: `Sleeping for ${
+          delay / 1000
+        } seconds to make sure all resources are provisioned`,
+      });
+      await sleep(delay);
+      logger.info({
+        label: `${MODULE_NAME}/handler`,
+        message: "Start putting supported services",
+      });
+      await putServiceMonitoringStatus(<string>process.env.SQ_SERVICE_TABLE);
     }
   } else if (LambdaTriggers.isDynamoDBStreamEvent(event)) {
     await handleDynamoDBStreamEvent(event);
   } else if (LambdaTriggers.isScheduledEvent(event)) {
-    // update quota list table
-    const monitoringStatusForServices = await getServiceMonitoringStatus();
-    await Promise.all(
-      monitoringStatusForServices.map(async (item) => {
-        await deleteQuotasForService(item.ServiceCode);
-        if (item.Monitored) await putQuotasForService(item.ServiceCode);
-      })
+    await putServiceMonitoringStatus(
+      <string>process.env.SQ_SERVICE_TABLE,
+      true
     );
   } else throw new UnsupportedEventException("this event type is not support");
 };

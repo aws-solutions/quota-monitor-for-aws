@@ -16,6 +16,7 @@ import * as path from "path";
 import { EventsToLambda } from "./events-lambda.construct";
 import { TA_CHECKS_SERVICES } from "./exports";
 import { Layer } from "./lambda-layer.construct";
+import { AppRegistryApplication } from "./app-registry-application";
 
 /**
  * @description
@@ -188,6 +189,15 @@ export class QuotaMonitorTASpoke extends Stack {
         resources: ["*"], // does not allow resource-level permissions
       })
     );
+  
+    /**
+    * app registry application for TA stack
+    */
+
+    new AppRegistryApplication(this, 'TASpokeAppRegistryApplication', {
+      appRegistryApplicationName: this.node.tryGetContext("APP_REG_TA_SPOKE_APPLICATION_NAME"),
+      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-TA`
+    })
 
     //=============================================================================================
     // Outputs
