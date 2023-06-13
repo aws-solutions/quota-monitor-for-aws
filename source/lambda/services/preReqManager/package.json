@@ -9,7 +9,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@aws-sdk/client-organizations": "^3.110.0",
+    "@aws-sdk/client-organizations": "^3.350.0",
     "got": "^11.8.6",
     "winston": "~3.3.3"
   },
