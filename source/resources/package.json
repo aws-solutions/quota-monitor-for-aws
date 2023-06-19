@@ -20,7 +20,7 @@
     "@types/jest": "^29.5.1",
     "@types/node": "^16.18.33",
     "aws-cdk": "^2.78.0",
-    "aws-cdk-lib": "^2.78.0",
+    "aws-cdk-lib": "^2.80.0",
     "@aws-cdk/aws-servicecatalogappregistry-alpha": "^2.78.0-alpha.0",
     "cdk-nag": "^2.14.39",
     "constructs": "^10.0.0",
