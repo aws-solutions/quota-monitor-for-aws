@@ -5,7 +5,7 @@ import { handler } from "../index";
 import { PreReqManager } from "../lib/preReqManager";
 import { IncorrectConfigurationException } from "solutions-utils";
 
-const sendAnonymousMetricMock = jest.fn();
+// const sendAnonymousMetricMock = jest.fn();
 const getOrgDetailsMock = jest.fn();
 const registerDelegatedAdministratorMock = jest.fn();
 
@@ -14,7 +14,7 @@ jest.mock("solutions-utils", () => {
   return {
     ...originalModule,
     __esModule: true,
-    sendAnonymousMetric: () => sendAnonymousMetricMock,
+    // sendAnonymousMetric: () => sendAnonymousMetricMock,
     OrganizationsHelper: function () {
       return {
         enableAWSServiceAccess: () => jest.fn(),

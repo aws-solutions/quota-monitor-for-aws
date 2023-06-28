@@ -59,6 +59,7 @@ export class LambdaToDDB
           deadLetterQueueEnabled: true,
           environmentEncryption: props.encryptionKey,
           layers: props.layers,
+          maxEventAge: Duration.hours(4),
         });
 
     /**

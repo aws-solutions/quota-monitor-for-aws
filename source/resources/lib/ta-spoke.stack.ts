@@ -43,7 +43,6 @@ export class QuotaMonitorTASpoke extends Stack {
     // Mapping & Conditions
     //=============================================================================================
     const map = new CfnMapping(this, "QuotaMonitorMap");
-    map.setValue("Metrics", "SendAnonymousData", "Yes");
     map.setValue("RefreshRate", "Default", "rate(1 day)");
 
     //=============================================================================================

@@ -120,7 +120,7 @@ export class QuotaMonitorHub extends Stack {
     const map = new CfnMapping(this, "QuotaMonitorMap");
     map.setValue(
       "Metrics",
-      "SendAnonymousData",
+      "SendAnonymizedData",
       this.node.tryGetContext("SEND_METRICS")
     );
     map.setValue(
@@ -328,7 +328,7 @@ export class QuotaMonitorHub extends Stack {
       layers: [utilsLayer.layer],
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-        SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
         QM_STACK_ID: id,
         QM_SLACK_NOTIFICATION: slackNotification.valueAsString,
         QM_EMAIL_NOTIFICATION: Fn.conditionIf(
@@ -448,7 +448,7 @@ export class QuotaMonitorHub extends Stack {
             ssmNotificationMutingConfig.parameterName,
           SOLUTION_UUID: createUUID.getAttString("UUID"),
           METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-          SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+          SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
         },
         layers: [utilsLayer.layer],
         eventRule: snsRulePattern,
@@ -539,7 +539,6 @@ export class QuotaMonitorHub extends Stack {
           SQS_URL: summarizerEventQueue.target.queueUrl,
           MAX_MESSAGES: "10", //100 messages can be read with each invocation, change as needed
           MAX_LOOPS: "10",
-          ANONYMOUS_DATA: map.findInMap("Metrics", "SendAnonymousData"),
         },
         memorySize: 512,
         timeout: Duration.seconds(10),
@@ -723,7 +722,7 @@ export class QuotaMonitorHub extends Stack {
             stackSetFailureTolerancePercentage.valueAsString,
           SOLUTION_UUID: createUUID.getAttString("UUID"),
           METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-          SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+          SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
         },
         layers: [utilsLayer.layer],
         memorySize: 512,

@@ -3,7 +3,7 @@
 import { v4 as uuidv4 } from "uuid";
 import {
   logger,
-  sendAnonymousMetric,
+  sendAnonymizedMetric,
   stringEqualsIgnoreCase
 } from "solutions-utils";
 
@@ -76,7 +76,7 @@ export const handler = async (
       },
     };
     try {
-      await sendAnonymousMetric(<string>process.env.METRICS_ENDPOINT, metric);
+      await sendAnonymizedMetric(<string>process.env.METRICS_ENDPOINT, metric);
       logger.info({
         label: `${MODULE_NAME}/handler`,
         message: `launch data sent successfully`,

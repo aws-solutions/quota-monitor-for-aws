@@ -65,6 +65,7 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       },
       environmentEncryption: props.encryptionKey,
       layers: props.layers,
+      maxEventAge: Duration.hours(4),
     });
 
     this.provider = new cr.Provider(this, `${id}-Provider`, {

@@ -16,7 +16,7 @@ import {
   StackSetOpsPercentagePrefs,
   arrayIncludesIgnoreCase,
   arrayDiff,
-  sendAnonymousMetric,
+  sendAnonymizedMetric,
   stringEqualsIgnoreCase,
 } from "solutions-utils";
 
@@ -343,7 +343,7 @@ export class DeploymentManager {
       },
     };
     try {
-      await sendAnonymousMetric(<string>process.env.METRICS_ENDPOINT, metric);
+      await sendAnonymizedMetric(<string>process.env.METRICS_ENDPOINT, metric);
       logger.info({
         label: `${this.moduleName}/sendMetric`,
         message: `${message} metric sent successfully`,

@@ -69,7 +69,7 @@ export class QuotaMonitorHubNoOU extends Stack {
     const map = new CfnMapping(this, "QuotaMonitorMap");
     map.setValue(
       "Metrics",
-      "SendAnonymousData",
+      "SendAnonymizedData",
       this.node.tryGetContext("SEND_METRICS")
     );
     map.setValue(
@@ -387,7 +387,6 @@ export class QuotaMonitorHubNoOU extends Stack {
           SQS_URL: summarizerEventQueue.target.queueUrl,
           MAX_MESSAGES: "10", //100 messages can be read with each invocation, change as needed
           MAX_LOOPS: "10",
-          ANONYMOUS_DATA: map.findInMap("Metrics", "SendAnonymousData"),
         },
         memorySize: 512,
         timeout: Duration.seconds(10),
@@ -499,7 +498,7 @@ export class QuotaMonitorHubNoOU extends Stack {
       layers: [utilsLayer.layer],
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-        SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
         QM_STACK_ID: id,
       },
     });

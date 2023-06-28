@@ -9,7 +9,6 @@ import {
   App,
   CfnParameter,
   Stack,
-  CfnMapping,
   StackProps,
   RemovalPolicy,
   Duration,
@@ -65,12 +64,6 @@ export class QuotaMonitorSQSpoke extends Stack {
       default: "rate(12 hours)",
       allowedValues: ["rate(6 hours)", "rate(12 hours)"],
     });
-
-    //=============================================================================================
-    // Mapping & Conditions
-    //=============================================================================================
-    const map = new CfnMapping(this, "QuotaMonitorMap");
-    map.setValue("Metrics", "SendAnonymousData", "Yes");
 
     //=============================================================================================
     // Metadata
