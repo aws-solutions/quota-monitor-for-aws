@@ -74,7 +74,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.1/assetd4b4d25dfbf4212580652537d0f79c382b356ef4275ac0bfa0a39a932e78adba.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/asset81614929e374f7931dfaaabf04bb969f72fcacc1ee083173711b38ce460307a9.zip"
         },
         "CompatibleRuntimes": [
           "nodejs16.x"
@@ -83,7 +83,7 @@
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke-Layer/Resource",
-        "aws:asset:path": "asset.d4b4d25dfbf4212580652537d0f79c382b356ef4275ac0bfa0a39a932e78adba.zip",
+        "aws:asset:path": "asset.81614929e374f7931dfaaabf04bb969f72fcacc1ee083173711b38ce460307a9.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -309,7 +309,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.1/asset0d80e29711f81943a82add5a93ff42a8f462341413d28595905dc76356abfed2.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/asset85d9ca6ca82264edea4621132e1dddcc4db4b25916164e31df85b9079fe06bd8.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -350,7 +350,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-ListManager/QM-ListManager-Function/Resource",
-        "aws:asset:path": "asset.0d80e29711f81943a82add5a93ff42a8f462341413d28595905dc76356abfed2.zip",
+        "aws:asset:path": "asset.85d9ca6ca82264edea4621132e1dddcc4db4b25916164e31df85b9079fe06bd8.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -870,7 +870,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.1/asset261449eee0819b0e447046d0e66a5649b909674b7111578ec7636fd9fbfc5f1c.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/assetf954c9eab8f20af8501ce3219697e49421445ff12b3c38b17e4f85cf077872ea.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -923,7 +923,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-CWPoller/QM-CWPoller-Lambda/Resource",
-        "aws:asset:path": "asset.261449eee0819b0e447046d0e66a5649b909674b7111578ec7636fd9fbfc5f1c.zip",
+        "aws:asset:path": "asset.f954c9eab8f20af8501ce3219697e49421445ff12b3c38b17e4f85cf077872ea.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
