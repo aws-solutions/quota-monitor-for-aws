@@ -9,8 +9,8 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@aws-sdk/client-dynamodb-streams": "^3.110.0",
-    "@aws-sdk/client-service-quotas": "^3.110.0"
+    "@aws-sdk/client-dynamodb-streams": "^3.362.0",
+    "@aws-sdk/client-service-quotas": "^3.362.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.1",
