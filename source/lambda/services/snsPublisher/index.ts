@@ -4,7 +4,7 @@
 import {
   getNotificationMutingStatus,
   logger,
-  sendAnonymousMetric,
+  sendAnonymizedMetric,
   SSMHelper,
   stringEqualsIgnoreCase,
 } from "solutions-utils";
@@ -81,7 +81,7 @@ export const handler = async (event: any) => {
       },
     };
     try {
-      await sendAnonymousMetric(<string>process.env.METRICS_ENDPOINT, metric);
+      await sendAnonymizedMetric(<string>process.env.METRICS_ENDPOINT, metric);
       logger.info({
         label: `${moduleName}/sendMetric`,
         message: `${message} metric sent successfully`,

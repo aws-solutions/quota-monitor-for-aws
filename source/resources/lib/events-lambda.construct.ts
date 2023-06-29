@@ -96,6 +96,7 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
       deadLetterQueue: deadLetterQueue,
       environmentEncryption: props.encryptionKey,
       layers: props.layers,
+      maxEventAge: Duration.hours(4),
     });
 
     this.rule.addTarget(new targets.LambdaFunction(this.target));

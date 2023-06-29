@@ -14,7 +14,7 @@ export interface IMetric {
   Data: { [key: string]: string | number };
 }
 
-export async function sendAnonymousMetric(endpoint: string, metric: IMetric) {
+export async function sendAnonymizedMetric(endpoint: string, metric: IMetric) {
   try {
     await got(endpoint, {
       port: 443,

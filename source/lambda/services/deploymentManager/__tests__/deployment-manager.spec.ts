@@ -20,7 +20,7 @@ const isTAAvailableMock = jest.fn();
 const getDeployedRegionsMock = jest.fn();
 const getNumberOfAccountsInOrgMock = jest.fn();
 const getNumberOfAccountsInOUMock = jest.fn();
-const sendAnonymousMetricMock = jest.fn();
+const sendAnonymizedMetricMock = jest.fn();
 
 jest.mock("solutions-utils", () => {
   const originalModule = jest.requireActual("solutions-utils");
@@ -63,8 +63,8 @@ jest.mock("solutions-utils", () => {
         isTrustedAdvisorAvailable: isTAAvailableMock,
       };
     },
-    sendAnonymousMetric: function () {
-      sendAnonymousMetricMock();
+    sendAnonymizedMetric: function () {
+      sendAnonymizedMetricMock();
     },
   };
 });
@@ -191,7 +191,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Organization deployment mode with single Org Id, with SEND_METRICS yes", async () => {
@@ -213,7 +213,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(1);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(2);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(2);
   });
 
   it("should manage deployments in Organization deployment mode with single Org Id with selected regions", async () => {
@@ -234,7 +234,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Organization deployment mode with single Org Id with TA not available", async () => {
@@ -256,7 +256,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(1);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids", async () => {
@@ -277,7 +277,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids, with SEND_METRICS Yes", async () => {
@@ -299,7 +299,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(2);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(2);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(2);
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids with selected regions", async () => {
@@ -320,7 +320,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids with TA not available", async () => {
@@ -342,7 +342,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(1);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Account deployment mode", async () => {
@@ -363,7 +363,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(0);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(0);
   });
 
   it("should manage deployments in Hybrid single OU mode", async () => {
@@ -384,7 +384,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Hybrid multi OU mode", async () => {
@@ -405,7 +405,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should manage deployments in Hybrid multi OU mode with selected regions", async () => {
@@ -426,7 +426,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should delete unused stacksets when updating", async () => {
@@ -451,7 +451,7 @@ describe("Deployment Manager", () => {
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
     expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
     expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should throw an exception when the org id is malformed", async () => {

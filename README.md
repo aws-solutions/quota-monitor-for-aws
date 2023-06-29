@@ -79,7 +79,7 @@ The steps given below can be followed if you are looking to customize the soluti
 Clone the repository and run the following commands to install dependencies
 
 ```
-git clone aws-solutions/quota-monitor-for-aws
+git clone https://github.com/aws-solutions/quota-monitor-for-aws.git
 cd ./quota-monitor-for-aws
 npm ci
 ```
@@ -199,7 +199,7 @@ See license [here](./LICENSE.txt)
 
 ## Collection of operational metrics
 
-This solution collects anonymous operational metrics to help AWS improve the quality and features of the solution. For more information, including how to disable this capability, please see the [implementation guide](https://docs.aws.amazon.com/solutions/latest/serverless-transit-network-orchestrator/operational-metrics.html).
+This solution collects anonymized operational metrics to help AWS improve the quality and features of the solution. For more information, including how to disable this capability, please see the [implementation guide](https://docs.aws.amazon.com/solutions/latest/serverless-transit-network-orchestrator/operational-metrics.html).
 
 ---
 

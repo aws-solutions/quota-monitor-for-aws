@@ -6,7 +6,7 @@ import { handler } from "../index";
 
 const snsPublishMock = jest.fn();
 const getSSMParameterMock = jest.fn();
-const sendAnonymousMetricMock = jest.fn();
+const sendAnonymizedMetricMock = jest.fn();
 
 jest.mock("solutions-utils", () => {
   const originalModule = jest.requireActual("solutions-utils");
@@ -23,8 +23,8 @@ jest.mock("solutions-utils", () => {
         getParameter: getSSMParameterMock,
       };
     },
-    sendAnonymousMetric: function () {
-      sendAnonymousMetricMock();
+    sendAnonymizedMetric: function () {
+      sendAnonymizedMetricMock();
     },
   };
 });
@@ -70,7 +70,7 @@ describe("SNS publisher", function () {
 
     expect(snsPublishMock).toHaveBeenCalledTimes(1);
     expect(getSSMParameterMock).toHaveBeenCalledTimes(1);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(0);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(0);
   });
 
   it("should publish the message successfully if service isn't muted, with sendMetric Yes", async () => {
@@ -80,7 +80,7 @@ describe("SNS publisher", function () {
 
     expect(snsPublishMock).toHaveBeenCalledTimes(1);
     expect(getSSMParameterMock).toHaveBeenCalledTimes(1);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
   });
 
   it("should not publish the message successfully if service is muted", async () => {
@@ -89,7 +89,7 @@ describe("SNS publisher", function () {
 
     expect(snsPublishMock).toHaveBeenCalledTimes(0);
     expect(getSSMParameterMock).toHaveBeenCalledTimes(1);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(0);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(0);
   });
 
   it("should not publish the message successfully if service is muted, with sendMetric Yes", async () => {
@@ -99,7 +99,7 @@ describe("SNS publisher", function () {
 
     expect(snsPublishMock).toHaveBeenCalledTimes(0);
     expect(getSSMParameterMock).toHaveBeenCalledTimes(1);
-    expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(0);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(0);
   });
 
   it("should return error when unexpected failure happens", async () => {

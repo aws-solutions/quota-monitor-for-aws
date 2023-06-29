@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { handler, IEvent } from "../index";
-import { sendAnonymousMetric } from "solutions-utils";
+import { sendAnonymizedMetric } from "solutions-utils";
 
 jest.mock("solutions-utils", () => {
   const originalModule = jest.requireActual("solutions-utils");
   return {
     ...originalModule,
     __esModule: true,
-    sendAnonymousMetric: jest.fn(),
+    sendAnonymizedMetric: jest.fn(),
   };
 });
 
@@ -35,11 +35,11 @@ const TEST_QM_SLACK_NOTIFICATION = "Yes";
 const TEST_QM_EMAIL_NOTIFICATION = "No";
 
 describe("Helper", function () {
-  let sendAnonymousMetricMock: jest.Mock;
+  let sendAnonymizedMetricMock: jest.Mock;
 
   beforeAll(() => {
-    sendAnonymousMetricMock = sendAnonymousMetric as jest.Mock;
-    sendAnonymousMetricMock.mockResolvedValue({});
+    sendAnonymizedMetricMock = sendAnonymizedMetric as jest.Mock;
+    sendAnonymizedMetricMock.mockResolvedValue({});
     process.env.VERSION = TEST_VERSION;
     process.env.AWS_REGION = TEST_REGION;
     process.env.QM_STACK_ID = TEST_STACK;
@@ -78,8 +78,8 @@ describe("Helper", function () {
 
     it("should successfully send a metric on solution creation", async () => {
       const response = await handler(mockLaunchEvent, {});
-      expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
-      expect(sendAnonymousMetricMock).toHaveBeenCalledWith(
+      expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
+      expect(sendAnonymizedMetricMock).toHaveBeenCalledWith(
         process.env.METRICS_ENDPOINT,
         expect.objectContaining({
           Data: {
@@ -98,8 +98,8 @@ describe("Helper", function () {
     it("should successfully send a metric on solution deletion", async () => {
       mockLaunchEvent.RequestType = "Delete";
       const response = await handler(mockLaunchEvent, {});
-      expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
-      expect(sendAnonymousMetricMock).toHaveBeenCalledWith(
+      expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
+      expect(sendAnonymizedMetricMock).toHaveBeenCalledWith(
         process.env.METRICS_ENDPOINT,
         expect.objectContaining({
           Data: {
@@ -118,16 +118,16 @@ describe("Helper", function () {
     it("should handle disabled metrics", async () => {
       process.env.SEND_METRIC = "No";
       const response = await handler(mockLaunchEvent, {});
-      expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(0);
+      expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(0);
       expect(response.Data.Data).toEqual("NOV");
     });
 
     it("should handle a failure to send a metric", async () => {
-      sendAnonymousMetricMock.mockRejectedValueOnce(
+      sendAnonymizedMetricMock.mockRejectedValueOnce(
         new Error("Failed to send metrics")
       );
       const response = await handler(mockLaunchEvent, {});
-      expect(sendAnonymousMetricMock).toHaveBeenCalledTimes(1);
+      expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
       expect(response.Data.Data).toEqual("NOV");
     });
   });

@@ -45,7 +45,7 @@ export class PreReqStack extends Stack {
     const map = new CfnMapping(this, "QuotaMonitorMap");
     map.setValue(
       "Metrics",
-      "SendAnonymousData",
+      "SendAnonymizedData",
       this.node.tryGetContext("SEND_METRICS")
     );
     map.setValue(
@@ -108,7 +108,7 @@ export class PreReqStack extends Stack {
       layers: [utilsLayer.layer],
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-        SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
         QM_STACK_ID: id,
       },
     });
@@ -131,7 +131,7 @@ export class PreReqStack extends Stack {
       )}/../lambda/services/preReqManager/dist/prereq-manager.zip`,
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-        SEND_METRIC: map.findInMap("Metrics", "SendAnonymousData"),
+        SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
       },
       layers: [utilsLayer.layer],
     });

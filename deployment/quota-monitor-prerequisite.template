@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-PreReq) - quota-monitor-for-aws version:v6.2.0 - Prerequisite Template",
+  "Description": "(SO0005-PreReq) - quota-monitor-for-aws version:v6.2.1 - Prerequisite Template",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -30,7 +30,7 @@
   "Mappings": {
     "QuotaMonitorMap": {
       "Metrics": {
-        "SendAnonymousData": "Yes",
+        "SendAnonymizedData": "Yes",
         "MetricsEndpoint": "https://metrics.awssolutionsbuilder.com/generic"
       }
     }
@@ -43,7 +43,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.0/asset5f6e6e918be060ee6a12de4a002266629534fcd26df6a1195dfa2ca8fa6dcc89.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/asset81614929e374f7931dfaaabf04bb969f72fcacc1ee083173711b38ce460307a9.zip"
         },
         "CompatibleRuntimes": [
           "nodejs16.x"
@@ -52,7 +52,7 @@
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.5f6e6e918be060ee6a12de4a002266629534fcd26df6a1195dfa2ca8fa6dcc89.zip",
+        "aws:asset:path": "asset.81614929e374f7931dfaaabf04bb969f72fcacc1ee083173711b38ce460307a9.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -114,7 +114,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.0/asset39f6bd7e15a784668b30a2233a646cf1f7405d39f544d9f22c64ed48725c51e1.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/assetbafc67a78bd93e6b69f271fe9a700890ee1719988f867959a90914e0fd18d72c.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -136,13 +136,13 @@
               "Fn::FindInMap": [
                 "QuotaMonitorMap",
                 "Metrics",
-                "SendAnonymousData"
+                "SendAnonymizedData"
               ]
             },
             "QM_STACK_ID": "quota-monitor-prerequisite",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.0",
-            "VERSION": "v6.2.0",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.1",
+            "VERSION": "v6.2.1",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -161,9 +161,30 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.39f6bd7e15a784668b30a2233a646cf1f7405d39f544d9f22c64ed48725c51e1.zip",
+        "aws:asset:path": "asset.bafc67a78bd93e6b69f271fe9a700890ee1719988f867959a90914e0fd18d72c.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperFunctionEventInvokeConfig580F9F5F": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMHelperQMHelperFunction91954E97"
+        },
+        "Qualifier": "$LATEST",
+        "MaximumEventAgeInSeconds": 14400
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Function/EventInvokeConfig/Resource",
         "cdk_nag": {
           "rules_to_suppress": [
             {
@@ -292,7 +313,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.0/asset8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/asset8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -483,7 +504,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.0/asset9c15b6dfd85c91267f17bbf0e8b76fe32923873120d1210150962110724d6989.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/assetace74228348596242ae2ecdf92e903178830796a68985f505ed73bd8177e0b9a.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -505,12 +526,12 @@
               "Fn::FindInMap": [
                 "QuotaMonitorMap",
                 "Metrics",
-                "SendAnonymousData"
+                "SendAnonymizedData"
               ]
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.0",
-            "VERSION": "v6.2.0",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.1",
+            "VERSION": "v6.2.1",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -530,9 +551,30 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Function/Resource",
-        "aws:asset:path": "asset.9c15b6dfd85c91267f17bbf0e8b76fe32923873120d1210150962110724d6989.zip",
+        "aws:asset:path": "asset.ace74228348596242ae2ecdf92e903178830796a68985f505ed73bd8177e0b9a.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerFunctionEventInvokeConfig83FEE4E4": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMPreReqManagerQMPreReqManagerFunction1DC63BE9"
+        },
+        "Qualifier": "$LATEST",
+        "MaximumEventAgeInSeconds": 14400
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Function/EventInvokeConfig/Resource",
         "cdk_nag": {
           "rules_to_suppress": [
             {
@@ -661,7 +703,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.0/asset8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.1/asset8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip"
         },
         "Role": {
           "Fn::GetAtt": [
@@ -745,7 +787,7 @@
     "CDKMetadata": {
       "Type": "AWS::CDK::Metadata",
       "Properties": {
-        "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WQQWvDMAyFf8vujtp1sPa6FnraWMhg16DaWlET28GyO0rIf2/sdmM7vffQk/jQCtYbWD7gt1TadFXPBxg/IupO7b5cjQEtRQo5vOEwsDuqudqOPdqDQRhf8ULhk4Kwd7n0L++T0/E++PGTkqcWRSgKvGSZM2yT7ihuUUgxWhgb31NeKlr7nvWl4BQ3TaoszpTHzNOQ+BQ0KZ0ketuGexaogz+zyfRl8lvMl//49xSHFLPbeWf4Rum8ITjJ4vz4DKvl/KGTMFchuciWoLnpFXGi0zA9AQAA"
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/2VP0UrEMBD8lntP17tTxFfvUBAUSwVfy166V/baJCWbVI7Sf7eJx6H4NDOZ2TCzhYc7WK/wSwrddEXPB5g+AupO7Y+2RI+GAvkk3nAY2LZqidZTj+bQIEyveCb/SV7Y2RT6o5+j1eFiXPnTSDa82NF1tHf2yG1y/z3OSm5rFKEg8Jhg0bCLuqOwQyHFaGCqXE/pOmPpetbn3DqzeVb5cBnTptoViYtek9JRgjO1v2iB0ruRmzQyO9dg+vkXf49hiCGxpWLDacysrGsITnIzbu5hu4bN6iTMhY82sCGofvAbwc0F/GQBAAA="
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/CDKMetadata/Default"
@@ -814,6 +856,14 @@
                 {
                   "Ref": "AWS::Region"
                 },
+                "ap-south-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
                 "ap-southeast-1"
               ]
             },
@@ -840,7 +890,11 @@
                 },
                 "cn-north-1"
               ]
-            },
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
             {
               "Fn::Equals": [
                 {
@@ -848,11 +902,7 @@
                 },
                 "cn-northwest-1"
               ]
-            }
-          ]
-        },
-        {
-          "Fn::Or": [
+            },
             {
               "Fn::Equals": [
                 {
@@ -875,6 +925,14 @@
                   "Ref": "AWS::Region"
                 },
                 "eu-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-south-2"
               ]
             },
             {
@@ -916,7 +974,11 @@
                 },
                 "sa-east-1"
               ]
-            },
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
             {
               "Fn::Equals": [
                 {
@@ -932,11 +994,7 @@
                 },
                 "us-east-2"
               ]
-            }
-          ]
-        },
-        {
-          "Fn::Or": [
+            },
             {
               "Fn::Equals": [
                 {
