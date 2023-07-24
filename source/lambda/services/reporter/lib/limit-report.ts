@@ -79,7 +79,10 @@ export class LimitReport {
         usageMessage.detail["check-item-detail"]["Current Usage"] ?? "0",
       LimitAmount: usageMessage.detail["check-item-detail"]["Limit Amount"],
       Status: usageMessage.detail["status"],
-      ExpiryTime: (new Date().getTime() + 15 * 24 * 3600 * 1000).toString(), //1️⃣5️⃣ days
+      ExpiryTime: (
+          Math.round(new Date().getTime() / 1000) +
+          15 * 24 * 3600
+      ).toString(), // 1️⃣5️⃣ days from now. Unix epoch timestamp in seconds.
     };
 
     logger.debug({
