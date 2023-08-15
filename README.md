@@ -132,13 +132,13 @@ npm run cdk -- bootstrap --profile <PROFILE_NAME>
 
 ```
 npm run cdk -- deploy <STACK_NAME> --profile <PROFILE_NAME>
+npm run orgHub:deploy -- deploy quota-monitor-hub --profile <PROFILE_NAME> (to deploy the hub template in org mode which works with stacksets)
 ```
 
 _Note:_
 
 - STACK_NAME, substitute the name of the stack that you want to deploy, check cdk [app](./source/resources/bin/app.ts)
 - PROFILE_NAME, substitute the name of an AWS CLI profile that contains appropriate credentials for deploying in your preferred region
-- Use npm `run cdk:deploy` to deploy the stack quota-monitor-hub
 
 _✅ Solution stack is deployed with your customized code._
 

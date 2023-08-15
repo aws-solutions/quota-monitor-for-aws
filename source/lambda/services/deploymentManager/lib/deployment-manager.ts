@@ -40,6 +40,7 @@ export class DeploymentManager {
   private ec2;
   private ssm;
   private stackSetOpsPrefs: StackSetOpsPercentagePrefs;
+  private sqParameterOverrides: { [key: string]: string }[];
 
   protected readonly moduleName;
 
@@ -60,6 +61,16 @@ export class DeploymentManager {
         10
       ),
     };
+    this.sqParameterOverrides = [
+      {
+        ParameterKey: "NotificationThreshold",
+        ParameterValue: <string>process.env.SQ_NOTIFICATION_THRESHOLD,
+      },
+      {
+        ParameterKey: "MonitoringFrequency",
+        ParameterValue: <string>process.env.SQ_MONITORING_FREQUENCY,
+      },
+    ];
   }
 
   async manageDeployments() {
@@ -209,7 +220,8 @@ export class DeploymentManager {
         cfnSQ,
         deploymentTargets,
         sqRegions,
-        spokeDeploymentMetricData
+        spokeDeploymentMetricData,
+        this.sqParameterOverrides
       );
       await this.sendMetric(
         {
@@ -238,7 +250,8 @@ export class DeploymentManager {
     stackSet: CloudFormationHelper,
     deploymentTargets: string[],
     regions: string[],
-    spokeDeploymentMetricData?: SpokeDeploymentMetricData
+    spokeDeploymentMetricData?: SpokeDeploymentMetricData,
+    parameterOverrides?: { [key: string]: string }[]
   ) {
     const deployedRegions = await stackSet.getDeployedRegions();
     const regionsToRemove = arrayDiff(deployedRegions, regions);
@@ -268,7 +281,8 @@ export class DeploymentManager {
       await stackSet.createStackSetInstances(
         [root],
         regionsNetNew,
-        this.stackSetOpsPrefs
+        this.stackSetOpsPrefs,
+        parameterOverrides
       );
       if (sendMetric) {
         spokeDeploymentMetricData.SpokeCount =
@@ -299,12 +313,14 @@ export class DeploymentManager {
       await stackSet.createStackSetInstances(
         targetsNetNew,
         regions,
-        this.stackSetOpsPrefs
+        this.stackSetOpsPrefs,
+        parameterOverrides
       );
       await stackSet.createStackSetInstances(
         deploymentTargets,
         regionsNetNew,
-        this.stackSetOpsPrefs
+        this.stackSetOpsPrefs,
+        parameterOverrides
       );
       if (sendMetric) {
         const allPromises = Promise.allSettled(

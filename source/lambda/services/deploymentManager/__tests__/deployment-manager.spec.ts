@@ -153,6 +153,28 @@ const getParameterMockGenerator = (testType: TestScenarios) => {
 };
 
 describe("Deployment Manager", () => {
+  const testConcurrncyType = "PARALLEL";
+  const testMaxConcurrentPercentage = 100;
+  const testFailureTolerancePercentage = 10;
+  const testSQNotificationThreshold = "80";
+  const testSQMonitoringFequency = "rate(12 hours)";
+
+  const testStackSetOpsPrefs = {
+    RegionConcurrencyType: testConcurrncyType,
+    MaxConcurrentPercentage: testMaxConcurrentPercentage,
+    FailureTolerancePercentage: testFailureTolerancePercentage,
+  };
+  const testSQParameterOverrides = [
+    {
+      ParameterKey: "NotificationThreshold",
+      ParameterValue: testSQNotificationThreshold,
+    },
+    {
+      ParameterKey: "MonitoringFrequency",
+      ParameterValue: testSQMonitoringFequency,
+    },
+  ];
+
   beforeEach(async () => {
     getOrganizationIdMock.mockResolvedValue("o-0000000000");
     getRootIdMock.mockResolvedValue("r-0000");
@@ -162,7 +184,7 @@ describe("Deployment Manager", () => {
     deleteStackSetInstancesMock.mockResolvedValue({});
     getDeploymentTargetsMock.mockResolvedValue([]);
     isTAAvailableMock.mockResolvedValue(true);
-    getDeployedRegionsMock.mockResolvedValue(["us-east-1", "us-east-2"]);
+    getDeployedRegionsMock.mockResolvedValue(["us-east-1"]);
 
     jest.clearAllMocks();
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
@@ -171,7 +193,106 @@ describe("Deployment Manager", () => {
     process.env.QM_OU_PARAMETER = "/QuotaMonitor/OUs";
     process.env.QM_REGIONS_LIST_PARAMETER = "/QuotaMonitor/RegionsToDeploy";
     process.env.SEND_METRIC = "No";
+
+    process.env.REGIONS_CONCURRENCY_TYPE = testConcurrncyType;
+    process.env.MAX_CONCURRENT_PERCENTAGE = "" + testMaxConcurrentPercentage;
+    process.env.FAILURE_TOLERANCE_PERCENTAGE =
+      "" + testFailureTolerancePercentage;
+    process.env.SQ_NOTIFICATION_THRESHOLD = testSQNotificationThreshold;
+    process.env.SQ_MONITORING_FREQUENCY = testSQMonitoringFequency;
   });
+
+  function assertCreateStackInstancesCallOrgIdMode() {
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      1,
+      ["r-0000"],
+      [],
+      testStackSetOpsPrefs,
+      undefined
+    );
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
+      ["r-0000"],
+      ["us-east-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
+  }
+
+  function assertCreateStackInstancesCallOrgIdModeSelectedRegions() {
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      1,
+      ["r-0000"],
+      [],
+      testStackSetOpsPrefs,
+      undefined
+    );
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
+      ["r-0000"],
+      ["us-west-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
+  }
+
+  function assertCreateStackInstancesCallMultipeOrgOUs() {
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      1,
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-east-1"],
+      testStackSetOpsPrefs,
+      undefined
+    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      2,
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      [],
+      testStackSetOpsPrefs,
+      undefined
+    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      3,
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-east-1", "us-east-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-east-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
+  }
+
+  function assertCreateStackInstancesCallMultipeOrgOUsRegions() {
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      1,
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-east-1"],
+      testStackSetOpsPrefs,
+      undefined
+    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      2,
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      [],
+      testStackSetOpsPrefs,
+      undefined
+    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      3,
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-east-1", "us-west-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-west-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
+  }
 
   it("should manage deployments in Organization deployment mode with single Org Id", async () => {
     getParameterMock.mockImplementation(
@@ -186,6 +307,7 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(1);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(2);
+    assertCreateStackInstancesCallOrgIdMode();
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(2);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(0);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
@@ -208,6 +330,7 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(1);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(2);
+    assertCreateStackInstancesCallOrgIdMode();
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(2);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(0);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
@@ -229,6 +352,7 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(0);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(2);
+    assertCreateStackInstancesCallOrgIdModeSelectedRegions();
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(2);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(0);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
@@ -251,6 +375,12 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(1);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(1);
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
+      ["r-0000"],
+      ["us-east-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(1);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(0);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(1);
@@ -272,6 +402,7 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(1);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(4);
+    assertCreateStackInstancesCallMultipeOrgOUs();
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(4);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(2);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
@@ -294,6 +425,7 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(1);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(4);
+    assertCreateStackInstancesCallMultipeOrgOUs();
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(4);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(2);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
@@ -315,6 +447,7 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(0);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(4);
+    assertCreateStackInstancesCallMultipeOrgOUsRegions();
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(4);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(2);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
@@ -337,6 +470,19 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(1);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(2);
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
+      1,
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-east-1", "us-east-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
+      ["ou-0000-00000000", "ou-0000-00000001"],
+      ["us-east-2"],
+      testStackSetOpsPrefs,
+      testSQParameterOverrides
+    );
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(2);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(1);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(1);
