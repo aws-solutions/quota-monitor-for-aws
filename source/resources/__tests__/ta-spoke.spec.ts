@@ -28,15 +28,22 @@ describe("==TA-Spoke Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("ta-spoke stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs16.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs16.x"],
+        CompatibleRuntimes: ["nodejs18.x"],
       });
     });
 
     it("should have events rules for OK, Warn, Error, and Refresher events", () => {
       template.resourceCountIs("AWS::Events::Rule", 4);
+    });
+
+    it("should have lambda functions for TA-refresher with nodejs18.x runtime", () => {
+      template.resourceCountIs("AWS::Lambda::Function", 1);
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Runtime: "nodejs18.x",
+      });
     });
 
     it("should have a Lambda Function with a DeadLetterQueue ", () => {

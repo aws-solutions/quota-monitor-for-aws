@@ -98,9 +98,38 @@ describe("Cloud Formation Helper", () => {
     expect(cfMock).toHaveReceivedCommandWith(CreateStackInstancesCommand, {
       StackSetName: "stackSetName",
       CallAs: "DELEGATED_ADMIN",
-      OperationPreferences: {
-        ...opsPrefs,
-      }
+      OperationPreferences: opsPrefs,
+      ParameterOverrides: [],
+    });
+  });
+
+  it("should call createStackSetInstances with overriden parameters", async () => {
+    const target = ["ou-1"];
+    const regions = ["us-east-1", "us-east-2"];
+
+    cfMock.on(CreateStackInstancesCommand).resolves({});
+    const opsPrefs: StackSetOpsPercentagePrefs = {
+      RegionConcurrencyType: "SEQUENTIAL",
+      MaxConcurrentPercentage: 50,
+      FailureTolerancePercentage: 50,
+    };
+    const parameterOverrides = [
+      {
+        ParameterKey: "param1",
+        ParameterValue: "value1",
+      },
+      {
+        ParameterKey: "param2",
+        ParameterValue: "value2",
+      },
+    ];
+
+    await cfHelper.createStackSetInstances(target, regions, opsPrefs, parameterOverrides);
+    expect(cfMock).toHaveReceivedCommandWith(CreateStackInstancesCommand, {
+      StackSetName: "stackSetName",
+      CallAs: "DELEGATED_ADMIN",
+      OperationPreferences: opsPrefs,
+      ParameterOverrides: parameterOverrides,
     });
   });
 

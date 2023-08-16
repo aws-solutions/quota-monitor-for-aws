@@ -28,10 +28,10 @@ describe("==Hub Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("hub stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs16.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs16.x"],
+        CompatibleRuntimes: ["nodejs18.x"],
       });
     });
 
@@ -102,8 +102,12 @@ describe("==Hub Stack Tests==", () => {
       });
     });
 
-    it("should have lambda functions for SNSPublisher, SlackNotifier, Reporter, DeploymentManager, Helper, and provider", () => {
+    it("should have lambda functions for SNSPublisher, SlackNotifier, Reporter, " +
+      "DeploymentManager, Helper, and provider with nodejs18.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::Function", 6);
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Runtime: "nodejs18.x",
+      });
     });
 
     it("should have DeadLetterQueues for Lambda Functions ", () => {

@@ -114,6 +114,18 @@ export class QuotaMonitorHub extends Stack {
       }
     );
 
+    const sqNotificationThreshold = new CfnParameter(this, "SQNotificationThreshold", {
+      type: "String",
+      default: "80",
+      allowedValues: ["60", "70", "80"],
+    });
+
+    const sqMonitoringFrequency = new CfnParameter(this, "SQMonitoringFrequency", {
+      type: "String",
+      default: "rate(12 hours)",
+      allowedValues: ["rate(6 hours)", "rate(12 hours)"],
+    });
+
     //=============================================================================================
     // Mapping & Conditions
     //=============================================================================================
@@ -188,6 +200,15 @@ export class QuotaMonitorHub extends Stack {
             },
             Parameters: ["SNSEmail", "SlackNotification"],
           },
+          {
+            Label: {
+              default: "Stackset Stack Configuration Parameters",
+            },
+            Parameters: [
+              "SQNotificationThreshold",
+              "SQMonitoringFrequency",
+            ],
+          },
         ],
         ParameterLabels: {
           DeploymentModel: {
@@ -212,6 +233,12 @@ export class QuotaMonitorHub extends Stack {
           },
           FailureTolerancePercentage: {
             default: "Percentage Failure tolerance",
+          },
+          SQNotificationThreshold: {
+            default: "At what quota utilization do you want notifications?",
+          },
+          SQMonitoringFrequency: {
+            default: "Frequency to monitor quota utilization",
           },
         },
       },
@@ -720,6 +747,8 @@ export class QuotaMonitorHub extends Stack {
             stackSetMaxConcurrentPercentage.valueAsString,
           FAILURE_TOLERANCE_PERCENTAGE:
             stackSetFailureTolerancePercentage.valueAsString,
+          SQ_NOTIFICATION_THRESHOLD: sqNotificationThreshold.valueAsString,
+          SQ_MONITORING_FREQUENCY: sqMonitoringFrequency.valueAsString,
           SOLUTION_UUID: createUUID.getAttString("UUID"),
           METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
           SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),

@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-TA) - quota-monitor-for-aws version:v6.2.1 - Trusted Advisor Template",
+  "Description": "(SO0005-TA) - quota-monitor-for-aws version:v6.2.2 - Trusted Advisor Template",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -348,20 +348,20 @@
     "QMUtilsLayerQMUtilsLayerLayer80D5D993": {
       "Type": "AWS::Lambda::LayerVersion",
       "Properties": {
+        "CompatibleRuntimes": [
+          "nodejs18.x"
+        ],
         "Content": {
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.1/asset81614929e374f7931dfaaabf04bb969f72fcacc1ee083173711b38ce460307a9.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.2/asset612488cb15f82561e61146e4534364bb520f84490030efd5598b8eae1027d65a.zip"
         },
-        "CompatibleRuntimes": [
-          "nodejs16.x"
-        ],
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-ta-spoke/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.81614929e374f7931dfaaabf04bb969f72fcacc1ee083173711b38ce460307a9.zip",
+        "aws:asset:path": "asset.612488cb15f82561e61146e4534364bb520f84490030efd5598b8eae1027d65a.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -578,13 +578,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.1/asset2fcbfc08856e2f7e26b228f21666705927ba452a9f159f67230cfd7e9aa8ed96.zip"
-        },
-        "Role": {
-          "Fn::GetAtt": [
-            "QMTARefresherQMTARefresherLambdaServiceRole95E5A974",
-            "Arn"
-          ]
+          "S3Key": "quota-monitor-for-aws/v6.2.2/asset8d5327022eb755d19017b63dc35307849757a1f58752d1f122820f32b7a8f87c.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -599,8 +593,8 @@
           "Variables": {
             "AWS_SERVICES": "AutoScaling,CloudFormation,DynamoDB,EBS,EC2,ELB,IAM,Kinesis,RDS,Route53,SES,VPC",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.1",
-            "VERSION": "v6.2.1",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.2",
+            "VERSION": "v6.2.2",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -611,7 +605,13 @@
           }
         ],
         "MemorySize": 128,
-        "Runtime": "nodejs16.x",
+        "Role": {
+          "Fn::GetAtt": [
+            "QMTARefresherQMTARefresherLambdaServiceRole95E5A974",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
         "Timeout": 60
       },
       "DependsOn": [
@@ -620,7 +620,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-ta-spoke/QM-TA-Refresher/QM-TA-Refresher-Lambda/Resource",
-        "aws:asset:path": "asset.2fcbfc08856e2f7e26b228f21666705927ba452a9f159f67230cfd7e9aa8ed96.zip",
+        "aws:asset:path": "asset.8d5327022eb755d19017b63dc35307849757a1f58752d1f122820f32b7a8f87c.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -639,8 +639,8 @@
         "FunctionName": {
           "Ref": "QMTARefresherQMTARefresherLambdaEE100499"
         },
-        "Qualifier": "$LATEST",
-        "MaximumEventAgeInSeconds": 14400
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-ta-spoke/QM-TA-Refresher/QM-TA-Refresher-Lambda/EventInvokeConfig/Resource",
@@ -657,6 +657,7 @@
     "TASpokeAppRegistryApplicationAEA2BFDF": {
       "Type": "AWS::ServiceCatalogAppRegistry::Application",
       "Properties": {
+        "Description": "Service Catalog application to track and manage all your resources for the solution quota-monitor-for-aws",
         "Name": {
           "Fn::Join": [
             "-",
@@ -671,12 +672,11 @@
             ]
           ]
         },
-        "Description": "Service Catalog application to track and manage all your resources for the solution quota-monitor-for-aws",
         "Tags": {
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-TA",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.1"
+          "SolutionVersion": "v6.2.2"
         }
       },
       "Metadata": {
@@ -689,9 +689,10 @@
         "Attributes": {
           "solutionID": "SO0005-TA",
           "solutionName": "quota-monitor-for-aws",
-          "version": "v6.2.1",
+          "version": "v6.2.2",
           "applicationType": "AWS-Solutions"
         },
+        "Description": "Attribute group for application information",
         "Name": {
           "Fn::Join": [
             "-",
@@ -706,12 +707,11 @@
             ]
           ]
         },
-        "Description": "Attribute group for application information",
         "Tags": {
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-TA",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.1"
+          "SolutionVersion": "v6.2.2"
         }
       },
       "Metadata": {

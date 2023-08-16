@@ -12,7 +12,7 @@ import {
 import { catchDecorator } from "./catch";
 import { ServiceHelper } from "./exports";
 import { logger } from "./logger";
-import { StackSetOperationPreferences } from "@aws-sdk/client-cloudformation/dist-types/models/models_0";
+import { StackSetOperationPreferences, Parameter } from "@aws-sdk/client-cloudformation/dist-types/models/models_0";
 import { IncorrectConfigurationException } from "./error";
 
 export interface StackSetOpsPercentagePrefs {
@@ -122,7 +122,8 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
   async createStackSetInstances(
     target: string[],
     regions: string[],
-    opsPrefs: StackSetOperationPreferences = defaultOpsPercentagePrefs
+    opsPrefs: StackSetOperationPreferences = defaultOpsPercentagePrefs,
+    paramOverrides: Parameter[] = []
   ) {
     validateStackSetOpsPercentagePrefs(opsPrefs);
     logger.debug({
@@ -145,6 +146,7 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
         CallAs: "DELEGATED_ADMIN",
         Regions: regions,
         OperationPreferences: opsPrefs,
+        ParameterOverrides: paramOverrides,
       })
     );
   }

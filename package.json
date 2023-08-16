@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor-for-aws",
-  "version": "6.2.1",
+  "version": "6.2.2",
   "description": "Quota Monitor for AWS",
   "author": "aws-solutions",
   "license": "Apache-2.0",
@@ -22,12 +22,12 @@
   },
   "devDependencies": {
     "@types/uuid": "^9.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.53.0",
-    "@typescript-eslint/parser": "^5.53.0",
+    "@typescript-eslint/eslint-plugin": "^6.2.1",
+    "@typescript-eslint/parser": "^6.2.1",
     "eslint": "^8.34.0",
     "eslint-config-prettier": "^8.6.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "prettier": "^2.8.2",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.1",
     "typescript": "^5.0.2"
   }
 }
