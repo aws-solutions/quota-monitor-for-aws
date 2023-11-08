@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.4] - 2023-11-09
+
+### Changed
+- Scoped permissions down for Stackset operations
+
+### Fixed
+- [Error](https://github.com/aws-solutions/quota-monitor-for-aws/issues/172) in saving notifications to summary table
+
 ## [6.2.3] - 2023-10-24
 
 ### Changed

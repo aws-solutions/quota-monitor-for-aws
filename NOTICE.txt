@@ -1,7 +1,11 @@
-Quota Monitor for AWS Solution
+Quota Monitor for AWS
 
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-SPDX-License-Identifier: Apache-2.0
+Licensed under the Apache License Version 2.0 (the "License"). You may not use this file except
+in compliance with the License. A copy of the License is located at http://www.apache.org/licenses/
+or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, express or implied. See the License for the
+specific language governing permissions and limitations under the License.
 
 **********************
 THIRD PARTY COMPONENTS
@@ -24,6 +28,7 @@ url under the Massachusetts Institute of Technology (MIT) license
 @aws-sdk/client-service-quotas under Apache License 2.0
 @aws-sdk/client-ssm under Apache License 2.0
 @aws-sdk/client-sqs under Apache License 2.0
+@aws-sdk/client-sns under Apache License 2.0
 @aws-sdk/client-support under Apache License 2.0
 @aws-sdk/lib-dynamodb under Apache License 2.0
 @aws-sdk/client-dynamodb-streams under Apache License 2.0

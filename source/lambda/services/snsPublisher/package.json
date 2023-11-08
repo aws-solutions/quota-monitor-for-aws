@@ -7,7 +7,7 @@
     "url": "https://aws.amazon.com/solutions"
   },
   "license": "Apache-2.0",
-  "version": "0.0.1",
+  "version": "6.2.4",
   "private": "true",
   "dependencies": {
     "@aws-sdk/client-ssm": "^3.110.0"
