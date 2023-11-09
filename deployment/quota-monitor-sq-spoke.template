@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-SQ) - quota-monitor-for-aws version:v6.2.3 - Service Quotas Template",
+  "Description": "(SO0005-SQ) - quota-monitor-for-aws - Service Quotas Template. Version v6.2.4",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -77,13 +77,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.3/asset64c9f826fc4dace5252ba075e99b410f5e28d1817f5bb5e8957fa92737518e30.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset281a9b8aebb64cf47f2cec925dc6cb3f4bb6131a1e8eaa10a38f0ffc6e067d96.zip"
         },
         "LayerName": "QM-UtilsLayer-quota-monitor-sq-spoke"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke-Layer/Resource",
-        "aws:asset:path": "asset.64c9f826fc4dace5252ba075e99b410f5e28d1817f5bb5e8957fa92737518e30.zip",
+        "aws:asset:path": "asset.281a9b8aebb64cf47f2cec925dc6cb3f4bb6131a1e8eaa10a38f0ffc6e067d96.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -309,7 +309,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.3/assetc590424cb115ab0d92f56b41297001c1b1dfb24aef59da50f911d3c23bead1c4.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset6213c41d809833d6e8c41f123009228793aec09e58a613bbc50378634828c434.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-ListManager-Function",
         "Environment": {
@@ -323,8 +323,8 @@
             "PARTITION_KEY": "ServiceCode",
             "SORT": "QuotaCode",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.3",
-            "VERSION": "v6.2.3",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.4",
+            "VERSION": "v6.2.4",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -350,7 +350,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-ListManager/QM-ListManager-Function/Resource",
-        "aws:asset:path": "asset.c590424cb115ab0d92f56b41297001c1b1dfb24aef59da50f911d3c23bead1c4.zip",
+        "aws:asset:path": "asset.6213c41d809833d6e8c41f123009228793aec09e58a613bbc50378634828c434.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -521,7 +521,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.3/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-sq-spoke/QM-ListManager/QM-ListManager-Provider)",
         "Environment": {
@@ -580,7 +580,7 @@
             "Arn"
           ]
         },
-        "VERSION": "v6.2.3"
+        "VERSION": "v6.2.4"
       },
       "DependsOn": [
         "QMUtilizationErr3AEC9915",
@@ -870,7 +870,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.3/asset5f65f41c8e9f79507229f65941629cdcdc4a2d28eda891765b11396c8b7acf05.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asseta7b3042eb28f8f47cd098b85f530bd3fe9a62834255fdb9af7a49b84d0f41bbc.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -896,8 +896,8 @@
               "Ref": "NotificationThreshold"
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.3",
-            "VERSION": "v6.2.3",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.4",
+            "VERSION": "v6.2.4",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -923,7 +923,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-CWPoller/QM-CWPoller-Lambda/Resource",
-        "aws:asset:path": "asset.5f65f41c8e9f79507229f65941629cdcdc4a2d28eda891765b11396c8b7acf05.zip",
+        "aws:asset:path": "asset.a7b3042eb28f8f47cd098b85f530bd3fe9a62834255fdb9af7a49b84d0f41bbc.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -1252,7 +1252,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-SQ",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.3"
+          "SolutionVersion": "v6.2.4"
         }
       },
       "Metadata": {
@@ -1265,7 +1265,7 @@
         "Attributes": {
           "solutionID": "SO0005-SQ",
           "solutionName": "quota-monitor-for-aws",
-          "version": "v6.2.3",
+          "version": "v6.2.4",
           "applicationType": "AWS-Solutions"
         },
         "Description": "Attribute group for application information",
@@ -1287,7 +1287,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-SQ",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.3"
+          "SolutionVersion": "v6.2.4"
         }
       },
       "Metadata": {

@@ -101,9 +101,9 @@ export class QuotaMonitorSQSpoke extends Stack {
       "SOLUTION_ID"
     )}-SQ) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} version:${this.node.tryGetContext(
+    )} - Service Quotas Template. Version ${this.node.tryGetContext(
       "SOLUTION_VERSION"
-    )} - Service Quotas Template`;
+    )}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================

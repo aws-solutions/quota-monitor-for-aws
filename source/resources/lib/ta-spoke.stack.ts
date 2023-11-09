@@ -69,9 +69,9 @@ export class QuotaMonitorTASpoke extends Stack {
       "SOLUTION_ID"
     )}-TA) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} version:${this.node.tryGetContext(
+    )} - Trusted Advisor Template. Version ${this.node.tryGetContext(
       "SOLUTION_VERSION"
-    )} - Trusted Advisor Template`;
+    )}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================

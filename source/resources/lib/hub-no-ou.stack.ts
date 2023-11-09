@@ -122,9 +122,9 @@ export class QuotaMonitorHubNoOU extends Stack {
       "SOLUTION_ID"
     )}-NoOU) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} version:${this.node.tryGetContext(
+    )} - Hub Template, use it when you are not using AWS Organizations. Version ${this.node.tryGetContext(
       "SOLUTION_VERSION"
-    )} - Hub Template, use it when you are not using AWS Organizations`;
+    )}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================
@@ -509,15 +509,16 @@ export class QuotaMonitorHubNoOU extends Stack {
       SOLUTION_UUID: createUUID.getAttString("UUID"),
     });
 
-
     /**
-    * app registry application for hub-no-ou-stack
-    */
+     * app registry application for hub-no-ou-stack
+     */
 
-    new AppRegistryApplication(this, 'HubNoOUAppRegistryApplication', {
-      appRegistryApplicationName: this.node.tryGetContext("APP_REG_HUB_NO_OU_APPLICATION_NAME"),
-      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-NoOU`
-    })
+    new AppRegistryApplication(this, "HubNoOUAppRegistryApplication", {
+      appRegistryApplicationName: this.node.tryGetContext(
+        "APP_REG_HUB_NO_OU_APPLICATION_NAME"
+      ),
+      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-NoOU`,
+    });
 
     //=============================================================================================
     // Outputs

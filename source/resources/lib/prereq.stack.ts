@@ -77,9 +77,9 @@ export class PreReqStack extends Stack {
       "SOLUTION_ID"
     )}-PreReq) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} version:${this.node.tryGetContext(
+    )} - Prerequisite Template. Version ${this.node.tryGetContext(
       "SOLUTION_VERSION"
-    )} - Prerequisite Template`;
+    )}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================
@@ -146,7 +146,6 @@ export class PreReqStack extends Stack {
         "organizations:EnableAWSServiceAccess",
         "organizations:DescribeOrganization",
         "organizations:RegisterDelegatedAdministrator",
-        "iam:CreateServiceLinkedRole",
       ],
       resources: ["*"], // do not support resource level permissions
     });

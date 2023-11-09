@@ -71,6 +71,14 @@ export class QuotaMonitorHub extends Stack {
       default: "Organizations",
     });
 
+    const managementAccountId = new CfnParameter(this, "ManagementAccountId", {
+      description:
+        "AWS Account Id for the organization's management account or *",
+      type: "String",
+      allowedPattern: "^([0-9]{1}\\d{11})|\\*$",
+      default: "*",
+    });
+
     const regionsListCfnParam = new CfnParameter(this, "RegionsList", {
       description:
         "Comma separated list of regions like us-east-1,us-east-2 or ALL or leave it blank for ALL",
@@ -114,17 +122,25 @@ export class QuotaMonitorHub extends Stack {
       }
     );
 
-    const sqNotificationThreshold = new CfnParameter(this, "SQNotificationThreshold", {
-      type: "String",
-      default: "80",
-      allowedValues: ["60", "70", "80"],
-    });
+    const sqNotificationThreshold = new CfnParameter(
+      this,
+      "SQNotificationThreshold",
+      {
+        type: "String",
+        default: "80",
+        allowedValues: ["60", "70", "80"],
+      }
+    );
 
-    const sqMonitoringFrequency = new CfnParameter(this, "SQMonitoringFrequency", {
-      type: "String",
-      default: "rate(12 hours)",
-      allowedValues: ["rate(6 hours)", "rate(12 hours)"],
-    });
+    const sqMonitoringFrequency = new CfnParameter(
+      this,
+      "SQMonitoringFrequency",
+      {
+        type: "String",
+        default: "rate(12 hours)",
+        allowedValues: ["rate(6 hours)", "rate(12 hours)"],
+      }
+    );
 
     //=============================================================================================
     // Mapping & Conditions
@@ -182,7 +198,11 @@ export class QuotaMonitorHub extends Stack {
             Label: {
               default: "Deployment Configuration",
             },
-            Parameters: ["DeploymentModel", "RegionsList"],
+            Parameters: [
+              "DeploymentModel",
+              "RegionsList",
+              "ManagementAccountId",
+            ],
           },
           {
             Label: {
@@ -204,10 +224,7 @@ export class QuotaMonitorHub extends Stack {
             Label: {
               default: "Stackset Stack Configuration Parameters",
             },
-            Parameters: [
-              "SQNotificationThreshold",
-              "SQMonitoringFrequency",
-            ],
+            Parameters: ["SQNotificationThreshold", "SQMonitoringFrequency"],
           },
         ],
         ParameterLabels: {
@@ -220,6 +237,10 @@ export class QuotaMonitorHub extends Stack {
           },
           SlackNotification: {
             default: "Do you want slack notifications?",
+          },
+          ManagementAccountId: {
+            default:
+              "Organization's management Id to scope permissions down for Stackset creation",
           },
           RegionsList: {
             default:
@@ -247,7 +268,7 @@ export class QuotaMonitorHub extends Stack {
       "SOLUTION_ID"
     )}) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} version:${this.node.tryGetContext("SOLUTION_VERSION")} - Hub Template`;
+    )} - Hub Template. Version ${this.node.tryGetContext("SOLUTION_VERSION")}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================
@@ -610,7 +631,8 @@ export class QuotaMonitorHub extends Stack {
               "SOLUTION_NAME"
             )}/${this.node.tryGetContext(
               "SOLUTION_VERSION"
-            )}/quota-monitor-ta-spoke.template`),
+            )}/quota-monitor-ta-spoke.template`
+        ),
         parameters: [
           {
             parameterKey: "EventBusArn",
@@ -645,7 +667,8 @@ export class QuotaMonitorHub extends Stack {
               "SOLUTION_NAME"
             )}/${this.node.tryGetContext(
               "SOLUTION_VERSION"
-            )}/quota-monitor-sq-spoke.template`),
+            )}/quota-monitor-sq-spoke.template`
+        ),
         parameters: [
           {
             parameterKey: "EventBusArn",
@@ -795,33 +818,67 @@ export class QuotaMonitorHub extends Stack {
     /**
      * @description policy statement to describe organizations
      */
-    const deployerOrgReadPolicy = new iam.PolicyStatement({
+    const deployerOrgReadPolicy1 = new iam.PolicyStatement({
       actions: [
         "organizations:DescribeOrganization",
         "organizations:ListRoots",
-        "organizations:ListDelegatedAdministrators",
         "organizations:ListAccounts",
-        "organizations:ListAccountsForParent",
       ],
       effect: iam.Effect.ALLOW,
       resources: ["*"], // do not support resource-level permissions
     });
-    deploymentManager.target.addToRolePolicy(deployerOrgReadPolicy);
+    const deployerOrgReadPolicy2 = new iam.PolicyStatement({
+      actions: [
+        "organizations:ListDelegatedAdministrators",
+        "organizations:ListAccountsForParent",
+      ],
+      effect: iam.Effect.ALLOW,
+      resources: ["*"],
+      // documentation says can be narrowed to `arn:aws:organizations::<Account>:ou/o-*/ou-*`
+      // but all three
+      // arn:aws:organizations::<DelegatedAdmin>:ou/o-*/ou-*
+      // arn:aws:organizations::<ManagementAccount>:ou/o-*/ou-*
+      // arn:aws:organizations::*:ou/o-*/ou-*
+      // result in the same unrelated error message
+      // Account used is not a delegated administrator
+    });
+    deploymentManager.target.addToRolePolicy(deployerOrgReadPolicy1);
+    deploymentManager.target.addToRolePolicy(deployerOrgReadPolicy2);
 
     /**
      * @description policy statement allowing CRUD on stackset instances
+     * <p>
+     * the stacksets are owned by the organization's management account,
+     * not the delegated admin account, because the api calls are being made as
+     * DELEGATED_ADMIN, not SELF
+     * that's why we need the management account in the following policies
+     * </p>
      */
-    const deployerStackSetPolicy = new iam.PolicyStatement({
+    const deployerStackSetPolicy1 = new iam.PolicyStatement({
+      actions: ["cloudformation:DescribeStackSet"],
+      effect: iam.Effect.ALLOW,
+      resources: [
+        `arn:${this.partition}:cloudformation:*:${managementAccountId.valueAsString}:stackset/QM-TA-Spoke-StackSet:*`,
+        `arn:${this.partition}:cloudformation:*:${managementAccountId.valueAsString}:stackset/QM-SQ-Spoke-StackSet:*`,
+      ],
+    });
+    const deployerStackSetPolicy2 = new iam.PolicyStatement({
       actions: [
-        "cloudformation:DescribeStackSet",
         "cloudformation:CreateStackInstances",
         "cloudformation:DeleteStackInstances",
         "cloudformation:ListStackInstances",
       ],
       effect: iam.Effect.ALLOW,
-      resources: ["*"], // StackSet resources will be conditionally created based on deployment mode
+      resources: [
+        `arn:${this.partition}:cloudformation:*:${managementAccountId.valueAsString}:stackset/QM-TA-Spoke-StackSet:*`,
+        `arn:${this.partition}:cloudformation:*:${managementAccountId.valueAsString}:stackset/QM-SQ-Spoke-StackSet:*`,
+        `arn:${this.partition}:cloudformation:*:${managementAccountId.valueAsString}:stackset-target/QM-TA-Spoke-StackSet:*/*`,
+        `arn:${this.partition}:cloudformation:*:${managementAccountId.valueAsString}:stackset-target/QM-SQ-Spoke-StackSet:*/*`,
+        `arn:${this.partition}:cloudformation:*::type/resource/*`,
+      ],
     });
-    deploymentManager.target.addToRolePolicy(deployerStackSetPolicy);
+    deploymentManager.target.addToRolePolicy(deployerStackSetPolicy1);
+    deploymentManager.target.addToRolePolicy(deployerStackSetPolicy2);
 
     /**
      * @description policy statement allowing reading regions
@@ -844,15 +901,17 @@ export class QuotaMonitorHub extends Stack {
     deploymentManager.target.addToRolePolicy(
       taDescribeTrustedAdvisorChecksPolicy
     );
-    
+
     /**
-    * app registry application for hub stack
-    */
-    
-    new AppRegistryApplication(this, 'HubAppRegistryApplication', {
-      appRegistryApplicationName: this.node.tryGetContext("APP_REG_HUB_APPLICATION_NAME"),
-      solutionId: this.node.tryGetContext("SOLUTION_ID")
-    })
+     * app registry application for hub stack
+     */
+
+    new AppRegistryApplication(this, "HubAppRegistryApplication", {
+      appRegistryApplicationName: this.node.tryGetContext(
+        "APP_REG_HUB_APPLICATION_NAME"
+      ),
+      solutionId: this.node.tryGetContext("SOLUTION_ID"),
+    });
 
     //=============================================================================================
     // Outputs
