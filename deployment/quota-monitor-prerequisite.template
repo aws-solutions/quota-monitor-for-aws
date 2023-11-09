@@ -46,13 +46,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asset3da3808f3465d448bcc4b597c21d531d98a84a7f2a75426ba139d734a043e1be.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset281a9b8aebb64cf47f2cec925dc6cb3f4bb6131a1e8eaa10a38f0ffc6e067d96.zip"
         },
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.3da3808f3465d448bcc4b597c21d531d98a84a7f2a75426ba139d734a043e1be.zip",
+        "aws:asset:path": "asset.281a9b8aebb64cf47f2cec925dc6cb3f4bb6131a1e8eaa10a38f0ffc6e067d96.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -114,7 +114,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asset76ef80d878556ecffcb38ac51e0a2eb76e0e2a756d2fe34a5029a65080198681.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/assetabaeb64cd87cd98f03b8ee327e8aba0398b0c58f22fd882eb03d3d49d349d72c.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
         "Environment": {
@@ -161,7 +161,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.76ef80d878556ecffcb38ac51e0a2eb76e0e2a756d2fe34a5029a65080198681.zip",
+        "aws:asset:path": "asset.abaeb64cd87cd98f03b8ee327e8aba0398b0c58f22fd882eb03d3d49d349d72c.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -503,7 +503,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/assetb38a59572e8edc98444130e1a5c1295052ea7ea8171de75f36e22721895d1fbd.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset7e1df24aaad13deac5cda2742aec4448e2a784e9bfc475c0f5185b546b594123.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-PreReqManager-Function",
         "Environment": {
@@ -550,7 +550,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Function/Resource",
-        "aws:asset:path": "asset.b38a59572e8edc98444130e1a5c1295052ea7ea8171de75f36e22721895d1fbd.zip",
+        "aws:asset:path": "asset.7e1df24aaad13deac5cda2742aec4448e2a784e9bfc475c0f5185b546b594123.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {

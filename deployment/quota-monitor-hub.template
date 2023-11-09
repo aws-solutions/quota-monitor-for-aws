@@ -571,13 +571,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asset3da3808f3465d448bcc4b597c21d531d98a84a7f2a75426ba139d734a043e1be.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset281a9b8aebb64cf47f2cec925dc6cb3f4bb6131a1e8eaa10a38f0ffc6e067d96.zip"
         },
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.3da3808f3465d448bcc4b597c21d531d98a84a7f2a75426ba139d734a043e1be.zip",
+        "aws:asset:path": "asset.281a9b8aebb64cf47f2cec925dc6cb3f4bb6131a1e8eaa10a38f0ffc6e067d96.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -639,7 +639,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asset76ef80d878556ecffcb38ac51e0a2eb76e0e2a756d2fe34a5029a65080198681.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/assetabaeb64cd87cd98f03b8ee327e8aba0398b0c58f22fd882eb03d3d49d349d72c.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
         "Environment": {
@@ -696,7 +696,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.76ef80d878556ecffcb38ac51e0a2eb76e0e2a756d2fe34a5029a65080198681.zip",
+        "aws:asset:path": "asset.abaeb64cd87cd98f03b8ee327e8aba0398b0c58f22fd882eb03d3d49d349d72c.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -1237,7 +1237,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asset5b2c32c41b91ff4a309d21b8f33f7afedb90de0bbdd03cb50e9d4a875b33d689.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/assete8df5b24dcbe63ecf0b8794abe10f22aca0b9842206f8cc5a5a19f2522da8f6b.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -1294,7 +1294,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-SlackNotifier/QM-SlackNotifier-Lambda/Resource",
-        "aws:asset:path": "asset.5b2c32c41b91ff4a309d21b8f33f7afedb90de0bbdd03cb50e9d4a875b33d689.zip",
+        "aws:asset:path": "asset.e8df5b24dcbe63ecf0b8794abe10f22aca0b9842206f8cc5a5a19f2522da8f6b.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -1631,7 +1631,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asseta7d8794a4f5005a4423354c5138634a24a8f06c6f6f1205d71dfd83ae6fc3295.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset0075157230ba4d6fee8559d8c9f766d6c1b220c12f24346a07faf82f3fd21418.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -1704,7 +1704,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda/Resource",
-        "aws:asset:path": "asset.a7d8794a4f5005a4423354c5138634a24a8f06c6f6f1205d71dfd83ae6fc3295.zip",
+        "aws:asset:path": "asset.0075157230ba4d6fee8559d8c9f766d6c1b220c12f24346a07faf82f3fd21418.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -2168,7 +2168,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asset162b44b8ffe602b48c7cc9f676710a7323b36b1b815206840c677c47047b0474.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/assetf0aba99f37c0981059f91577f9ffabca7e4599c45e210e4f174d397e274bf81e.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -2223,7 +2223,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-Reporter/QM-Reporter-Lambda/Resource",
-        "aws:asset:path": "asset.162b44b8ffe602b48c7cc9f676710a7323b36b1b815206840c677c47047b0474.zip",
+        "aws:asset:path": "asset.f0aba99f37c0981059f91577f9ffabca7e4599c45e210e4f174d397e274bf81e.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -2892,7 +2892,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.4/asset79d1f3816cde285a11fa0d1f16ca6eba933e1ad54b4eae466b725f002d752a3c.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.4/asset11774b65646c5ca46f7a868a797c46410bc317300b3e2b9332224578073bd77f.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -3018,7 +3018,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-Deployment-Manager/QM-Deployment-Manager-Lambda/Resource",
-        "aws:asset:path": "asset.79d1f3816cde285a11fa0d1f16ca6eba933e1ad54b4eae466b725f002d752a3c.zip",
+        "aws:asset:path": "asset.11774b65646c5ca46f7a868a797c46410bc317300b3e2b9332224578073bd77f.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {

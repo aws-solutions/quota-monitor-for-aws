@@ -1,0 +1,14 @@
+---
+id: SO0005
+name: quota-monitor-for-aws
+version: v6.2.4
+cloudformation_templates:
+  - template: quota-monitor-hub.template
+    main_template: true
+  - template: quota-monitor-sq-spoke.template
+  - template: quota-monitor-ta-spoke.template
+  - template: quota-monitor-hub-no-ou.template
+  - template: quota-monitor-prerequisite.template
+build_environment:
+  build_image: 'aws/codebuild/standard:7.0'
+
