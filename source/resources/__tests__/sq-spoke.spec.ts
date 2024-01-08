@@ -4,25 +4,11 @@
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { QuotaMonitorSQSpoke } from "../lib/sq-spoke.stack";
 import { App } from "aws-cdk-lib";
+import TestContext from "./test-context";
 
 describe("==SQ-Spoke Stack Tests==", () => {
   const app = new App({
-    context: {
-      "SOLUTION_VERSION": "test_version",
-      "SOLUTION_NAME": "test_name",
-      "SOLUTION_ID": "SO0005",
-      "SOLUTION_BUCKET": "test_bucket",
-      "SOLUTION_TEMPLATE_BUCKET": "test_bucket",
-      "CUSTOM_USER_AGENT": "AwsSolution/SO0005/test_version",
-      "SEND_METRICS": "Yes",
-      "METRICS_ENDPOINT": "https://metrics.awssolutionsbuilder.com/generic",
-      "LOG_LEVEL": "info",
-      "APPLICATION_TYPE": "AWS-Solutions",
-      "APP_REG_HUB_NO_OU_APPLICATION_NAME": "QM_Hub",
-      "APP_REG_HUB_APPLICATION_NAME": "QM_Hub_Org",
-      "APP_REG_TA_SPOKE_APPLICATION_NAME": "QM_TA",
-      "APP_REG_SQ_SPOKE_APPLICATION_NAME": "QM_SQ"
-    },
+    context: TestContext,
   });
   const stack = new QuotaMonitorSQSpoke(app, "SQSpokeStack", {});
   const template = Template.fromStack(stack);
@@ -105,13 +91,16 @@ describe("==SQ-Spoke Stack Tests==", () => {
       template.resourceCountIs("Custom::SQServiceList", 1);
     });
 
-    it("should have lambda functions for QMListManager, CWPoller, and provider frameworks " +
-      "with nodejs18.x runtime", () => {
-      template.resourceCountIs("AWS::Lambda::Function", 3);
-      template.hasResourceProperties("AWS::Lambda::Function", {
-        Runtime: "nodejs18.x",
-      });
-    });
+    it(
+      "should have lambda functions for QMListManager, CWPoller, and provider frameworks " +
+        "with nodejs18.x runtime",
+      () => {
+        template.resourceCountIs("AWS::Lambda::Function", 3);
+        template.hasResourceProperties("AWS::Lambda::Function", {
+          Runtime: "nodejs18.x",
+        });
+      }
+    );
 
     it("should have events rules for the pollers", () => {
       template.resourceCountIs("AWS::Events::Rule", 5);
@@ -133,33 +122,45 @@ describe("==SQ-Spoke Stack Tests==", () => {
     });
 
     it("should have Service Catalog AppRegistry Application, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::Application", 1);
+      template.resourceCountIs(
+        "AWS::ServiceCatalogAppRegistry::Application",
+        1
+      );
     });
 
     it("should have Service Catalog AppRegistry AttributeGroup, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroup", 1);
+      template.resourceCountIs(
+        "AWS::ServiceCatalogAppRegistry::AttributeGroup",
+        1
+      );
     });
 
     it("should have Service Catalog AppRegistry Resource Association, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::ResourceAssociation", 1);
-      template.hasResource("AWS::ServiceCatalogAppRegistry::ResourceAssociation", {
-        Properties: {
-          Application: {
-            "Fn::GetAtt": [
-              "SQSpokeAppRegistryApplicationB3787B2B",
-              "Id"
-            ]
+      template.resourceCountIs(
+        "AWS::ServiceCatalogAppRegistry::ResourceAssociation",
+        1
+      );
+      template.hasResource(
+        "AWS::ServiceCatalogAppRegistry::ResourceAssociation",
+        {
+          Properties: {
+            Application: {
+              "Fn::GetAtt": ["SQSpokeAppRegistryApplicationB3787B2B", "Id"],
+            },
+            Resource: {
+              Ref: "AWS::StackId",
+            },
+            ResourceType: "CFN_STACK",
           },
-          Resource: {
-            "Ref": "AWS::StackId"
-          },
-          ResourceType: "CFN_STACK",
         }
-      });
+      );
     });
 
     it("should have Service Catalog AppRegistry AttributeGroup Association, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation", 1);
+      template.resourceCountIs(
+        "AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation",
+        1
+      );
     });
   });
 });

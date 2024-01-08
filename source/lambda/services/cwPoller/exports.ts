@@ -9,6 +9,7 @@ import {
   DynamoDBHelper,
   EventsHelper,
   ServiceQuotasHelper,
+  stringEqualsIgnoreCase,
 } from "solutions-utils";
 
 /**
@@ -150,6 +151,10 @@ export function createQuotaUtilizationEvents(
 
   const items: IQuotaUtilizationEvent[] = [];
 
+  const sendOKNotifications = stringEqualsIgnoreCase(
+    <string>process.env.SQ_REPORT_OK_NOTIFICATIONS,
+    "Yes"
+  );
   utilizationValues.forEach((value, index) => {
     const quotaEvents: IQuotaUtilizationEvent = {
       status: QUOTA_STATUS.OK,
@@ -160,22 +165,23 @@ export function createQuotaUtilizationEvents(
         Service: <string>quota.UsageMetric?.MetricDimensions?.Service,
         Region: <string>process.env.AWS_REGION,
         "Current Usage": "",
-        "Limit Amount": "100", // max utilization is 100%
+        "Limit Amount": "100%", // max utilization is 100%
       },
     };
-    if (value == 100) {
+    if (value >= 100) {
       quotaEvents.status = QUOTA_STATUS.ERROR;
     } else if (value > +(<string>process.env.THRESHOLD)) {
       quotaEvents.status = QUOTA_STATUS.WARN;
     } else {
       quotaEvents.status = QUOTA_STATUS.OK;
     }
-    quotaEvents["check-item-detail"]["Current Usage"] = "" + value;
+    quotaEvents["check-item-detail"]["Current Usage"] = "" + value + "%";
     quotaEvents["check-item-detail"].Timestamp = (<Date[]>(
       metricData.Timestamps
     ))[index];
-
-    items.push(quotaEvents);
+    if (sendOKNotifications || quotaEvents.status != QUOTA_STATUS.OK) {
+      items.push(quotaEvents);
+    }
   });
 
   return items;

@@ -70,6 +70,10 @@ export class DeploymentManager {
         ParameterKey: "MonitoringFrequency",
         ParameterValue: <string>process.env.SQ_MONITORING_FREQUENCY,
       },
+      {
+        ParameterKey: "ReportOKNotifications",
+        ParameterValue: <string>process.env.SQ_REPORT_OK_NOTIFICATIONS,
+      },
     ];
   }
 
@@ -206,7 +210,6 @@ export class DeploymentManager {
         sqRegions.push(...userSelectedRegions);
         spokeDeploymentMetricData.RegionsList = userSelectedRegions.join(",");
       }
-      const taRegions = this.getTARegions(sqRegions);
       logger.debug({
         label: `${this.moduleName}/handler/manageStackSets`,
         message: `StackSet Operation Preferences = ${JSON.stringify(
@@ -214,7 +217,13 @@ export class DeploymentManager {
         )}`,
       });
       if (isTAAvailable) {
+        const taRegions = this.getTARegions(sqRegions);
         await this.manageStackSetInstances(cfnTA, deploymentTargets, taRegions);
+      } else {
+        logger.info({
+          label: `${this.moduleName}/handler/manageStackSets`,
+          message: "Not deploying Trusted Advisor stacks",
+        });
       }
       await this.manageStackSetInstances(
         cfnSQ,

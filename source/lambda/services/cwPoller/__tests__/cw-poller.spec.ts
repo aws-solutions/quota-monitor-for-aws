@@ -16,13 +16,14 @@ import {
   ServiceQuotasHelper,
 } from "solutions-utils";
 import { handler } from "../index";
-
-
+import {
+  MetricDataResult
+} from "@aws-sdk/client-cloudwatch";
 
 const getMetricDataMock = jest.fn();
 const queryQuotasForServiceMock = jest.fn();
 const putEventMock = jest.fn();
-
+const getAllEnabledServicesMock = jest.fn();
 
 jest.mock("solutions-utils", () => {
   const originalModule = jest.requireActual("solutions-utils");
@@ -37,6 +38,7 @@ jest.mock("solutions-utils", () => {
     DynamoDBHelper: function () {
       return {
         queryQuotasForService: queryQuotasForServiceMock,
+        getAllEnabledServices: getAllEnabledServicesMock,
       };
     },
     EventsHelper: function () {
@@ -95,7 +97,7 @@ const percentageUsageQuery = {
   Id: "id",
 };
 const cwQuery = [usageQuery, percentageUsageQuery];
-const metric1 = {
+const metric1: MetricDataResult = {
   Id: "service1_resource1_none_resource_pct_utilization",
   Label: "data label",
   Values: [100, 81, 10],
@@ -106,7 +108,7 @@ const metric1 = {
     new Date(1664396148),
   ],
 };
-const metric2 = {
+const metric2: MetricDataResult = {
   Id: "service2_resource2_none_resource_pct_utilization",
   Label: "data label",
   Values: [100, 81, 10],
@@ -118,8 +120,10 @@ const metric2 = {
   ],
 };
 const metricQueryIdToQuotaMap: MetricQueryIdToQuotaMap = {};
-metricQueryIdToQuotaMap[metric1.Id.split("_pct_utilization")[0]] = quota1;
-metricQueryIdToQuotaMap[metric2.Id.split("_pct_utilization")[0]] = quota2;
+const metricId1 = metric1?.Id ?? "";
+const metricId2 = metric2?.Id ?? "";
+metricQueryIdToQuotaMap[metricId1.split("_pct_utilization")[0]] = quota1;
+metricQueryIdToQuotaMap[metricId2.split("_pct_utilization")[0]] = quota2;
 
 const utilizationEvents = [
   {
@@ -130,8 +134,8 @@ const utilizationEvents = [
       Service: "service1",
       Resource: "resource1",
       Region: "us-east-1",
-      "Current Usage": "100",
-      "Limit Amount": "100",
+      "Current Usage": "100%",
+      "Limit Amount": "100%",
       Timestamp: new Date(1664386148),
     },
   },
@@ -143,8 +147,8 @@ const utilizationEvents = [
       Service: "service1",
       Resource: "resource1",
       Region: "us-east-1",
-      "Current Usage": "81",
-      "Limit Amount": "100",
+      "Current Usage": "81%",
+      "Limit Amount": "100%",
       Timestamp: new Date(1664390148),
     },
   },
@@ -156,8 +160,8 @@ const utilizationEvents = [
       Service: "service1",
       Resource: "resource1",
       Region: "us-east-1",
-      "Current Usage": "10",
-      "Limit Amount": "100",
+      "Current Usage": "10%",
+      "Limit Amount": "100%",
       Timestamp: new Date(1664396148),
     },
   },
@@ -168,13 +172,12 @@ describe("CWPoller", () => {
     process.env.POLLER_FREQUENCY = "rate(6 hours)";
     process.env.THRESHOLD = "80";
     process.env.AWS_REGION = "us-east-1";
+    process.env.SQ_REPORT_OK_NOTIFICATIONS = "Yes";
     getMetricDataMock.mockResolvedValue([metric1, metric2]);
     queryQuotasForServiceMock.mockResolvedValue(quotas);
     putEventMock.mockResolvedValue({});
+    getAllEnabledServicesMock.mockResolvedValue(serviceCodes);
 
-    jest
-      .spyOn(ServiceQuotasHelper.prototype, "getServiceCodes")
-      .mockResolvedValue(serviceCodes);
     jest
       .spyOn(ServiceQuotasHelper.prototype, "generateCWQuery")
       .mockReturnValue([usageQuery, percentageUsageQuery]);
@@ -186,10 +189,7 @@ describe("CWPoller", () => {
 
   it("should get quotas for the service", async () => {
     const expectedQuotas = [quota1, quota2];
-    const quotas = await getQuotasForService(
-      "quotaTable",
-      "ec2"
-    );
+    const quotas = await getQuotasForService("quotaTable", "ec2");
 
     expect(quotas).toEqual(expectedQuotas);
   });
@@ -215,7 +215,19 @@ describe("CWPoller", () => {
     expect(events).toEqual(utilizationEvents);
   });
 
-  it("should send quota utilizations to bridge", async () => {
+  it("should create only WARN AND ERROR quota utilization events when REPORT_OK_NOTIFICATIONS = No", () => {
+    process.env.SQ_REPORT_OK_NOTIFICATIONS = "No";
+    const events = createQuotaUtilizationEvents(
+      metric1,
+      metricQueryIdToQuotaMap
+    );
+
+    expect(events).toEqual(
+      utilizationEvents.filter((m) => m.status != QUOTA_STATUS.OK)
+    );
+  });
+
+  it("should send quota utilization events to bridge", async () => {
     await sendQuotaUtilizationEventsToBridge("bridge", utilizationEvents);
 
     expect(putEventMock).toHaveBeenCalledTimes(1);

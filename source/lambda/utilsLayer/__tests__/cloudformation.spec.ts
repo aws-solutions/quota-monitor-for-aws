@@ -10,6 +10,7 @@ import {
   CreateStackInstancesCommand,
   DeleteStackInstancesCommand,
   DescribeStackSetCommand,
+  StackSetOperationPreferences,
 } from "@aws-sdk/client-cloudformation";
 import {
   CloudFormationHelper,
@@ -78,8 +79,8 @@ describe("Cloud Formation Helper", () => {
       StackSetName: "stackSetName",
       CallAs: "DELEGATED_ADMIN",
       OperationPreferences: {
-        ...defaultOpsPercentagePrefs,
-      }
+        ...(<StackSetOperationPreferences>defaultOpsPercentagePrefs),
+      },
     });
   });
 
@@ -98,7 +99,7 @@ describe("Cloud Formation Helper", () => {
     expect(cfMock).toHaveReceivedCommandWith(CreateStackInstancesCommand, {
       StackSetName: "stackSetName",
       CallAs: "DELEGATED_ADMIN",
-      OperationPreferences: opsPrefs,
+      OperationPreferences: <StackSetOperationPreferences>opsPrefs,
       ParameterOverrides: [],
     });
   });
@@ -128,7 +129,7 @@ describe("Cloud Formation Helper", () => {
     expect(cfMock).toHaveReceivedCommandWith(CreateStackInstancesCommand, {
       StackSetName: "stackSetName",
       CallAs: "DELEGATED_ADMIN",
-      OperationPreferences: opsPrefs,
+      OperationPreferences: <StackSetOperationPreferences>opsPrefs,
       ParameterOverrides: parameterOverrides,
     });
   });

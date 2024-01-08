@@ -2,25 +2,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
-  aws_iam as iam,
+  App,
+  Aspects,
+  Aws,
   aws_cloudformation as cloudformation,
   aws_dynamodb as dynamodb,
   aws_events as events,
+  aws_iam as iam,
+  aws_s3_assets,
   aws_sns as sns,
   aws_ssm as ssm,
-  App,
+  CfnCapabilities,
   CfnCondition,
-  CfnParameter,
   CfnMapping,
   CfnOutput,
+  CfnParameter,
   Duration,
   Fn,
   Stack,
-  Aspects,
-  Aws,
-  CfnCapabilities,
   StackProps,
-  aws_s3_assets,
 } from "aws-cdk-lib";
 import { Subscription } from "aws-cdk-lib/aws-sns";
 import * as path from "path";
@@ -142,6 +142,16 @@ export class QuotaMonitorHub extends Stack {
       }
     );
 
+    const sqReportOKNotifications = new CfnParameter(
+      this,
+      "SQReportOKNotifications",
+      {
+        type: "String",
+        default: "No",
+        allowedValues: ["Yes", "No"],
+      }
+    );
+
     //=============================================================================================
     // Mapping & Conditions
     //=============================================================================================
@@ -224,7 +234,11 @@ export class QuotaMonitorHub extends Stack {
             Label: {
               default: "Stackset Stack Configuration Parameters",
             },
-            Parameters: ["SQNotificationThreshold", "SQMonitoringFrequency"],
+            Parameters: [
+              "SQNotificationThreshold",
+              "SQMonitoringFrequency",
+              "SQReportOKNotifications",
+            ],
           },
         ],
         ParameterLabels: {
@@ -260,6 +274,9 @@ export class QuotaMonitorHub extends Stack {
           },
           SQMonitoringFrequency: {
             default: "Frequency to monitor quota utilization",
+          },
+          SQReportOKNotifications: {
+            default: "Report OK Notifications",
           },
         },
       },
@@ -568,6 +585,7 @@ export class QuotaMonitorHub extends Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
       encryptionKey: kms.key,
+      timeToLiveAttribute: "ExpiryTime",
     });
 
     /**
@@ -772,6 +790,7 @@ export class QuotaMonitorHub extends Stack {
             stackSetFailureTolerancePercentage.valueAsString,
           SQ_NOTIFICATION_THRESHOLD: sqNotificationThreshold.valueAsString,
           SQ_MONITORING_FREQUENCY: sqMonitoringFrequency.valueAsString,
+          SQ_REPORT_OK_NOTIFICATIONS: sqReportOKNotifications.valueAsString,
           SOLUTION_UUID: createUUID.getAttString("UUID"),
           METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
           SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),

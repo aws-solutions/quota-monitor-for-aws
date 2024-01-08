@@ -12,6 +12,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 describe("Dynamo DB", () => {
@@ -71,5 +72,58 @@ describe("Dynamo DB", () => {
 
     ddbHelper.batchDelete(tableName, []);
     expect(ddbDocMock).toHaveReceivedCommandTimes(BatchWriteCommand, 0);
+  });
+
+  it("should return items when scanning", async () => {
+    ddbDocMock.on(ScanCommand).resolves({
+      Items: [
+        {
+          ServiceCode: "ec2",
+          Monitored: true,
+        },
+        {
+          ServiceCode: "s3",
+          Monitored: false,
+        },
+      ],
+    });
+
+    const response = await ddbHelper.getAllEnabledServices(tableName);
+    expect(response).toEqual(["ec2"]);
+    expect(ddbDocMock).toHaveReceivedCommandTimes(ScanCommand, 1);
+  });
+
+  it("should return items when scanning returns in batches", async () => {
+    ddbDocMock
+      .on(ScanCommand)
+      .resolvesOnce({
+        LastEvaluatedKey: {},
+        Items: [
+          {
+            ServiceCode: "ec2",
+            Monitored: true,
+          },
+          {
+            ServiceCode: "s3",
+            Monitored: false,
+          },
+        ],
+      })
+      .resolvesOnce({
+        Items: [
+          {
+            ServiceCode: "lambda",
+            Monitored: true,
+          },
+          {
+            ServiceCode: "dyanmodb",
+            Monitored: false,
+          },
+        ],
+      });
+
+    const response = await ddbHelper.getAllEnabledServices(tableName);
+    expect(response).toEqual(["ec2", "lambda"]);
+    expect(ddbDocMock).toHaveReceivedCommandTimes(ScanCommand, 2);
   });
 });

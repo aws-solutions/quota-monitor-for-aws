@@ -71,7 +71,7 @@ export class SupportHelper extends ServiceHelper<SupportClient> {
       await this.listTrustedAdvisorCheckIds();
       return true;
     } catch (e) {
-      logger.warn({
+      logger.info({
         label: this.moduleName,
         message:
           "Trusted Advisor check failed, thus this account doesn't have a support plan that includes Trusted Advisor",
