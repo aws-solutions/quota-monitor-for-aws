@@ -368,6 +368,7 @@ export class QuotaMonitorHubNoOU extends Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
       encryptionKey: kms.key,
+      timeToLiveAttribute: "ExpiryTime",
     });
 
     /**

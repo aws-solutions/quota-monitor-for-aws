@@ -92,6 +92,7 @@ export class LambdaToDDB
           "dynamodb:BatchWriteItem",
           "dynamodb:DeleteItem",
           "dynamodb:Query",
+          "dynamodb:Scan",
         ],
         effect: iam.Effect.ALLOW,
         resources: [this.target.tableArn],

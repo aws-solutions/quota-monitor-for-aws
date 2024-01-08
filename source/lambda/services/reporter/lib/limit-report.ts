@@ -52,6 +52,7 @@ export class LimitReport {
       label: this.moduleName,
       message: `queue message processing complete`,
     });
+    sqsHelper.destroy();
   }
 
   /**

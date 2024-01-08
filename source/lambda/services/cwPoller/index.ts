@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
+  DynamoDBHelper,
   LambdaTriggers,
   logger,
-  ServiceQuotasHelper,
   UnsupportedEventException,
 } from "solutions-utils";
 import { ServiceQuota } from "@aws-sdk/client-service-quotas";
@@ -34,8 +34,10 @@ export const handler = async (event: any) => {
   if (!LambdaTriggers.isScheduledEvent(event))
     throw new UnsupportedEventException("this event type is not supported");
 
-  const sq = new ServiceQuotasHelper();
-  const serviceCodes: string[] = await sq.getServiceCodes();
+  const ddb = new DynamoDBHelper();
+  const serviceCodes = await ddb.getAllEnabledServices(
+    <string>process.env.SQ_SERVICE_TABLE
+  );
   logger.debug({
     label: `${MODULE_NAME}/handler/serviceCodes`,
     message: JSON.stringify(serviceCodes),

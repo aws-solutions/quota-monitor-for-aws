@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 import {
   DeleteMessageCommand,
+  QueueAttributeName,
   ReceiveMessageCommand,
   SQSClient,
-  SQSServiceException,
+  SQSServiceException
 } from "@aws-sdk/client-sqs";
 import { catchDecorator } from "./catch";
 import { ServiceHelper } from "./exports";
@@ -40,7 +41,7 @@ export class SQSHelper extends ServiceHelper<SQSClient> {
       message: `receiving messages from ${queueUrl}`,
     });
     const input = {
-      AttributeNames: ["All"],
+      AttributeNames: [QueueAttributeName.All],
       MaxNumberOfMessages: maxMessages,
       QueueUrl: queueUrl,
     };
@@ -65,5 +66,17 @@ export class SQSHelper extends ServiceHelper<SQSClient> {
     };
     const command = new DeleteMessageCommand(input);
     await this.client.send(command);
+  }
+
+  /**
+   * @description Destroy underlying resources, like sockets as described [here]{@link https://github.com/aws/aws-sdk-js-v3/blob/main/clients/client-sqs/src/SQSClient.ts#L444}
+   */
+  @catchDecorator(SQSServiceException, false)
+  destroy() {
+    logger.debug({
+      label: this.moduleName,
+      message: `cleaning up sqs resources`,
+    });
+    this.client.destroy();
   }
 }

@@ -158,6 +158,7 @@ describe("Deployment Manager", () => {
   const testFailureTolerancePercentage = 10;
   const testSQNotificationThreshold = "80";
   const testSQMonitoringFequency = "rate(12 hours)";
+  const testSQReportOKNotifications = "Yes";
 
   const testStackSetOpsPrefs = {
     RegionConcurrencyType: testConcurrncyType,
@@ -172,6 +173,10 @@ describe("Deployment Manager", () => {
     {
       ParameterKey: "MonitoringFrequency",
       ParameterValue: testSQMonitoringFequency,
+    },
+    {
+      ParameterKey: "ReportOKNotifications",
+      ParameterValue: testSQReportOKNotifications,
     },
   ];
 
@@ -200,6 +205,7 @@ describe("Deployment Manager", () => {
       "" + testFailureTolerancePercentage;
     process.env.SQ_NOTIFICATION_THRESHOLD = testSQNotificationThreshold;
     process.env.SQ_MONITORING_FREQUENCY = testSQMonitoringFequency;
+    process.env.SQ_REPORT_OK_NOTIFICATIONS = testSQReportOKNotifications;
   });
 
   function assertCreateStackInstancesCallOrgIdMode() {

@@ -11,10 +11,12 @@ import {
   QueryCommand,
   GetCommand,
   BatchWriteCommand,
+  ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { catchDecorator } from "./catch";
 import { ServiceHelper } from "./exports";
 import { logger } from "./logger";
+import { ScanCommandOutput } from "@aws-sdk/lib-dynamodb/dist-types/commands/ScanCommand";
 
 /**
  * @description helper class for Event Bridge
@@ -127,5 +129,36 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
       },
     };
     await this.ddbDocClient.send(new BatchWriteCommand(batchWriteParams));
+  }
+
+  /**
+   * @description retrieves enabled service codes using ddb document client
+   * @param tableName - service table name
+   * @returns
+   */
+  @catchDecorator(DynamoDBServiceException, true)
+  async getAllEnabledServices(tableName: string): Promise<string[]> {
+    logger.debug({
+      label: this.moduleName,
+      message: `getting services from from ${tableName}`,
+    });
+    let response: ScanCommandOutput | undefined = undefined;
+    const allItems: string[] = [];
+    do {
+      response = await this.ddbDocClient.send(
+        new ScanCommand({
+          TableName: tableName,
+          ExclusiveStartKey: response ? response.LastEvaluatedKey : undefined,
+        })
+      );
+      if (response.Items) {
+        allItems.push(
+          ...response.Items.filter((item) => item["Monitored"] === true).map(
+            (item) => item["ServiceCode"]
+          )
+        );
+      }
+    } while (response.LastEvaluatedKey);
+    return allItems;
   }
 }

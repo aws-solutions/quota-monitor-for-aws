@@ -65,6 +65,16 @@ export class QuotaMonitorSQSpoke extends Stack {
       allowedValues: ["rate(6 hours)", "rate(12 hours)"],
     });
 
+    const reportOKNotifications = new CfnParameter(
+      this,
+      "ReportOKNotifications",
+      {
+        type: "String",
+        default: "No",
+        allowedValues: ["Yes", "No"],
+      }
+    );
+
     //=============================================================================================
     // Metadata
     //=============================================================================================
@@ -81,7 +91,11 @@ export class QuotaMonitorSQSpoke extends Stack {
             Label: {
               default: "Service Quotas Configuration",
             },
-            Parameters: ["NotificationThreshold", "MonitoringFrequency"],
+            Parameters: [
+              "NotificationThreshold",
+              "MonitoringFrequency",
+              "ReportOKNotifications",
+            ],
           },
         ],
         ParameterLabels: {
@@ -93,6 +107,9 @@ export class QuotaMonitorSQSpoke extends Stack {
           },
           MonitoringFrequency: {
             default: "Frequency to monitor quota utilization",
+          },
+          ReportOKNotifications: {
+            default: "Report OK Notifications",
           },
         },
       },
@@ -271,22 +288,32 @@ export class QuotaMonitorSQSpoke extends Stack {
         __dirname
       )}/../lambda/services/cwPoller/dist/cw-poller.zip`,
       environment: {
+        SQ_SERVICE_TABLE: serviceTable.tableName,
         SQ_QUOTA_TABLE: quotaTable.tableName,
         SPOKE_EVENT_BUS: spokeBus.eventBusName,
         POLLER_FREQUENCY: frequency.valueAsString,
         THRESHOLD: threshold.valueAsString,
+        SQ_REPORT_OK_NOTIFICATIONS: reportOKNotifications.valueAsString,
       },
       memorySize: 512,
       layers: [utilsLayer.layer],
       timeout: Duration.minutes(15),
     });
 
-    // permission to read from the dynamodb table
+    // permission to query the quota table
     cwPoller.target.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: ["dynamodb:Query"],
         resources: [quotaTable.tableArn],
+      })
+    );
+    // permission to scan the service table
+    cwPoller.target.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ["dynamodb:Scan"],
+        resources: [serviceTable.tableArn],
       })
     );
 
@@ -390,12 +417,14 @@ export class QuotaMonitorSQSpoke extends Stack {
     });
 
     /**
-    * app registry application for SQ stack
-    */
+     * app registry application for SQ stack
+     */
 
-    new AppRegistryApplication(this, 'SQSpokeAppRegistryApplication', {
-      appRegistryApplicationName: this.node.tryGetContext("APP_REG_SQ_SPOKE_APPLICATION_NAME"),
-      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-SQ`
+    new AppRegistryApplication(this, "SQSpokeAppRegistryApplication", {
+      appRegistryApplicationName: this.node.tryGetContext(
+        "APP_REG_SQ_SPOKE_APPLICATION_NAME"
+      ),
+      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-SQ`,
     });
 
     // add mode depends on the custom resource so that it fires the lambda function at last
