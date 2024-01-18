@@ -13,7 +13,7 @@ import { SNSPublisher } from "./lib/sns-publish";
 const moduleName = <string>__filename.split("/").pop();
 
 export const handler = async (event: any) => {
-  const eventText = JSON.stringify(event);
+  const eventText = JSON.stringify(event, null, 2);
   logger.debug(`Received event: ${eventText}`);
   const ssm = new SSMHelper();
   const ssmNotificationMutingConfigParamName = <string>(
