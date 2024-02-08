@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added percentage marker on Service Quota notifications
 
 ### Fixed
-- Corrected expiration dates of records in DynamoDb history table
 - Added manual resource cleanup after sqs message consumption
 
 ## [6.2.4] - 2023-11-09
