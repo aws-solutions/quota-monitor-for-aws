@@ -249,7 +249,7 @@ export class QuotaMonitorSQSpoke extends Stack {
     });
     quotaListManager.function.addEventSource(eventSourceMapping);
 
-    // cron schdedule to trigger lambda
+    // Schedule to trigger lambda
     const quotaListManagerScheduleRule = new events.Rule(
       this,
       `QM-ListManagerSchedule`,
@@ -257,7 +257,7 @@ export class QuotaMonitorSQSpoke extends Stack {
         description: `${this.node.tryGetContext(
           "SOLUTION_ID"
         )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-EventsRule`,
-        schedule: events.Schedule.cron({ minute: "0", hour: "0", day: "1" }), // every 1st of the month at 00:00 UTC
+        schedule: events.Schedule.rate(Duration.days(30)),
       }
     );
     quotaListManagerScheduleRule.addTarget(

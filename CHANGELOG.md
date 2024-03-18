@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.6] - 2024-03-18
+
+### Changed
+- First of month schedule for quotaListManager Lambda function changed to every 30 days
+- Add rate limiting delay between listServiceQuota API calls
+- Add page size to Service Quotas API calls
+
+### Fixed
+- GitHub Issue [#183](https://github.com/aws-solutions/quota-monitor-for-aws/issues/183), PR [#147](https://github.com/aws-solutions/quota-monitor-for-aws/pull/47) - fix expiration of DynamoDB records
+
 ## [6.2.5] - 2024-01-08
 
 ### Changed
