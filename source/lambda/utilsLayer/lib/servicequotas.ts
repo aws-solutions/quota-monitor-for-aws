@@ -18,7 +18,7 @@ import { catchDecorator } from "./catch";
 import {
   UnsupportedQuotaException,
 } from "./error";
-import { ServiceHelper } from "./exports";
+import { ServiceHelper, sleep } from "./exports";
 import { logger } from "./logger";
 
 /**
@@ -54,6 +54,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     const paginator = paginateListServices(
       {
         client: this.client,
+        pageSize: 100,
       },
       {}
     );
@@ -81,6 +82,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     const paginator = paginateListServiceQuotas(
       {
         client: this.client,
+        pageSize: 100,
       },
       { ServiceCode: serviceCode }
     );
@@ -94,6 +96,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
           )
         );
       }
+      await sleep(1000);
     }
 
     logger.debug({
