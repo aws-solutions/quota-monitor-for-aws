@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.7] - 2024-06-10
+
+### Fixed
+- Added batching to get getMetricData calls to avoid limits
+- Added quotaCode to metric Ids to avoid duplicate Ids.
+
 ## [6.2.6] - 2024-03-18
 
 ### Changed

@@ -15,9 +15,7 @@ import {
 } from "@aws-sdk/client-service-quotas";
 import { CloudWatchHelper } from "./cloudwatch";
 import { catchDecorator } from "./catch";
-import {
-  UnsupportedQuotaException,
-} from "./error";
+import { UnsupportedQuotaException } from "./error";
 import { ServiceHelper, sleep } from "./exports";
 import { logger } from "./logger";
 
@@ -165,7 +163,8 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     this.validateQuotaHasUsageMetrics(quota);
     const usageQuery = this.generateUsageQuery(
       <MetricInfo>quota.UsageMetric,
-      period
+      period,
+      quota.QuotaCode
     );
     const percentageUsageQuery = this.generatePercentageUtilizationQuery(
       <string>usageQuery.Id
@@ -200,8 +199,12 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
   /**
    * generates a metric query id with a pattern, so that it can be used again
    * @param metricInfo
+   * @param quotaCode
    */
-  public generateMetricQueryId(metricInfo: MetricInfo): string {
+  public generateMetricQueryId(
+    metricInfo: MetricInfo,
+    quotaCode: string | undefined
+  ): string {
     logger.debug({
       label: `generateMetricQueryId/metricInfo`,
       message: JSON.stringify(metricInfo),
@@ -213,7 +216,9 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
       "_" +
       metricInfo.MetricDimensions?.Class.toLowerCase().replace("/", "") +
       "_" +
-      metricInfo.MetricDimensions?.Type.toLowerCase()
+      metricInfo.MetricDimensions?.Type.toLowerCase() +
+      "_" +
+      quotaCode?.toLowerCase().replace("-", "")
     );
   }
 
@@ -221,11 +226,16 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
    * @description get usage query to fetch quota usage
    * @param metricInfo
    * @param period - period to apply metric statistic
+   * @param quotaCode - the code which identifies the quota.
    * @returns
    */
-  private generateUsageQuery(metricInfo: MetricInfo, period: number) {
+  private generateUsageQuery(
+    metricInfo: MetricInfo,
+    period: number,
+    quotaCode: string | undefined
+  ) {
     const usageQuery: MetricDataQuery = {
-      Id: this.generateMetricQueryId(metricInfo),
+      Id: this.generateMetricQueryId(metricInfo, quotaCode),
       MetricStat: {
         Metric: {
           Namespace: metricInfo.MetricNamespace,

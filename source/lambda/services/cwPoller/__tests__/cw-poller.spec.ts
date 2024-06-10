@@ -17,6 +17,7 @@ import {
 } from "solutions-utils";
 import { handler } from "../index";
 import {
+  MetricDataQuery,
   MetricDataResult
 } from "@aws-sdk/client-cloudwatch";
 
@@ -90,15 +91,15 @@ const quota2 = {
   },
 };
 const quotas = [quota1, quota2];
-const usageQuery = {
+const usageQuery: MetricDataQuery = {
   Id: "id",
 };
-const percentageUsageQuery = {
+const percentageUsageQuery: MetricDataQuery = {
   Id: "id",
 };
 const cwQuery = [usageQuery, percentageUsageQuery];
 const metric1: MetricDataResult = {
-  Id: "service1_resource1_none_resource_pct_utilization",
+  Id: "service1_resource1_none_resource_quota1_pct_utilization",
   Label: "data label",
   Values: [100, 81, 10],
   StatusCode: "Complete",
@@ -109,7 +110,7 @@ const metric1: MetricDataResult = {
   ],
 };
 const metric2: MetricDataResult = {
-  Id: "service2_resource2_none_resource_pct_utilization",
+  Id: "service2_resource2_none_resource_quota2_pct_utilization",
   Label: "data label",
   Values: [100, 81, 10],
   StatusCode: "Complete",
@@ -202,8 +203,18 @@ describe("CWPoller", () => {
 
   it("should get cloud watch quota utilization for queries", async () => {
     const dataPoints = await getCWDataForQuotaUtilization([...cwQuery]);
-
+    expect(getMetricDataMock).toHaveBeenCalledTimes(1);
     expect(dataPoints).toEqual([metric1, metric2]);
+  });
+
+  it("should get batch getMetricDatacalls for > 100 quota utilization queries", async () => {
+    const batchQueries: MetricDataQuery[] = [];
+    for (let i = 0; i < 51; i++) {
+      batchQueries.push(...cwQuery);
+    }
+    const dataPoints = await getCWDataForQuotaUtilization(batchQueries);
+    expect(getMetricDataMock).toHaveBeenCalledTimes(2);
+    expect(dataPoints).toEqual([metric1, metric2, metric1, metric2]);
   });
 
   it("should create quota utilization events", () => {
