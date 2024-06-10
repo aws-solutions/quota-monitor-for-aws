@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-PreReq) - quota-monitor-for-aws - Prerequisite Template. Version v6.2.6",
+  "Description": "(SO0005-PreReq) - quota-monitor-for-aws - Prerequisite Template. Version v6.2.7",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -46,13 +46,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.6/asset5d480eb7c2c2531638e536a9194e31181a2c3588c125a6bcb5354eaa1985241c.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.7/asset7329050cee3832f6212a92a5fce5460077fe0906cbd934b55b2c02d0355bd679.zip"
         },
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.5d480eb7c2c2531638e536a9194e31181a2c3588c125a6bcb5354eaa1985241c.zip",
+        "aws:asset:path": "asset.7329050cee3832f6212a92a5fce5460077fe0906cbd934b55b2c02d0355bd679.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -114,7 +114,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.6/asset3e295e81ff03dbd69187be26b11643e4df77b2d70e0de0362aa721120da4218c.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.7/asset533bc497339e9282e5c88eac9c944551a8a0d08efd1441e9d9825b40b769fcb3.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
         "Environment": {
@@ -135,8 +135,8 @@
             },
             "QM_STACK_ID": "quota-monitor-prerequisite",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.6",
-            "VERSION": "v6.2.6",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.7",
+            "VERSION": "v6.2.7",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -161,7 +161,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.3e295e81ff03dbd69187be26b11643e4df77b2d70e0de0362aa721120da4218c.zip",
+        "aws:asset:path": "asset.533bc497339e9282e5c88eac9c944551a8a0d08efd1441e9d9825b40b769fcb3.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -313,7 +313,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.6/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.7/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-prerequisite/QM-Helper/QM-Helper-Provider)",
         "Environment": {
@@ -503,7 +503,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.6/asset9442a50f94ec185a42cbe491f5625c2ea1e479c3a38cd68475447841daa4bb0b.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.7/asset5182e9febebe888146f66b650e9b83695fbbd52b975b475270634bf1fe15b911.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-PreReqManager-Function",
         "Environment": {
@@ -523,8 +523,8 @@
               ]
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.6",
-            "VERSION": "v6.2.6",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.7",
+            "VERSION": "v6.2.7",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -550,7 +550,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Function/Resource",
-        "aws:asset:path": "asset.9442a50f94ec185a42cbe491f5625c2ea1e479c3a38cd68475447841daa4bb0b.zip",
+        "aws:asset:path": "asset.5182e9febebe888146f66b650e9b83695fbbd52b975b475270634bf1fe15b911.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -702,7 +702,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.6/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.7/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Provider)",
         "Environment": {

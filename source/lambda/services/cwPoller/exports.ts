@@ -10,6 +10,7 @@ import {
   EventsHelper,
   ServiceQuotasHelper,
   stringEqualsIgnoreCase,
+  logger,
 } from "solutions-utils";
 
 /**
@@ -104,7 +105,8 @@ export function generateMetricQueryIdMap(quotas: ServiceQuota[]) {
   const dict: MetricQueryIdToQuotaMap = {};
   for (const quota of quotas) {
     const metricQueryId = sq.generateMetricQueryId(
-      <MetricInfo>quota.UsageMetric
+      <MetricInfo>quota.UsageMetric,
+      quota.QuotaCode
     );
     dict[metricQueryId] = quota;
   }
@@ -118,12 +120,41 @@ export function generateMetricQueryIdMap(quotas: ServiceQuota[]) {
  */
 export async function getCWDataForQuotaUtilization(queries: MetricDataQuery[]) {
   const cw = new CloudWatchHelper();
-  const dataPoints = await cw.getMetricData(
-    new Date(Date.now() - getFrequencyInHours() * 60 * 60 * 1000),
-    new Date(),
-    queries
-  );
-  return dataPoints;
+  const BATCH_SIZE = 100;
+  const allDataPoints = [];
+
+  const batchQueries = (queries: MetricDataQuery[]): MetricDataQuery[][] => {
+    const batches: MetricDataQuery[][] = [];
+
+    while (queries.length > 0) {
+      batches.push(queries.splice(0, BATCH_SIZE));
+    }
+
+    return batches;
+  };
+
+  const batches = batchQueries(queries);
+
+  for (const batch of batches) {
+    try {
+      const dataPoints = await cw.getMetricData(
+        new Date(Date.now() - getFrequencyInHours() * 60 * 60 * 1000),
+        new Date(),
+        batch
+      );
+      allDataPoints.push(...dataPoints);
+    } catch (error) {
+      if (error.name === "CloudWatchServiceException") {
+        logger.error(
+          `Error occurred while getting metric data: ${error.message}`
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  return allDataPoints;
 }
 
 /**
