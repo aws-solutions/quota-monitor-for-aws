@@ -1,6 +1,6 @@
 {
   "name": "pre-req-manager",
-  "version": "6.2.7",
+  "version": "6.2.8",
   "description": "microservice to validate pre-requisites for using quota monitor",
   "main": "./index.js",
   "author": {
