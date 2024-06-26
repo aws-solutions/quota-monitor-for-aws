@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor-for-aws",
-  "version": "6.2.7",
+  "version": "6.2.8",
   "description": "Quota Monitor for AWS",
   "author": "aws-solutions",
   "license": "Apache-2.0",
