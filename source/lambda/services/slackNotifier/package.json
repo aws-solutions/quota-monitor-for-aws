@@ -7,10 +7,10 @@
     "url": "https://aws.amazon.com/solutions"
   },
   "license": "Apache-2.0",
-  "version": "6.2.8",
+  "version": "6.2.9",
   "private": "true",
   "dependencies": {
-    "@aws-sdk/client-ssm": "^3.110.0",
+    "@aws-sdk/client-ssm": "^3.621.0",
     "https": "^1.0.0",
     "url": "^0.11.0"
   },

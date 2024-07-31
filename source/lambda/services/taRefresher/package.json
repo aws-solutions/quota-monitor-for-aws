@@ -7,7 +7,7 @@
     "url": "https://aws.amazon.com/solutions"
   },
   "license": "Apache-2.0",
-  "version": "6.2.8",
+  "version": "6.2.9",
   "private": "true",
   "devDependencies": {
     "@types/jest": "^29.5.11",
