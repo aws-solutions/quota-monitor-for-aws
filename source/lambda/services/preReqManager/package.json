@@ -1,6 +1,6 @@
 {
   "name": "pre-req-manager",
-  "version": "6.2.8",
+  "version": "6.2.9",
   "description": "microservice to validate pre-requisites for using quota monitor",
   "main": "./index.js",
   "author": {
@@ -9,7 +9,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@aws-sdk/client-organizations": "^3.110.0",
+    "@aws-sdk/client-organizations": "^3.621.0",
     "got": "^11.8.6",
     "winston": "^3.10.0"
   },
