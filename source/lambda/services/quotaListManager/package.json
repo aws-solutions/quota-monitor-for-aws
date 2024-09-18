@@ -1,6 +1,6 @@
 {
   "name": "quota-list-manager",
-  "version": "6.2.9",
+  "version": "6.2.10",
   "description": "microservice to manage quota list to monitor",
   "main": "./index.js",
   "author": {
