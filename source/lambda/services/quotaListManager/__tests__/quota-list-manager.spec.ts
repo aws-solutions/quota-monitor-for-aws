@@ -20,6 +20,7 @@ const getItemMock = jest.fn();
 const putItemMock = jest.fn();
 const queryQuotasForServiceMock = jest.fn();
 const batchDeleteMock = jest.fn();
+const batchWriteMock = jest.fn();
 const getServiceCodesMock = jest.fn();
 const getQuotaListMock = jest.fn();
 const getQuotasWithUtilizationMetricsMock = jest.fn();
@@ -36,6 +37,7 @@ jest.mock("solutions-utils", () => {
         putItem: putItemMock,
         queryQuotasForService: queryQuotasForServiceMock,
         batchDelete: batchDeleteMock,
+        batchWrite: batchWriteMock,
       };
     },
     ServiceQuotasHelper: function () {
@@ -275,7 +277,25 @@ describe("Quota List Manager Exports", () => {
 
     expect(getQuotaListMock).toHaveBeenCalledTimes(1);
     expect(getQuotasWithUtilizationMetricsMock).toHaveBeenCalledTimes(1);
-    expect(putItemMock).toHaveBeenCalledTimes(2);
+    expect(batchWriteMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle more than 25 quotas by calling batchWrite multiple times", async () => {
+    // Create an array of 30 quotas
+    const largeQuotaList = Array.from({ length: 30 }, (_, index) => ({
+      QuotaName: `Quota ${index + 1}`,
+      UsageMetric: {
+        MetricNamespace: "AWS/Usage",
+      },
+      Monitored: index % 2 === 0,
+    }));
+
+    getQuotaListMock.mockResolvedValueOnce(largeQuotaList);
+    getQuotasWithUtilizationMetricsMock.mockResolvedValueOnce(largeQuotaList);
+
+    await putQuotasForService("ec2");
+
+    expect(batchWriteMock).toHaveBeenCalledTimes(2);
   });
 
   it("should put nothing if no quotas returned", async () => {
@@ -298,24 +318,23 @@ describe("Quota List Manager Exports", () => {
   it("should handle Dynamo DB Stream INSERT Event", async () => {
     await handleDynamoDBStreamEvent(insertEvent);
     expect(batchDeleteMock).toHaveBeenCalledTimes(0);
-    expect(putItemMock).toHaveBeenCalledTimes(2);
+    expect(batchWriteMock).toHaveBeenCalledTimes(1);
   });
 
   it("should handle Dynamo DB Stream MODIFY Event", async () => {
     await handleDynamoDBStreamEvent(modifyEvent);
     expect(batchDeleteMock).toHaveBeenCalledTimes(1);
-    expect(putItemMock).toHaveBeenCalledTimes(2);
+    expect(batchWriteMock).toHaveBeenCalledTimes(1);
   });
 
   it("should handle Dynamo DB Stream DELETE Event", async () => {
     await handleDynamoDBStreamEvent(removeEvent);
     expect(batchDeleteMock).toHaveBeenCalledTimes(1);
-    expect(putItemMock).toHaveBeenCalledTimes(0);
+    expect(batchWriteMock).toHaveBeenCalledTimes(0);
   });
 });
 
 describe("Handler", () => {
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -363,7 +382,7 @@ describe("Handler", () => {
   it("should handle a dynamo db stream event", async () => {
     await handler(insertEvent);
     expect(batchDeleteMock).toHaveBeenCalledTimes(0);
-    expect(putItemMock).toHaveBeenCalledTimes(2);
+    expect(batchWriteMock).toHaveBeenCalledTimes(1);
   });
 
   it("should should handle a scheduled event", async () => {

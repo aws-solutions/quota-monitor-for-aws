@@ -11,10 +11,11 @@ import {
   QueryCommand,
   GetCommand,
   BatchWriteCommand,
+  BatchWriteCommandOutput,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { catchDecorator } from "./catch";
-import { ServiceHelper } from "./exports";
+import { ServiceHelper, sleep } from "./exports";
 import { logger } from "./logger";
 import { ScanCommandOutput } from "@aws-sdk/lib-dynamodb/dist-types/commands/ScanCommand";
 
@@ -59,6 +60,42 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
   }
 
   /**
+   * @description Executes a BatchWrite command using DynamoDB document client with retries
+   * @param tableName
+   * @param writeRequests An array of write requests (PutRequest or DeleteRequest)
+   */
+  @catchDecorator(DynamoDBServiceException, true)
+  async batchWrite(
+    tableName: string,
+    writeRequests: any[]
+  ): Promise<{ success: boolean; result: BatchWriteCommandOutput }> {
+    const maxRetries = 5;
+    let retries = 0;
+    let result: BatchWriteCommandOutput;
+    do {
+      const params = {
+        RequestItems: {
+          [tableName]: writeRequests,
+        },
+      };
+      result = await this.ddbDocClient.send(new BatchWriteCommand(params));
+      writeRequests = result.UnprocessedItems?.[tableName] || [];
+      if (writeRequests.length === 0) {
+        return { success: true, result }; // All items processed successfully
+      }
+      retries++;
+      if (retries < maxRetries) {
+        await sleep(2 ** retries * 1000 + 1000); // Exponential backoff
+      }
+    } while (retries < maxRetries);
+    logger.warn({
+      label: this.moduleName,
+      message: `Failed to process ${writeRequests.length} items after ${maxRetries} attempts.`,
+    });
+    return { success: false, result };
+  }
+
+  /**
    * @descrition get item from table
    * @param tableName
    * @param key
@@ -90,10 +127,7 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
    * @returns
    */
   @catchDecorator(DynamoDBServiceException, false)
-  async queryQuotasForService(
-    tableName: string,
-    serviceCode: string
-  ) {
+  async queryQuotasForService(tableName: string, serviceCode: string) {
     logger.debug({
       label: this.moduleName,
       message: `getting quota items from ${tableName} for ${serviceCode}`,

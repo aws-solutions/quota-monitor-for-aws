@@ -1,6 +1,6 @@
 {
   "name": "deployment-manager",
-  "version": "6.2.10",
+  "version": "6.2.11",
   "description": "microservice to manage event bridge permission and stackset deployments",
   "main": "./index.js",
   "author": {

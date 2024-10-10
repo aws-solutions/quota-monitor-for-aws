@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-NoOU) - quota-monitor-for-aws - Hub Template, use it when you are not using AWS Organizations. Version v6.2.10",
+  "Description": "(SO0005-NoOU) - quota-monitor-for-aws - Hub Template, use it when you are not using AWS Organizations. Version v6.2.11",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -426,13 +426,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.10/asset1e5ab6025276fcc3e6ff740dd041b66a031e8ea5333156b11f857c21344123be.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.11/asset11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip"
         },
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub-no-ou/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.1e5ab6025276fcc3e6ff740dd041b66a031e8ea5333156b11f857c21344123be.zip",
+        "aws:asset:path": "asset.11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -738,7 +738,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.10/asset511409fc0366210c33b85f0ad18cce8fc021188d38be5a6d9f77b1d3bc50c762.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.11/asset7ac08df917158d6dd06a4ad585fb1297c04d8abaaebdbfd2406468890bbd116a.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -762,8 +762,8 @@
               "Ref": "QMNotificationMutingConfig3B7948BA"
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.10",
-            "VERSION": "v6.2.10",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
+            "VERSION": "v6.2.11",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -795,7 +795,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub-no-ou/QM-SlackNotifier/QM-SlackNotifier-Lambda/Resource",
-        "aws:asset:path": "asset.511409fc0366210c33b85f0ad18cce8fc021188d38be5a6d9f77b1d3bc50c762.zip",
+        "aws:asset:path": "asset.7ac08df917158d6dd06a4ad585fb1297c04d8abaaebdbfd2406468890bbd116a.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -1132,7 +1132,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.10/asset39fed3f3ef15929e86dbb4adb2cedc9936e6f8d8d6c4d36a36afb1fb672bad30.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.11/assetc7d0a18c007f94e3ee2cc35273b6a455312835f2ec08fa32e1395e13b0ae78e8.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -1152,8 +1152,8 @@
               "Ref": "QMSNSPublisherQMSNSPublisherSNSTopic7EE2EBF4"
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.10",
-            "VERSION": "v6.2.10",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
+            "VERSION": "v6.2.11",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -1185,7 +1185,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub-no-ou/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda/Resource",
-        "aws:asset:path": "asset.39fed3f3ef15929e86dbb4adb2cedc9936e6f8d8d6c4d36a36afb1fb672bad30.zip",
+        "aws:asset:path": "asset.c7d0a18c007f94e3ee2cc35273b6a455312835f2ec08fa32e1395e13b0ae78e8.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -1653,7 +1653,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.10/asset5561b97fd3032d7e19e054a74e4f71bca7b00b472518e54bad31997d19da155e.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.11/asset3214e803bdf3b3311d409c896a5cc335cb056428c232c86da8c38175b6b0b79e.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -1675,8 +1675,8 @@
             "MAX_MESSAGES": "10",
             "MAX_LOOPS": "10",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.10",
-            "VERSION": "v6.2.10",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
+            "VERSION": "v6.2.11",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -1708,7 +1708,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub-no-ou/QM-Reporter/QM-Reporter-Lambda/Resource",
-        "aws:asset:path": "asset.5561b97fd3032d7e19e054a74e4f71bca7b00b472518e54bad31997d19da155e.zip",
+        "aws:asset:path": "asset.3214e803bdf3b3311d409c896a5cc335cb056428c232c86da8c38175b6b0b79e.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -2049,7 +2049,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.10/assetbb68cb4f34d4ed07b192d377fe63639f69cdc51621b10ce6dc3e4530796c766d.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.11/asset5a81c4fb5c63f552f9d49c541884c214130c866132af0414ab4c7b3394fb57da.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -2076,8 +2076,8 @@
             },
             "DEPLOYMENT_MODEL": "Accounts",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.10",
-            "VERSION": "v6.2.10",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
+            "VERSION": "v6.2.11",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -2109,7 +2109,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub-no-ou/QM-Deployment-Manager/QM-Deployment-Manager-Lambda/Resource",
-        "aws:asset:path": "asset.bb68cb4f34d4ed07b192d377fe63639f69cdc51621b10ce6dc3e4530796c766d.zip",
+        "aws:asset:path": "asset.5a81c4fb5c63f552f9d49c541884c214130c866132af0414ab4c7b3394fb57da.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -2200,7 +2200,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.10/assetf22ec29a5d58ba911e7f022e02c0b1b1e643bdd86f018f8c923bde82b105d807.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.11/asset310b0a91abddfe8f7d3bfae3a5e7abd8562241a7c7bb419dfb838ef991cd57f2.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
         "Environment": {
@@ -2221,8 +2221,8 @@
             },
             "QM_STACK_ID": "quota-monitor-hub-no-ou",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.10",
-            "VERSION": "v6.2.10",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
+            "VERSION": "v6.2.11",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -2247,7 +2247,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub-no-ou/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.f22ec29a5d58ba911e7f022e02c0b1b1e643bdd86f018f8c923bde82b105d807.zip",
+        "aws:asset:path": "asset.310b0a91abddfe8f7d3bfae3a5e7abd8562241a7c7bb419dfb838ef991cd57f2.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -2399,7 +2399,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.10/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.2.11/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-hub-no-ou/QM-Helper/QM-Helper-Provider)",
         "Environment": {
@@ -2509,7 +2509,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-NoOU",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.10"
+          "SolutionVersion": "v6.2.11"
         }
       },
       "Metadata": {
@@ -2522,7 +2522,7 @@
         "Attributes": {
           "solutionID": "SO0005-NoOU",
           "solutionName": "quota-monitor-for-aws",
-          "version": "v6.2.10",
+          "version": "v6.2.11",
           "applicationType": "AWS-Solutions"
         },
         "Description": "Attribute group for application information",
@@ -2544,7 +2544,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-NoOU",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.10"
+          "SolutionVersion": "v6.2.11"
         }
       },
       "Metadata": {

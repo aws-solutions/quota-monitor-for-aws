@@ -14,6 +14,13 @@ import {
   QueryCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { sleep } from "../lib/exports";
+
+// Mock the sleep function to speed up tests
+jest.mock("../lib/exports", () => ({
+  ...jest.requireActual("../lib/exports"),
+  sleep: jest.fn(),
+}));
 
 describe("Dynamo DB", () => {
   const ddbMock = mockClient(DynamoDBClient);
@@ -125,5 +132,54 @@ describe("Dynamo DB", () => {
     const response = await ddbHelper.getAllEnabledServices(tableName);
     expect(response).toEqual(["ec2", "lambda"]);
     expect(ddbDocMock).toHaveReceivedCommandTimes(ScanCommand, 2);
+  });
+
+  describe("batchWrite", () => {
+    it("should successfully write all items on first attempt", async () => {
+      ddbDocMock.on(BatchWriteCommand).resolves({ UnprocessedItems: {} });
+      const writeRequests = [
+        { PutRequest: { Item: { id: "1", data: "test1" } } },
+        { PutRequest: { Item: { id: "2", data: "test2" } } },
+      ];
+      await ddbHelper.batchWrite(tableName, writeRequests);
+      expect(ddbDocMock).toHaveReceivedCommandTimes(BatchWriteCommand, 1);
+      expect(sleep).not.toHaveBeenCalled();
+    });
+
+    it("should retry unprocessed items and succeed", async () => {
+      ddbDocMock
+        .on(BatchWriteCommand)
+        .resolvesOnce({
+          UnprocessedItems: {
+            [tableName]: [{ PutRequest: { Item: { id: "2", data: "test2" } } }],
+          },
+        })
+        .resolvesOnce({ UnprocessedItems: {} });
+      const writeRequests = [
+        { PutRequest: { Item: { id: "1", data: "test1" } } },
+        { PutRequest: { Item: { id: "2", data: "test2" } } },
+      ];
+      await ddbHelper.batchWrite(tableName, writeRequests);
+      expect(ddbDocMock).toHaveReceivedCommandTimes(BatchWriteCommand, 2);
+      expect(sleep).toHaveBeenCalledTimes(1);
+    });
+
+    it("should retry up to max attempts", async () => {
+      const unprocessedItem = {
+        PutRequest: { Item: { id: "2", data: "test2" } },
+      };
+      ddbDocMock.on(BatchWriteCommand).resolves({
+        UnprocessedItems: {
+          [tableName]: [unprocessedItem],
+        },
+      });
+      const writeRequests = [
+        { PutRequest: { Item: { id: "1", data: "test1" } } },
+        unprocessedItem,
+      ];
+      await ddbHelper.batchWrite(tableName, writeRequests);
+      expect(ddbDocMock).toHaveReceivedCommandTimes(BatchWriteCommand, 5);
+      expect(sleep).toHaveBeenCalledTimes(5);
+    });
   });
 });
