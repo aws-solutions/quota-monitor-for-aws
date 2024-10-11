@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor",
-  "version": "6.2.10",
+  "version": "6.2.11",
   "description": "cdk resources to provision needed infrastructure",
   "author": {
     "name": "Amazon Web Services",

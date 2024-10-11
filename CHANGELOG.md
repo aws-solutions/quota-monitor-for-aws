@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.11] - 2024-10-10
+
+### Changed
+- Add batching to getQuotasWithUtilizationMetrics function
+- Refactor _putMonitoredQuotas function to use batch writes
+- Changed the memory allocation for the QMListManager Lambda function to 256 MB
+- Added better error handling for CloudWatch ValidationErrors, with attempt to identify problematic quotas
+
+### Fixed
+- GitHub Issues [#200](https://github.com/aws-solutions/quota-monitor-for-aws/issues/200) and [#201](https://github.com/aws-solutions/quota-monitor-for-aws/issues/201)
+
 ## [6.2.10] - 2024-09-18
 
 ### Fixed

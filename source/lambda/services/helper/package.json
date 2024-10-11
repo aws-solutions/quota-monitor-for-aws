@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor-helper",
-  "version": "6.2.10",
+  "version": "6.2.11",
   "description": "microservice with helper modules for quota monitor solution",
   "author": {
     "name": "Amazon Web Services",

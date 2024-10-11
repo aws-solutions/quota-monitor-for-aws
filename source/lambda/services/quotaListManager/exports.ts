@@ -203,11 +203,38 @@ async function _getQuotasWithUtilizationMetrics(serviceCode: string) {
  */
 async function _putMonitoredQuotas(quotas: ServiceQuota[], table: string) {
   const ddb = new DynamoDBHelper();
-  await Promise.allSettled(
-    quotas.map(async (quota) => {
-      await ddb.putItem(table, quota);
-    })
-  );
+  const BATCH_SIZE = 25; // DynamoDB allows up to 25 items per BatchWriteItem operation
+
+  for (let i = 0; i < quotas.length; i += BATCH_SIZE) {
+    const batch = quotas.slice(i, i + BATCH_SIZE);
+    const writeRequests = batch.map((quota) => ({
+      PutRequest: {
+        Item: quota,
+      },
+    }));
+
+    try {
+      const { success, result } = await ddb.batchWrite(table, writeRequests);
+      if (success) {
+        logger.info({
+          label: `${MODULE_NAME}/_putMonitoredQuotas`,
+          message: "All items processed successfully",
+        });
+      } else {
+        logger.warn({
+          label: `${MODULE_NAME}/_putMonitoredQuotas`,
+          message: `Some items were not processed: ${JSON.stringify(
+            result.UnprocessedItems
+          )}`,
+        });
+      }
+    } catch (error) {
+      logger.error({
+        label: `${MODULE_NAME}/_putMonitoredQuotas`,
+        message: `Error batch writing to DynamoDB: ${error}`,
+      });
+    }
+  }
 }
 
 /**

@@ -205,6 +205,7 @@ export class QuotaMonitorSQSpoke extends Stack {
         PARTITION_KEY: SERVICE_TABLE.PartitionKey,
         SORT: QUOTA_TABLE.SortKey,
       },
+      memorySize: 256,
       layers: [utilsLayer.layer],
       timeout: Duration.minutes(15),
     });

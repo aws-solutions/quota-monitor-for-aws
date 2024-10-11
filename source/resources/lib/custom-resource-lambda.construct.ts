@@ -50,7 +50,7 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
         "SOLUTION_ID"
       )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-Function`,
       code: lambda.Code.fromAsset(<string>props.assetLocation),
-      memorySize: 128,
+      memorySize: props.memorySize || 128,
       timeout: props.timeout ? props.timeout : Duration.seconds(5),
       handler: "index.handler",
       runtime: LAMBDA_RUNTIME_NODE,

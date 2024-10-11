@@ -116,35 +116,235 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
   ) {
     logger.debug({
       label: this.moduleName,
-      message: `getting quotas that support utilization metrics`,
+      message: `Starting to process ${quotas.length} quotas for ${serviceCode}`,
     });
-    if (quotas.length === 0) {
-      logger.info({
-        label: this.moduleName,
-        message: `no quotas found for ${serviceCode}`,
-      });
-      return [];
-    }
-
     const cw = new CloudWatchHelper();
+    const BATCH_SIZE = 100;
     const validatedQuotas: ServiceQuota[] = [];
-    await Promise.allSettled(
-      quotas.map(async (quota) => {
-        const queries = this.generateCWQuery(quota, 300);
-        await cw.getMetricData(
-          new Date(Date.now() - 15 * 60 * 1000), // fetch 15 minute data, validates if quota supports utilization monitoring
-          new Date(),
-          queries
-        );
-        validatedQuotas.push(quota);
-      })
-    );
-
+    let batchCount = 0;
+    for (let i = 0; i < quotas.length; i += BATCH_SIZE) {
+      batchCount++;
+      const batch = quotas.slice(i, i + BATCH_SIZE);
+      await this.processBatch(
+        batch,
+        validatedQuotas,
+        cw,
+        batchCount,
+        serviceCode
+      );
+      await sleep(1000);
+    }
     logger.debug({
       label: this.moduleName,
-      message: `validated quotas: ${JSON.stringify(validatedQuotas)}`,
+      message: `Finished processing ${quotas.length} quotas for ${serviceCode}. Validated ${validatedQuotas.length} quotas.`,
     });
     return validatedQuotas;
+  }
+  /**
+   * @description Processes a batch of service quotas to validate their utilization monitoring support.
+   * @param batch An array of ServiceQuota objects to process.
+   * @param validatedQuotas An array to store the validated quotas.
+   * @param cw CloudWatchHelper instance for making CloudWatch API calls.
+   * @param batchCount The current batch number for logging purposes.
+   * @param serviceCode The service code for the current batch, used for logging.
+   */
+  private async processBatch(
+    batch: ServiceQuota[],
+    validatedQuotas: ServiceQuota[],
+    cw: CloudWatchHelper,
+    batchCount: number,
+    serviceCode?: string,
+    retryCount: number = 0
+  ) {
+    const queries = this.generateCWQueriesForQuotas(batch);
+    if (queries.length === 0) {
+      logger.debug({
+        label: this.moduleName,
+        message: `Batch ${batchCount} for ${serviceCode}: No valid queries, skipping`,
+      });
+      return;
+    }
+    try {
+      await cw.getMetricData(
+        new Date(Date.now() - 15 * 60 * 1000),
+        new Date(),
+        queries
+      );
+      validatedQuotas.push(...batch);
+      logger.debug({
+        label: this.moduleName,
+        message: `Successfully processed Batch ${batchCount} for ${serviceCode}:`,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "ValidationError") {
+        await this.handleValidationError(
+          error,
+          batch,
+          validatedQuotas,
+          cw,
+          batchCount,
+          serviceCode,
+          retryCount
+        );
+      } else {
+        logger.error({
+          label: this.moduleName,
+          message: `Error processing batch ${batchCount} for ${serviceCode}: ${error}`,
+        });
+      }
+    }
+  }
+
+  /**
+   * @description Handles validation errors encountered during batch processing of service quotas.
+   * @param error The error object thrown during validation.
+   * @param batch The batch of ServiceQuota objects being processed when the error occurred.
+   * @param validatedQuotas An array to store the validated quotas.
+   * @param cw CloudWatchHelper instance for making CloudWatch API calls.
+   * @param batchCount The current batch number for logging purposes.
+   * @param serviceCode The service code for the current batch, used for logging.
+   */
+  private async handleValidationError(
+    error: Error,
+    batch: ServiceQuota[],
+    validatedQuotas: ServiceQuota[],
+    cw: CloudWatchHelper,
+    batchCount: number,
+    serviceCode?: string,
+    retryCount: number = 0
+  ) {
+    logger.warn({
+      label: this.moduleName,
+      message: `Batch ${batchCount} for ${serviceCode}: Error validating quotas: ${error.message}`,
+    });
+    const MAX_RETRIES = 5;
+    const problematicMetric = this.extractProblematicMetric(error.message);
+    logger.debug({
+      label: this.moduleName,
+      message: `Extracted problematic metric: ${problematicMetric}`,
+    });
+    if (problematicMetric) {
+      const { problematicQuota, updatedBatch } = this.removeProblematicQuota(
+        batch,
+        problematicMetric
+      );
+      // Log the skipping of the problematic quota and process the updated batch
+      if (problematicQuota) {
+        logger.info({
+          label: this.moduleName,
+          message: `Since Quota ${problematicQuota.QuotaCode} for ${serviceCode} is not compatible with SERVICE_QUOTA() function, removing it and retrying the batch.`,
+        });
+        if (updatedBatch.length > 0 && retryCount < MAX_RETRIES) {
+          logger.info({
+            label: this.moduleName,
+            message: `Retrying batch ${batchCount} for ${serviceCode} with ${
+              updatedBatch.length
+            } remaining quotas. Retry attempt ${
+              retryCount + 1
+            } of ${MAX_RETRIES}`,
+          });
+          await this.processBatch(
+            updatedBatch,
+            validatedQuotas,
+            cw,
+            batchCount,
+            serviceCode,
+            retryCount + 1
+          );
+        } else {
+          logger.warn({
+            label: this.moduleName,
+            message: `Max retries reached or no progress made. Skipping remaining quotas in this batch for ${serviceCode}.`,
+          });
+        }
+      } else {
+        logger.warn({
+          label: this.moduleName,
+          message: `Could not identify a problematic quota to remove. Skipping remaining quotas in this batch for ${serviceCode}.`,
+        });
+      }
+    } else {
+      logger.warn({
+        label: this.moduleName,
+        message: `Unable to extract problematic metric. Skipping remaining quotas in this batch for ${serviceCode}.`,
+      });
+    }
+  }
+
+  /**
+   * @description Extracts the problematic metric identifier from an error message.
+   * @param errorMessage The error message string to parse.
+   * @returns The extracted metric identifier, or null if not found.
+   */
+  private extractProblematicMetric(errorMessage: string): string | null {
+    // This regex pattern is designed to safely extract metric names while preventing potential DoS attacks
+    // caused by catastrophic backtracking.
+    const MAX_LENGTH = 1000;
+    if (errorMessage.length > MAX_LENGTH) {
+      logger.warn({
+        label: this.moduleName,
+        message: `Error message exceeds maximum length of ${MAX_LENGTH} characters. Truncating.`,
+      });
+      errorMessage = errorMessage.slice(0, MAX_LENGTH);
+    }
+
+    const pattern = /\b([a-z0-9]+(?:_[a-z0-9]+){4,5}(?:_pct_utilization)?)\b/;
+    const match = errorMessage.match(pattern);
+
+    return match && match[1] ? match[1] : null;
+  }
+
+  /**
+   * @description Removes a problematic quota from a batch based on the problematic metric.
+   * @param batch An array of ServiceQuota objects to search.
+   * @param problematicMetric The identifier of the problematic metric.
+   * @returns An object containing the problematic quota (if found) and the updated batch without it.
+   */
+  private removeProblematicQuota(
+    batch: ServiceQuota[],
+    problematicMetric: string
+  ): {
+    problematicQuota: ServiceQuota | undefined;
+    updatedBatch: ServiceQuota[];
+  } {
+    const problematicQuota = batch.find(
+      (q) =>
+        q.UsageMetric &&
+        (this.generateMetricQueryId(q.UsageMetric, q.QuotaCode) ===
+          problematicMetric ||
+          `${this.generateMetricQueryId(
+            q.UsageMetric,
+            q.QuotaCode
+          )}_pct_utilization` === problematicMetric)
+    );
+    const updatedBatch = batch.filter(
+      (q) =>
+        q.UsageMetric &&
+        this.generateMetricQueryId(q.UsageMetric, q.QuotaCode) !==
+          problematicMetric &&
+        `${this.generateMetricQueryId(
+          q.UsageMetric,
+          q.QuotaCode
+        )}_pct_utilization` !== problematicMetric
+    );
+    return { problematicQuota, updatedBatch };
+  }
+
+  /**
+   * @description Generates CloudWatch metric data queries for quotas that have usage metrics
+   * @param quotas An array of ServiceQuota objects to generate queries for
+   * @returns An array of MetricDataQuery objects for CloudWatch
+   */
+  private generateCWQueriesForQuotas(
+    quotas: ServiceQuota[]
+  ): MetricDataQuery[] {
+    const queries: MetricDataQuery[] = [];
+    for (const quota of quotas) {
+      if (quota.UsageMetric) {
+        queries.push(...this.generateCWQuery(quota, 300));
+      }
+    }
+    return queries;
   }
 
   /**
@@ -209,17 +409,28 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
       label: `generateMetricQueryId/metricInfo`,
       message: JSON.stringify(metricInfo),
     });
-    return (
-      metricInfo.MetricDimensions?.Service.toLowerCase() +
-      "_" +
-      metricInfo.MetricDimensions?.Resource.toLowerCase() +
-      "_" +
-      metricInfo.MetricDimensions?.Class.toLowerCase().replace("/", "") +
-      "_" +
-      metricInfo.MetricDimensions?.Type.toLowerCase() +
-      "_" +
-      quotaCode?.toLowerCase().replace("-", "")
-    );
+    const service = (metricInfo.MetricDimensions?.Service || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "");
+    const resource = (metricInfo.MetricDimensions?.Resource || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "");
+    const classValue = (metricInfo.MetricDimensions?.Class || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "");
+    const type = (metricInfo.MetricDimensions?.Type || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, "");
+    const code = (quotaCode || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+
+    const metricQueryId = `${service}_${resource}_${classValue}_${type}_${code}`;
+
+    logger.debug({
+      label: `generateMetricQueryId/result`,
+      message: `Generated MetricQueryId: ${metricQueryId}`,
+    });
+
+    return metricQueryId;
   }
 
   /**
