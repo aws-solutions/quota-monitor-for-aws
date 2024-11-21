@@ -4,11 +4,7 @@
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
 
-import {
-  EC2Client,
-  DescribeRegionsCommand,
-  EC2ServiceException,
-} from "@aws-sdk/client-ec2";
+import { EC2Client, DescribeRegionsCommand, EC2ServiceException } from "@aws-sdk/client-ec2";
 import { EC2Helper } from "../lib/ec2";
 
 describe("EC2 Helper", () => {

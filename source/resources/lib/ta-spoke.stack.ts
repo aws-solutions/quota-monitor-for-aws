@@ -6,13 +6,13 @@ import {
   aws_events as events,
   App,
   CfnParameter,
-  CfnMapping,
   CfnOutput,
   Stack,
   aws_events_targets as targets,
   StackProps,
 } from "aws-cdk-lib";
 import * as path from "path";
+import { addCfnGuardSuppression } from "./cfn-guard-utils";
 import { EventsToLambda } from "./events-lambda.construct";
 import { TA_CHECKS_SERVICES } from "./exports";
 import { Layer } from "./lambda-layer.construct";
@@ -24,12 +24,17 @@ import { AppRegistryApplication } from "./app-registry-application";
  * The stack should be deployed in the spoke accounts
  * @author aws-solutions
  */
+
+interface QuotaMonitorTASpokeProps extends StackProps {
+  targetPartition: "Commercial" | "China";
+}
+
 export class QuotaMonitorTASpoke extends Stack {
   /**
    * @param {App} scope - parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props?: StackProps) {
+  constructor(scope: App, id: string, props: QuotaMonitorTASpokeProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -39,11 +44,12 @@ export class QuotaMonitorTASpoke extends Stack {
       type: "String",
     });
 
-    //=============================================================================================
-    // Mapping & Conditions
-    //=============================================================================================
-    const map = new CfnMapping(this, "QuotaMonitorMap");
-    map.setValue("RefreshRate", "Default", "rate(1 day)");
+    const taRefreshRate = new CfnParameter(this, "TARefreshRate", {
+      type: "String",
+      default: "rate(12 hours)",
+      allowedValues: ["rate(6 hours)", "rate(12 hours)", "rate(1 day)"],
+      description: "The rate at which to refresh Trusted Advisor checks",
+    });
 
     //=============================================================================================
     // Metadata
@@ -57,21 +63,26 @@ export class QuotaMonitorTASpoke extends Stack {
             },
             Parameters: ["EventBusArn"],
           },
+          {
+            Label: {
+              default: "Refresh Configuration",
+            },
+            Parameters: ["TARefreshRate"],
+          },
         ],
         ParameterLabels: {
           EventBusArn: {
             default: "Arn for the EventBridge bus in the monitoring account",
           },
+          TARefreshRate: {
+            default: "Trusted Advisor Refresh Rate",
+          },
         },
       },
     };
-    this.templateOptions.description = `(${this.node.tryGetContext(
-      "SOLUTION_ID"
-    )}-TA) - ${this.node.tryGetContext(
+    this.templateOptions.description = `(${this.node.tryGetContext("SOLUTION_ID")}-TA) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} - Trusted Advisor Template. Version ${this.node.tryGetContext(
-      "SOLUTION_VERSION"
-    )}`;
+    )} - Trusted Advisor Template. Version ${this.node.tryGetContext("SOLUTION_VERSION")}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================
@@ -81,11 +92,7 @@ export class QuotaMonitorTASpoke extends Stack {
     /**
      * @description primary event bus to send events to
      */
-    const primaryEventBus = events.EventBus.fromEventBusArn(
-      this,
-      "QM-EventBus",
-      eventBusArn.valueAsString
-    );
+    const primaryEventBus = events.EventBus.fromEventBusArn(this, "QM-EventBus", eventBusArn.valueAsString);
     const target = new targets.EventBus(primaryEventBus);
 
     /**
@@ -163,22 +170,15 @@ export class QuotaMonitorTASpoke extends Stack {
     /**
      * @description event-lambda construct for refreshing TA checks
      */
-    const refresher = new EventsToLambda<events.Schedule>(
-      this,
-      "QM-TA-Refresher",
-      {
-        eventRule: events.Schedule.expression(
-          map.findInMap("RefreshRate", "Default")
-        ),
-        assetLocation: `${path.dirname(
-          __dirname
-        )}/../lambda/services/taRefresher/dist/ta-refresher.zip`,
-        environment: {
-          AWS_SERVICES: TA_CHECKS_SERVICES.join(","),
-        },
-        layers: [utilsLayer.layer],
-      }
-    );
+    const refresher = new EventsToLambda<events.Schedule>(this, "QM-TA-Refresher", {
+      eventRule: events.Schedule.expression(taRefreshRate.valueAsString),
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/taRefresher/dist/ta-refresher.zip`,
+      environment: {
+        AWS_SERVICES: TA_CHECKS_SERVICES.join(","),
+      },
+      layers: [utilsLayer.layer],
+    });
+    addCfnGuardSuppression(refresher.target, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     // permission to refresh TA checks
     refresher.target.addToRolePolicy(
@@ -188,15 +188,17 @@ export class QuotaMonitorTASpoke extends Stack {
         resources: ["*"], // does not allow resource-level permissions
       })
     );
-  
-    /**
-    * app registry application for TA stack
-    */
 
-    new AppRegistryApplication(this, 'TASpokeAppRegistryApplication', {
-      appRegistryApplicationName: this.node.tryGetContext("APP_REG_TA_SPOKE_APPLICATION_NAME"),
-      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-TA`
-    })
+    /**
+     * app registry application for TA stack
+     */
+
+    if (props.targetPartition !== "China") {
+      new AppRegistryApplication(this, "TASpokeAppRegistryApplication", {
+        appRegistryApplicationName: this.node.tryGetContext("APP_REG_TA_SPOKE_APPLICATION_NAME"),
+        solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-TA`,
+      });
+    }
 
     //=============================================================================================
     // Outputs

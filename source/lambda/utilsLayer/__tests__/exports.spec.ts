@@ -102,29 +102,17 @@ describe("Exports", () => {
   describe("array contains elements of another array", () => {
     it("should perform a case-insensitive contains on the array for elements of another array", () => {
       expect(arrayIncludesAnyIgnoreCase(["js", "ts"], ["java"])).toEqual(false);
-      expect(arrayIncludesAnyIgnoreCase(["js", "ts"], ["java", "ts"])).toEqual(
-        true
-      );
-      expect(arrayIncludesAnyIgnoreCase(["js", "ts"], ["JS", "java"])).toEqual(
-        true
-      );
-      expect(
-        arrayIncludesAnyIgnoreCase(["js", "ts"], ["python", "java"])
-      ).toEqual(false);
+      expect(arrayIncludesAnyIgnoreCase(["js", "ts"], ["java", "ts"])).toEqual(true);
+      expect(arrayIncludesAnyIgnoreCase(["js", "ts"], ["JS", "java"])).toEqual(true);
+      expect(arrayIncludesAnyIgnoreCase(["js", "ts"], ["python", "java"])).toEqual(false);
     });
   });
 
   describe("array difference", () => {
     it("should perform a case-insensitive contains on the array", () => {
-      expect(
-        arrayDiff(["us-east-1", "us-west-1"], ["us-east-1", "us-west-1"])
-      ).toEqual([]);
-      expect(
-        arrayDiff(["us-east-1", "us-west-1"], ["us-east-1-x", "us-west-1-s"])
-      ).toEqual(["us-east-1", "us-west-1"]);
-      expect(
-        arrayDiff(["us-east-1", "us-west-1"], ["us-east-1-x", "us-west-1"])
-      ).toEqual(["us-east-1"]);
+      expect(arrayDiff(["us-east-1", "us-west-1"], ["us-east-1", "us-west-1"])).toEqual([]);
+      expect(arrayDiff(["us-east-1", "us-west-1"], ["us-east-1-x", "us-west-1-s"])).toEqual(["us-east-1", "us-west-1"]);
+      expect(arrayDiff(["us-east-1", "us-west-1"], ["us-east-1-x", "us-west-1"])).toEqual(["us-east-1"]);
     });
   });
 
@@ -187,8 +175,7 @@ describe("Exports", () => {
       expect(
         getNotificationMutingStatus(testNotificationString, {
           service: "ec2",
-          quotaName:
-            "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+          quotaName: "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
         })
       ).toEqual({
         muted: true,
@@ -198,8 +185,7 @@ describe("Exports", () => {
       expect(
         getNotificationMutingStatus(testNotificationString, {
           service: "ec2",
-          quotaName:
-            "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+          quotaName: "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
           quotaCode: "CODE123",
         })
       ).toEqual({
@@ -208,11 +194,9 @@ describe("Exports", () => {
           "ec2:L-1216C47A,Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances in the notification muting configuration; those quotas/limits are muted",
       });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
+        getNotificationMutingStatus(testNotificationString, {
           service: "ec2",
-          quotaName:
-            "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+          quotaName: "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
           quotaCode: "CODE123",
           resource: "resource1",
         })
@@ -222,11 +206,9 @@ describe("Exports", () => {
           "ec2:L-1216C47A,Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances in the notification muting configuration; those quotas/limits are muted",
       });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
+        getNotificationMutingStatus(testNotificationString, {
           service: "EC2",
-          quotaName:
-            "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+          quotaName: "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
           quotaCode: "CODE123",
           resource: "resource1",
         })
@@ -243,8 +225,7 @@ describe("Exports", () => {
         })
       ).toEqual({ muted: false });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString,{
+        getNotificationMutingStatus(testNotificationString, {
           service: "ec2",
           quotaName: "ABC",
           quotaCode: "ABC",
@@ -258,8 +239,7 @@ describe("Exports", () => {
         })
       ).toEqual({
         muted: true,
-        message:
-          "dynamodb in the notification muting configuration; all quotas/limits in dynamodb muted",
+        message: "dynamodb in the notification muting configuration; all quotas/limits in dynamodb muted",
       });
       expect(
         getNotificationMutingStatus(testNotificationString, {
@@ -269,12 +249,10 @@ describe("Exports", () => {
         })
       ).toEqual({
         muted: true,
-        message:
-          "dynamodb in the notification muting configuration; all quotas/limits in dynamodb muted",
+        message: "dynamodb in the notification muting configuration; all quotas/limits in dynamodb muted",
       });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString,{
+        getNotificationMutingStatus(testNotificationString, {
           service: "dynamodb",
           quotaName: "ABC",
           quotaCode: "ABC",
@@ -282,8 +260,7 @@ describe("Exports", () => {
         })
       ).toEqual({
         muted: true,
-        message:
-          "dynamodb in the notification muting configuration; all quotas/limits in dynamodb muted",
+        message: "dynamodb in the notification muting configuration; all quotas/limits in dynamodb muted",
       });
       expect(
         getNotificationMutingStatus(testNotificationString, {
@@ -292,18 +269,16 @@ describe("Exports", () => {
         })
       ).toEqual({
         muted: true,
-        message:
-          "logs:* in the notification muting configuration, all quotas/limits in logs muted",
+        message: "logs:* in the notification muting configuration, all quotas/limits in logs muted",
       });
       expect(
         getNotificationMutingStatus(testNotificationString, {
           service: "Logs",
-          quotaName: "ABC"
+          quotaName: "ABC",
         })
       ).toEqual({
         muted: true,
-        message:
-          "logs:* in the notification muting configuration, all quotas/limits in logs muted",
+        message: "logs:* in the notification muting configuration, all quotas/limits in logs muted",
       });
       expect(
         getNotificationMutingStatus(testNotificationString, {
@@ -313,8 +288,7 @@ describe("Exports", () => {
         })
       ).toEqual({
         muted: true,
-        message:
-          "logs:* in the notification muting configuration, all quotas/limits in logs muted",
+        message: "logs:* in the notification muting configuration, all quotas/limits in logs muted",
       });
       expect(
         getNotificationMutingStatus(testNotificationString, {
@@ -325,8 +299,7 @@ describe("Exports", () => {
         })
       ).toEqual({
         muted: true,
-        message:
-          "logs:* in the notification muting configuration, all quotas/limits in logs muted",
+        message: "logs:* in the notification muting configuration, all quotas/limits in logs muted",
       });
       expect(
         getNotificationMutingStatus(testNotificationString, {
@@ -336,8 +309,7 @@ describe("Exports", () => {
         })
       ).toEqual({
         muted: true,
-        message:
-          "geo:L-05EFD12D in the notification muting configuration; those quotas/limits are muted",
+        message: "geo:L-05EFD12D in the notification muting configuration; those quotas/limits are muted",
       });
       expect(
         getNotificationMutingStatus(testNotificationString, {
@@ -353,13 +325,12 @@ describe("Exports", () => {
         })
       ).toEqual({ muted: false });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
-            service: "geo",
-            quotaName: "ABC",
-            quotaCode: "ABC",
-            resource: "ABC",
-          })
+        getNotificationMutingStatus(testNotificationString, {
+          service: "geo",
+          quotaName: "ABC",
+          quotaCode: "ABC",
+          resource: "ABC",
+        })
       ).toEqual({ muted: false });
       expect(
         getNotificationMutingStatus(testNotificationString, {
@@ -368,16 +339,14 @@ describe("Exports", () => {
         })
       ).toEqual({ muted: false });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
+        getNotificationMutingStatus(testNotificationString, {
           service: "lambda",
           quotaName: "ABC",
           quotaCode: "ABC",
         })
       ).toEqual({ muted: false });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
+        getNotificationMutingStatus(testNotificationString, {
           service: "lambda",
           quotaName: "ABC",
           quotaCode: "ABC",
@@ -385,11 +354,9 @@ describe("Exports", () => {
         })
       ).toEqual({ muted: false });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
+        getNotificationMutingStatus(testNotificationString, {
           service: "lambda",
-          quotaName:
-            "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
+          quotaName: "Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances",
           quotaCode: "L-1216C47A",
           resource: "L-05EFD12D",
         })
@@ -401,16 +368,14 @@ describe("Exports", () => {
         })
       ).toEqual({ muted: false });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
+        getNotificationMutingStatus(testNotificationString, {
           service: "cloudwatch",
           quotaName: "ABC",
           quotaCode: "ABC",
         })
       ).toEqual({ muted: false });
       expect(
-        getNotificationMutingStatus(
-          testNotificationString, {
+        getNotificationMutingStatus(testNotificationString, {
           service: "cloudwatch",
           quotaName: "ABC",
           quotaCode: "ABC",

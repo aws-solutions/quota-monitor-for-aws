@@ -12,25 +12,31 @@ import {
   StackProps,
   RemovalPolicy,
   Duration,
+  CfnMapping,
+  Fn,
+  CfnCondition,
+  Aspects,
+  ArnFormat,
 } from "aws-cdk-lib";
 import path from "path";
 import { LambdaToDDB } from "./lambda-dynamodb.construct";
+import {
+  addCfnGuardSuppression,
+  addCfnGuardSuppressionToNestedResources,
+  addDynamoDbSuppressions,
+} from "./cfn-guard-utils";
 import { Layer } from "./lambda-layer.construct";
 import { EventsToLambda } from "./events-lambda.construct";
 import { CustomResourceLambda } from "./custom-resource-lambda.construct";
 import { StreamViewType } from "aws-cdk-lib/aws-dynamodb";
-import {
-  EVENT_NOTIFICATION_DETAIL_TYPE,
-  EVENT_NOTIFICATION_SOURCES,
-  QUOTA_TABLE,
-  SERVICE_TABLE,
-} from "./exports";
+import { EVENT_NOTIFICATION_DETAIL_TYPE, EVENT_NOTIFICATION_SOURCES, QUOTA_TABLE, SERVICE_TABLE } from "./exports";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { applyDependsOn } from "./depends.utils";
 import { NagSuppressions } from "cdk-nag";
 import { IConstruct } from "constructs";
 import { AppRegistryApplication } from "./app-registry-application";
+import { ConditionAspect } from "./condition.utils";
 
 /**
  * @description
@@ -38,12 +44,17 @@ import { AppRegistryApplication } from "./app-registry-application";
  * The stack should be deployed in the spoke accounts
  * @author aws-solutions
  */
+
+interface QuotaMonitorSQSpokeProps extends StackProps {
+  targetPartition: "Commercial" | "China";
+}
+
 export class QuotaMonitorSQSpoke extends Stack {
   /**
    * @param {App} scope - parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props: StackProps) {
+  constructor(scope: App, id: string, props: QuotaMonitorSQSpokeProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -53,27 +64,50 @@ export class QuotaMonitorSQSpoke extends Stack {
       type: "String",
     });
 
+    const spokeSnsRegion = new CfnParameter(this, "SpokeSnsRegion", {
+      type: "String",
+      default: "",
+      description: `The region in which the spoke SNS stack exists in this account. Leave blank if the spoke SNS is not needed.`,
+    });
+
     const threshold = new CfnParameter(this, "NotificationThreshold", {
       type: "String",
       default: "80",
-      allowedValues: ["60", "70", "80"],
+      description: "Threshold percentage for quota utilization alerts (0-100)",
+      allowedPattern: "^([1-9]|[1-9][0-9])$",
+      constraintDescription: "Threshold must be a whole number between 0 and 100",
     });
 
     const frequency = new CfnParameter(this, "MonitoringFrequency", {
       type: "String",
       default: "rate(12 hours)",
-      allowedValues: ["rate(6 hours)", "rate(12 hours)"],
+      allowedValues: ["rate(6 hours)", "rate(12 hours)", "rate(1 day)"],
     });
 
-    const reportOKNotifications = new CfnParameter(
-      this,
-      "ReportOKNotifications",
-      {
-        type: "String",
-        default: "No",
-        allowedValues: ["Yes", "No"],
-      }
-    );
+    const reportOKNotifications = new CfnParameter(this, "ReportOKNotifications", {
+      type: "String",
+      default: "No",
+      allowedValues: ["Yes", "No"],
+    });
+
+    const sageMakerMonitoring = new CfnParameter(this, "SageMakerMonitoring", {
+      type: "String",
+      default: "Yes",
+      allowedValues: ["Yes", "No"],
+    });
+
+    const connectMonitoring = new CfnParameter(this, "ConnectMonitoring", {
+      type: "String",
+      default: "Yes",
+      allowedValues: ["Yes", "No"],
+    });
+
+    const map = new CfnMapping(this, "QuotaMonitorMap");
+    map.setValue("SSMParameters", "NotificationMutingConfig", "/QuotaMonitor/spoke/NotificationConfiguration");
+
+    const spokeSnsRegionExists = new CfnCondition(this, "SpokeSnsRegionExists", {
+      expression: Fn.conditionNot(Fn.conditionEquals(spokeSnsRegion, "")),
+    });
 
     //=============================================================================================
     // Metadata
@@ -85,7 +119,7 @@ export class QuotaMonitorSQSpoke extends Stack {
             Label: {
               default: "Monitoring Account Configuration",
             },
-            Parameters: ["EventBusArn"],
+            Parameters: ["EventBusArn", "SpokeSnsRegion"],
           },
           {
             Label: {
@@ -95,12 +129,17 @@ export class QuotaMonitorSQSpoke extends Stack {
               "NotificationThreshold",
               "MonitoringFrequency",
               "ReportOKNotifications",
+              "SageMakerMonitoring",
+              "ConnectMonitoring",
             ],
           },
         ],
         ParameterLabels: {
           EventBusArn: {
             default: "Arn for the EventBridge bus in the monitoring account",
+          },
+          SpokeSnsRegion: {
+            default: "Region in which the spoke SNS stack exists in this account",
           },
           NotificationThreshold: {
             default: "At what quota utilization do you want notifications?",
@@ -111,16 +150,18 @@ export class QuotaMonitorSQSpoke extends Stack {
           ReportOKNotifications: {
             default: "Report OK Notifications",
           },
+          SageMakerMonitoring: {
+            default: "Enable monitoring for SageMaker quotas",
+          },
+          ConnectMonitoring: {
+            default: "Enable monitoring for Connect quotas",
+          },
         },
       },
     };
-    this.templateOptions.description = `(${this.node.tryGetContext(
-      "SOLUTION_ID"
-    )}-SQ) - ${this.node.tryGetContext(
+    this.templateOptions.description = `(${this.node.tryGetContext("SOLUTION_ID")}-SQ) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} - Service Quotas Template. Version ${this.node.tryGetContext(
-      "SOLUTION_VERSION"
-    )}`;
+    )} - Service Quotas Template. Version ${this.node.tryGetContext("SOLUTION_VERSION")}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================
@@ -140,11 +181,7 @@ export class QuotaMonitorSQSpoke extends Stack {
     /**
      * @description primary event bus in the monitoring account to send events to
      */
-    const _primaryEventBus = events.EventBus.fromEventBusArn(
-      this,
-      "QM-Primary-Bus",
-      eventBusArn.valueAsString
-    );
+    const _primaryEventBus = events.EventBus.fromEventBusArn(this, "QM-Primary-Bus", eventBusArn.valueAsString);
     const primaryEventBus = new targets.EventBus(_primaryEventBus);
 
     /**
@@ -173,6 +210,7 @@ export class QuotaMonitorSQSpoke extends Stack {
       stream: StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    addDynamoDbSuppressions(serviceTable);
 
     /**
      * @description dynamodb table for supported quota list
@@ -191,14 +229,13 @@ export class QuotaMonitorSQSpoke extends Stack {
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    addDynamoDbSuppressions(quotaTable);
 
     /**
      * @description construct to deploy lambda backed custom resource for quota list manager
      */
     const quotaListManager = new CustomResourceLambda(this, "QM-ListManager", {
-      assetLocation: `${path.dirname(
-        __dirname
-      )}/../lambda/services/quotaListManager/dist/quota-list-manager.zip`,
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/quotaListManager/dist/quota-list-manager.zip`,
       environment: {
         SQ_SERVICE_TABLE: serviceTable.tableName,
         SQ_QUOTA_TABLE: quotaTable.tableName,
@@ -209,6 +246,8 @@ export class QuotaMonitorSQSpoke extends Stack {
       layers: [utilsLayer.layer],
       timeout: Duration.minutes(15),
     });
+    addCfnGuardSuppression(quotaListManager.function, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
+    addCfnGuardSuppressionToNestedResources(quotaListManager, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     /**
      * @description lambda-dynamodb construct for service list table
@@ -251,19 +290,13 @@ export class QuotaMonitorSQSpoke extends Stack {
     quotaListManager.function.addEventSource(eventSourceMapping);
 
     // Schedule to trigger lambda
-    const quotaListManagerScheduleRule = new events.Rule(
-      this,
-      `QM-ListManagerSchedule`,
-      {
-        description: `${this.node.tryGetContext(
-          "SOLUTION_ID"
-        )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-EventsRule`,
-        schedule: events.Schedule.rate(Duration.days(30)),
-      }
-    );
-    quotaListManagerScheduleRule.addTarget(
-      new targets.LambdaFunction(quotaListManager.function)
-    );
+    const quotaListManagerScheduleRule = new events.Rule(this, `QM-ListManagerSchedule`, {
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-EventsRule`,
+      schedule: events.Schedule.rate(Duration.days(30)),
+    });
+    quotaListManagerScheduleRule.addTarget(new targets.LambdaFunction(quotaListManager.function));
 
     // cdk-nag suppressions
     NagSuppressions.addResourceSuppressions(
@@ -285,9 +318,7 @@ export class QuotaMonitorSQSpoke extends Stack {
      */
     const cwPoller = new EventsToLambda(this, "QM-CWPoller", {
       eventRule: events.Schedule.expression(frequency.valueAsString),
-      assetLocation: `${path.dirname(
-        __dirname
-      )}/../lambda/services/cwPoller/dist/cw-poller.zip`,
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/cwPoller/dist/cw-poller.zip`,
       environment: {
         SQ_SERVICE_TABLE: serviceTable.tableName,
         SQ_QUOTA_TABLE: quotaTable.tableName,
@@ -300,6 +331,7 @@ export class QuotaMonitorSQSpoke extends Stack {
       layers: [utilsLayer.layer],
       timeout: Duration.minutes(15),
     });
+    addCfnGuardSuppression(cwPoller.target, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     // permission to query the quota table
     cwPoller.target.addToRolePolicy(
@@ -361,9 +393,9 @@ export class QuotaMonitorSQSpoke extends Stack {
      * @description rule to send quota utilization OK events to centralized event bus
      */
     new events.Rule(this, `QM-Utilization-OK`, {
-      description: `${this.node.tryGetContext(
-        "SOLUTION_ID"
-      )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-EventsRule`,
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-EventsRule`,
       eventPattern: quotaUtilizationOkEvent,
       eventBus: spokeBus,
       targets: [primaryEventBus],
@@ -385,9 +417,9 @@ export class QuotaMonitorSQSpoke extends Stack {
      * @description rule to send quota utilization WARN events to centralized event bus
      */
     new events.Rule(this, `QM-Utilization-Warn`, {
-      description: `${this.node.tryGetContext(
-        "SOLUTION_ID"
-      )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-EventsRule`,
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-EventsRule`,
       eventPattern: quotaUtilizationWarnEvent,
       eventBus: spokeBus,
       targets: [primaryEventBus],
@@ -409,33 +441,69 @@ export class QuotaMonitorSQSpoke extends Stack {
      * @description rule to send quota utilization ERROR events to centralized event bus
      */
     const eventsRuleError = new events.Rule(this, `QM-Utilization-Err`, {
-      description: `${this.node.tryGetContext(
-        "SOLUTION_ID"
-      )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-EventsRule`,
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-EventsRule`,
       eventPattern: quotaUtilizationErrorEvent,
       eventBus: spokeBus,
       targets: [primaryEventBus],
     });
 
+    //=======================
+    // SNS workflow component
+    //=======================
+    /**
+     * @description event rule pattern for sns events
+     */
+    const snsRulePattern: events.EventPattern = {
+      detail: {
+        status: ["WARN", "ERROR"],
+      },
+      detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR, EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
+      source: [EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR, EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
+    };
+    const _spokeSnsEventBus = events.EventBus.fromEventBusArn(
+      this,
+      "QM-Spoke-SNS-Bus",
+      Stack.of(this).formatArn({
+        service: "events",
+        region: spokeSnsRegion.valueAsString,
+        resource: "event-bus",
+        resourceName: "QuotaMonitorSnsSpokeBus",
+        arnFormat: ArnFormat.SLASH_RESOURCE_NAME,
+      })
+    );
+    const spokeSnsEventBus = new targets.EventBus(_spokeSnsEventBus);
+    Aspects.of(_spokeSnsEventBus).add(new ConditionAspect(spokeSnsRegionExists));
+
+    const spokeSnsRule = new events.Rule(this, "SpokeSnsRule", {
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-SpokeSnsEventsRule`,
+      eventPattern: snsRulePattern,
+      eventBus: spokeBus,
+      targets: [spokeSnsEventBus],
+    });
+
+    Aspects.of(spokeSnsRule).add(new ConditionAspect(spokeSnsRegionExists));
+
     /**
      * app registry application for SQ stack
      */
-
-    new AppRegistryApplication(this, "SQSpokeAppRegistryApplication", {
-      appRegistryApplicationName: this.node.tryGetContext(
-        "APP_REG_SQ_SPOKE_APPLICATION_NAME"
-      ),
-      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-SQ`,
-    });
+    if (props.targetPartition !== "China") {
+      new AppRegistryApplication(this, "SQSpokeAppRegistryApplication", {
+        appRegistryApplicationName: this.node.tryGetContext("APP_REG_SQ_SPOKE_APPLICATION_NAME"),
+        solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-SQ`,
+      });
+    }
 
     // add mode depends on the custom resource so that it fires the lambda function at last
     // Create/Update service list
-    const generateQuotaList = quotaListManager.addCustomResource(
-      "SQServiceList",
-      {
-        VERSION: this.node.tryGetContext("SOLUTION_VERSION"), // this is to trigger updates for different versions
-      }
-    );
+    const generateQuotaList = quotaListManager.addCustomResource("SQServiceList", {
+      VERSION: this.node.tryGetContext("SOLUTION_VERSION"), // this is to trigger updates for different versions
+      SageMakerMonitoring: sageMakerMonitoring.valueAsString,
+      ConnectMonitoring: connectMonitoring.valueAsString,
+    });
     applyDependsOn(generateQuotaList, quotaTable);
     applyDependsOn(generateQuotaList, serviceTable);
     applyDependsOn(generateQuotaList, eventsRuleError);

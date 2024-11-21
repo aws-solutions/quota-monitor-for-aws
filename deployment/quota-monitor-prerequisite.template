@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-PreReq) - quota-monitor-for-aws - Prerequisite Template. Version v6.2.11",
+  "Description": "(SO0005-PreReq) - quota-monitor-for-aws - Prerequisite Template. Version v6.3.0",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -46,13 +46,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip"
         },
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip",
+        "aws:asset:path": "asset.e8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -114,7 +114,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset310b0a91abddfe8f7d3bfae3a5e7abd8562241a7c7bb419dfb838ef991cd57f2.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assetf4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
         "Environment": {
@@ -135,8 +135,8 @@
             },
             "QM_STACK_ID": "quota-monitor-prerequisite",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -161,7 +161,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.310b0a91abddfe8f7d3bfae3a5e7abd8562241a7c7bb419dfb838ef991cd57f2.zip",
+        "aws:asset:path": "asset.f4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -170,6 +170,16 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -313,7 +323,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-prerequisite/QM-Helper/QM-Helper-Provider)",
         "Environment": {
@@ -359,6 +369,14 @@
               "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -503,7 +521,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset12e53a9edbf51e99f12536499d39803686478d47d7df17c8a158f3632fa153f4.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete3fd9e117d4b88891e0a84a7e27b4d4a52637e08ba8620125cbae56a0fa5b5b5.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-PreReqManager-Function",
         "Environment": {
@@ -523,8 +541,8 @@
               ]
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -550,7 +568,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Function/Resource",
-        "aws:asset:path": "asset.12e53a9edbf51e99f12536499d39803686478d47d7df17c8a158f3632fa153f4.zip",
+        "aws:asset:path": "asset.e3fd9e117d4b88891e0a84a7e27b4d4a52637e08ba8620125cbae56a0fa5b5b5.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -559,6 +577,14 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -702,7 +728,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-prerequisite/QM-PreReqManager/QM-PreReqManager-Provider)",
         "Environment": {
@@ -748,6 +774,12 @@
               "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }

@@ -110,9 +110,7 @@ describe("slacknotify", function () {
     });
 
     it("should return error when the call to ssm fails", async () => {
-      getParameterMock.mockRejectedValueOnce(
-        new ResourceNotFoundException("error")
-      );
+      getParameterMock.mockRejectedValueOnce(new ResourceNotFoundException("error"));
 
       const result = await slackNotifier.sendNotification(errorEvent);
       expect(requestMock).toHaveBeenCalledTimes(0);
@@ -132,9 +130,7 @@ describe("slacknotify", function () {
       statusMessage = "error";
 
       const result = await slackNotifier.sendNotification(errorEvent);
-      expect(result.result).toEqual(
-        "Server error when processing message: 503 - error"
-      );
+      expect(result.result).toEqual("Server error when processing message: 503 - error");
     });
 
     it("should succeed when called from handler", async () => {
@@ -177,6 +173,5 @@ describe("slacknotify", function () {
       await handler(eventForNotification);
       expect(requestMock).toHaveBeenCalledTimes(1);
     });
-
   });
 });

@@ -15,9 +15,7 @@ export function enforceSSL(resource: Queue | Topic) {
       effect: iam.Effect.DENY,
       principals: [new iam.AnyPrincipal()],
       actions: [resource instanceof Queue ? "sqs:*" : "sns:Publish"],
-      resources: [
-        resource instanceof Queue ? resource.queueArn : resource.topicArn,
-      ],
+      resources: [resource instanceof Queue ? resource.queueArn : resource.topicArn],
       conditions: {
         Bool: { "aws:SecureTransport": "false" },
       },

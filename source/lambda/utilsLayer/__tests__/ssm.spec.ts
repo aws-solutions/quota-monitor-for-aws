@@ -3,12 +3,7 @@
 
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
-import {
-  GetParameterCommand,
-  ParameterType,
-  SSMClient,
-  SSMServiceException,
-} from "@aws-sdk/client-ssm";
+import { GetParameterCommand, ParameterType, SSMClient, SSMServiceException } from "@aws-sdk/client-ssm";
 
 import { SSMHelper } from "../lib/ssm";
 

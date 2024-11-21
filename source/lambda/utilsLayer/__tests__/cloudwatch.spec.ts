@@ -4,10 +4,7 @@
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
 
-import {
-  CloudWatchClient,
-  CloudWatchServiceException,
-} from "@aws-sdk/client-cloudwatch";
+import { CloudWatchClient, CloudWatchServiceException } from "@aws-sdk/client-cloudwatch";
 import { CloudWatchHelper } from "../lib/cloudwatch";
 
 describe("Cloud Watch Helper", () => {
@@ -25,9 +22,7 @@ describe("Cloud Watch Helper", () => {
   it("should get metric data", async () => {
     cwMock.onAnyCommand().resolves({ MetricDataResults: [{}] });
 
-    const metricDataResults = await cwHelper.getMetricData(startTime, endTime, [
-      { Id: "1" },
-    ]);
+    const metricDataResults = await cwHelper.getMetricData(startTime, endTime, [{ Id: "1" }]);
 
     expect(metricDataResults).toEqual([{}]);
   });

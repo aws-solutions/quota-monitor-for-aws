@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005) - quota-monitor-for-aws - Hub Template. Version v6.2.11",
+  "Description": "(SO0005) - quota-monitor-for-aws - Hub Template. Version v6.3.0",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -11,6 +11,7 @@
           "Parameters": [
             "DeploymentModel",
             "RegionsList",
+            "SnsSpokeRegion",
             "ManagementAccountId"
           ]
         },
@@ -40,7 +41,9 @@
           "Parameters": [
             "SQNotificationThreshold",
             "SQMonitoringFrequency",
-            "SQReportOKNotifications"
+            "SQReportOKNotifications",
+            "SageMakerMonitoring",
+            "ConnectMonitoring"
           ]
         }
       ],
@@ -60,6 +63,9 @@
         "RegionsList": {
           "default": "List of regions to deploy resources to monitor service quotas"
         },
+        "SnsSpokeRegion": {
+          "default": "Region in which to launch the SNS stack in the spoke accounts."
+        },
         "RegionConcurrencyType": {
           "default": "Region Concurrency"
         },
@@ -77,6 +83,12 @@
         },
         "SQReportOKNotifications": {
           "default": "Report OK Notifications"
+        },
+        "SageMakerMonitoring": {
+          "default": "Enable monitoring for SageMaker quotas"
+        },
+        "ConnectMonitoring": {
+          "default": "Enable monitoring for Connect quotas"
         }
       }
     }
@@ -114,6 +126,11 @@
       "Default": "ALL",
       "Description": "Comma separated list of regions like us-east-1,us-east-2 or ALL or leave it blank for ALL"
     },
+    "SnsSpokeRegion": {
+      "Type": "String",
+      "Default": "",
+      "Description": "The region in which to launch the SNS stack in each spoke account. Leave blank if the spoke SNS is not needed"
+    },
     "RegionConcurrency": {
       "Type": "String",
       "Default": "PARALLEL",
@@ -140,18 +157,17 @@
     "SQNotificationThreshold": {
       "Type": "String",
       "Default": "80",
-      "AllowedValues": [
-        "60",
-        "70",
-        "80"
-      ]
+      "AllowedPattern": "^([1-9]|[1-9][0-9])$",
+      "ConstraintDescription": "Threshold must be a whole number between 0 and 100",
+      "Description": "Threshold percentage for quota utilization alerts (0-100)"
     },
     "SQMonitoringFrequency": {
       "Type": "String",
       "Default": "rate(12 hours)",
       "AllowedValues": [
         "rate(6 hours)",
-        "rate(12 hours)"
+        "rate(12 hours)",
+        "rate(1 day)"
       ]
     },
     "SQReportOKNotifications": {
@@ -161,6 +177,24 @@
         "Yes",
         "No"
       ]
+    },
+    "SageMakerMonitoring": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Description": "Enable monitoring for SageMaker quotas. NOTE: (1) SageMaker monitoring consumes a high number of quotas, potentially resulting in higher usage cost. (2) Changing this value during a stack update will affect all spoke accounts but if left unchanged, it preserves existing spoke accounts customizations."
+    },
+    "ConnectMonitoring": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Description": "Enable monitoring for Connect quotas. NOTE: (1) Connect monitoring consumes a high number of quotas, potentially resulting in higher usage cost. (2) Changing this value during a stack update will affect all spoke accounts but if left unchanged, it preserves existing spoke accounts customizations."
     }
   },
   "Mappings": {
@@ -205,6 +239,14 @@
           "Ref": "DeploymentModel"
         },
         "Hybrid"
+      ]
+    },
+    "IsChinaPartition": {
+      "Fn::Equals": [
+        {
+          "Ref": "AWS::Partition"
+        },
+        "aws-cn"
       ]
     },
     "CDKMetadataAvailable": {
@@ -599,13 +641,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip"
         },
         "LayerName": "QM-UtilsLayer"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
-        "aws:asset:path": "asset.11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip",
+        "aws:asset:path": "asset.e8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -667,7 +709,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset310b0a91abddfe8f7d3bfae3a5e7abd8562241a7c7bb419dfb838ef991cd57f2.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assetf4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
         "Environment": {
@@ -697,9 +739,15 @@
                 "No"
               ]
             },
+            "SAGEMAKER_MONITORING": {
+              "Ref": "SageMakerMonitoring"
+            },
+            "CONNECT_MONITORING": {
+              "Ref": "ConnectMonitoring"
+            },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -724,7 +772,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-Helper/QM-Helper-Function/Resource",
-        "aws:asset:path": "asset.310b0a91abddfe8f7d3bfae3a5e7abd8562241a7c7bb419dfb838ef991cd57f2.zip",
+        "aws:asset:path": "asset.f4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -733,6 +781,14 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -876,7 +932,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-hub/QM-Helper/QM-Helper-Provider)",
         "Environment": {
@@ -922,6 +978,12 @@
               "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -1265,7 +1327,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset7ac08df917158d6dd06a4ad585fb1297c04d8abaaebdbfd2406468890bbd116a.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset11434a0b3246f0b4445dd28fdbc9e4e7dc808ccf355077acd9b000c5d88e6713.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -1289,8 +1351,8 @@
               "Ref": "QMNotificationMutingConfig3B7948BA"
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -1322,7 +1384,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-SlackNotifier/QM-SlackNotifier-Lambda/Resource",
-        "aws:asset:path": "asset.7ac08df917158d6dd06a4ad585fb1297c04d8abaaebdbfd2406468890bbd116a.zip",
+        "aws:asset:path": "asset.11434a0b3246f0b4445dd28fdbc9e4e7dc808ccf355077acd9b000c5d88e6713.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -1331,6 +1393,12 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       },
@@ -1659,7 +1727,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/assetc7d0a18c007f94e3ee2cc35273b6a455312835f2ec08fa32e1395e13b0ae78e8.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete7a324e67e467d0c22e13b0693ca4efdceb0d53025c7fb45fe524870a5c18046.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -1699,8 +1767,8 @@
               "Ref": "QMSNSPublisherQMSNSPublisherSNSTopic7EE2EBF4"
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -1732,7 +1800,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda/Resource",
-        "aws:asset:path": "asset.c7d0a18c007f94e3ee2cc35273b6a455312835f2ec08fa32e1395e13b0ae78e8.zip",
+        "aws:asset:path": "asset.e7a324e67e467d0c22e13b0693ca4efdceb0d53025c7fb45fe524870a5c18046.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -1741,6 +1809,12 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -2200,7 +2274,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset3214e803bdf3b3311d409c896a5cc335cb056428c232c86da8c38175b6b0b79e.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asseta6fda81c73d731886f04e1734d036f12ceb7b94c2efec30bb511f477ac58aa9c.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -2222,8 +2296,8 @@
             "MAX_MESSAGES": "10",
             "MAX_LOOPS": "10",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -2255,7 +2329,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-Reporter/QM-Reporter-Lambda/Resource",
-        "aws:asset:path": "asset.3214e803bdf3b3311d409c896a5cc335cb056428c232c86da8c38175b6b0b79e.zip",
+        "aws:asset:path": "asset.a6fda81c73d731886f04e1734d036f12ceb7b94c2efec30bb511f477ac58aa9c.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -2264,6 +2338,12 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -2318,7 +2398,35 @@
         "PermissionModel": "SERVICE_MANAGED",
         "StackSetName": "QM-TA-Spoke-StackSet",
         "TemplateURL": {
-          "Fn::Sub": "https://solutions-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/quota-monitor-for-aws/v6.2.11/quota-monitor-ta-spoke.template"
+          "Fn::Join": [
+            "",
+            [
+              "https://solutions-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".s3.",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  ".cn",
+                  ""
+                ]
+              },
+              "/quota-monitor-for-aws/v6.3.0/",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  "quota-monitor-ta-spoke-cn.template",
+                  "quota-monitor-ta-spoke.template"
+                ]
+              }
+            ]
+          ]
         }
       },
       "Metadata": {
@@ -2349,16 +2457,116 @@
                 "Arn"
               ]
             }
+          },
+          {
+            "ParameterKey": "SpokeSnsRegion",
+            "ParameterValue": {
+              "Ref": "SnsSpokeRegion"
+            }
+          },
+          {
+            "ParameterKey": "SageMakerMonitoring",
+            "ParameterValue": {
+              "Ref": "SageMakerMonitoring"
+            }
+          },
+          {
+            "ParameterKey": "ConnectMonitoring",
+            "ParameterValue": {
+              "Ref": "ConnectMonitoring"
+            }
           }
         ],
         "PermissionModel": "SERVICE_MANAGED",
         "StackSetName": "QM-SQ-Spoke-StackSet",
         "TemplateURL": {
-          "Fn::Sub": "https://solutions-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/quota-monitor-for-aws/v6.2.11/quota-monitor-sq-spoke.template"
+          "Fn::Join": [
+            "",
+            [
+              "https://solutions-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".s3.",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  ".cn",
+                  ""
+                ]
+              },
+              "/quota-monitor-for-aws/v6.3.0/",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  "quota-monitor-sq-spoke-cn.template",
+                  "quota-monitor-sq-spoke.template"
+                ]
+              }
+            ]
+          ]
         }
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-SQ-StackSet"
+      }
+    },
+    "QMSNSStackSet": {
+      "Type": "AWS::CloudFormation::StackSet",
+      "Properties": {
+        "AutoDeployment": {
+          "Enabled": true,
+          "RetainStacksOnAccountRemoval": false
+        },
+        "CallAs": "DELEGATED_ADMIN",
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "Description": "StackSet for deploying Quota Monitor notification spokes in Organization",
+        "ManagedExecution": {
+          "Active": true
+        },
+        "Parameters": [],
+        "PermissionModel": "SERVICE_MANAGED",
+        "StackSetName": "QM-SNS-Spoke-StackSet",
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://solutions-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".s3.",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  ".cn",
+                  ""
+                ]
+              },
+              "/quota-monitor-for-aws/v6.3.0/",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  "quota-monitor-sns-spoke-cn.template",
+                  "quota-monitor-sns-spoke.template"
+                ]
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub/QM-SNS-StackSet"
       }
     },
     "QMDeploymentManagerQMDeploymentManagerEventsRule53DB2DA9": {
@@ -2788,6 +2996,22 @@
                       ":stackset/QM-SQ-Spoke-StackSet:*"
                     ]
                   ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-SNS-Spoke-StackSet:*"
+                    ]
+                  ]
                 }
               ]
             },
@@ -2828,6 +3052,38 @@
                         "Ref": "ManagementAccountId"
                       },
                       ":stackset/QM-SQ-Spoke-StackSet:*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-SNS-Spoke-StackSet:*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset-target/QM-SNS-Spoke-StackSet:*/*"
                     ]
                   ]
                 },
@@ -2924,7 +3180,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset5a81c4fb5c63f552f9d49c541884c214130c866132af0414ab4c7b3394fb57da.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset6a1cf55956fc481a1f22a54b0fa78a3d78b7e61cd41e12bf80ac8c9404ff9eb2.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -2958,6 +3214,12 @@
                 "StackSetId"
               ]
             },
+            "SNS_STACKSET_ID": {
+              "Fn::GetAtt": [
+                "QMSNSStackSet",
+                "StackSetId"
+              ]
+            },
             "QM_OU_PARAMETER": {
               "Ref": "QMOUs122D8EB4"
             },
@@ -2980,6 +3242,9 @@
             },
             "QM_REGIONS_LIST_PARAMETER": {
               "Ref": "QMRegionsList17794003"
+            },
+            "SNS_SPOKE_REGION": {
+              "Ref": "SnsSpokeRegion"
             },
             "REGIONS_CONCURRENCY_TYPE": {
               "Ref": "RegionConcurrency"
@@ -3020,8 +3285,8 @@
               ]
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -3053,7 +3318,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-hub/QM-Deployment-Manager/QM-Deployment-Manager-Lambda/Resource",
-        "aws:asset:path": "asset.5a81c4fb5c63f552f9d49c541884c214130c866132af0414ab4c7b3394fb57da.zip",
+        "aws:asset:path": "asset.6a1cf55956fc481a1f22a54b0fa78a3d78b7e61cd41e12bf80ac8c9404ff9eb2.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -3062,6 +3327,12 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -3109,7 +3380,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.11"
+          "SolutionVersion": "v6.3.0"
         }
       },
       "Metadata": {
@@ -3122,7 +3393,7 @@
         "Attributes": {
           "solutionID": "SO0005",
           "solutionName": "quota-monitor-for-aws",
-          "version": "v6.2.11",
+          "version": "v6.3.0",
           "applicationType": "AWS-Solutions"
         },
         "Description": "Attribute group for application information",
@@ -3144,7 +3415,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.11"
+          "SolutionVersion": "v6.3.0"
         }
       },
       "Metadata": {

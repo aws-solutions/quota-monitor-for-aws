@@ -1,13 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  aws_lambda as lambda,
-  Duration,
-  Stack,
-  custom_resources as cr,
-  CustomResource,
-} from "aws-cdk-lib";
+import { aws_lambda as lambda, Duration, Stack, custom_resources as cr, CustomResource } from "aws-cdk-lib";
 import { NagSuppressions } from "cdk-nag";
 import { Construct, IConstruct } from "constructs";
 import { LambdaProps, LAMBDA_RUNTIME_NODE, LOG_LEVEL } from "./exports";
@@ -27,10 +21,7 @@ interface ICRLambda {
    * @param properties - key,value pairs
    * @returns
    */
-  addCustomResource(
-    identifier: string,
-    properties?: { [key: string]: string }
-  ): CustomResource;
+  addCustomResource(identifier: string, properties?: { [key: string]: string }): CustomResource;
 }
 
 /**
@@ -46,9 +37,9 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
     super(scope, id);
 
     this.function = new lambda.Function(this, `${id}-Function`, {
-      description: `${this.node.tryGetContext(
-        "SOLUTION_ID"
-      )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-Function`,
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-Function`,
       code: lambda.Code.fromAsset(<string>props.assetLocation),
       memorySize: props.memorySize || 128,
       timeout: props.timeout ? props.timeout : Duration.seconds(5),
@@ -57,9 +48,9 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       environment: {
         ...props.environment,
         LOG_LEVEL: this.node.tryGetContext("LOG_LEVEL") || LOG_LEVEL.INFO, //change as needed
-        CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext(
-          "SOLUTION_ID"
-        )}/${this.node.tryGetContext("SOLUTION_VERSION")}`,
+        CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext("SOLUTION_ID")}/${this.node.tryGetContext(
+          "SOLUTION_VERSION"
+        )}`,
         VERSION: this.node.tryGetContext("SOLUTION_VERSION"),
         SOLUTION_ID: this.node.tryGetContext("SOLUTION_ID"),
       },
@@ -74,11 +65,9 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
 
     // permission to use kms-cmk
     if (props.encryptionKey) {
-      KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach(
-        (policyStatement) => {
-          this.function.addToRolePolicy(policyStatement);
-        }
-      );
+      KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach((policyStatement) => {
+        this.function.addToRolePolicy(policyStatement);
+      });
     }
 
     // cdk-nag suppressions
@@ -87,8 +76,7 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       [
         {
           id: "AwsSolutions-IAM4",
-          reason:
-            "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+          reason: "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
         },
         {
           id: "AwsSolutions-IAM5",
@@ -103,8 +91,7 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       [
         {
           id: "AwsSolutions-L1",
-          reason:
-            "GovCloud regions support only up to nodejs 16, risk is tolerable",
+          reason: "GovCloud regions support only up to nodejs 16, risk is tolerable",
         },
       ],
       true
@@ -114,28 +101,22 @@ export class CustomResourceLambda extends Construct implements ICRLambda {
       [
         {
           id: "AwsSolutions-IAM4",
-          reason:
-            "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+          reason: "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
         },
         {
           id: "AwsSolutions-IAM5",
-          reason:
-            "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+          reason: "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
         },
         {
           id: "AwsSolutions-L1",
-          reason:
-            "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+          reason: "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
         },
       ],
       true
     );
   }
 
-  addCustomResource(
-    identifier: string,
-    properties?: { [key: string]: string }
-  ) {
+  addCustomResource(identifier: string, properties?: { [key: string]: string }) {
     const cr = new CustomResource(this, identifier, {
       resourceType: `Custom::${identifier}`,
       serviceToken: this.provider.serviceToken,

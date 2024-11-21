@@ -7,7 +7,7 @@ import { App } from "aws-cdk-lib";
 
 describe("==Pre-requisite Stack Tests==", () => {
   const app = new App();
-  const stack = new PreReqStack(app, "PreReqStack");
+  const stack = new PreReqStack(app, "PreReqStack", { targetPartition: "Commercial" });
   const template = Template.fromStack(stack);
 
   describe("Pre-requisite stack resources", () => {
@@ -18,8 +18,7 @@ describe("==Pre-requisite Stack Tests==", () => {
       });
     });
 
-    it("should have helper, pre-req and provider lambda functions " +
-      "with nodejs18.x runtime", () => {
+    it("should have helper, pre-req and provider lambda functions " + "with nodejs18.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::Function", 4);
       template.hasResourceProperties("AWS::Lambda::Function", {
         Runtime: "nodejs18.x",

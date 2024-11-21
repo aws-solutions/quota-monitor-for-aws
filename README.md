@@ -51,6 +51,7 @@ _Note: ta-spoke.template should be deployed in us-east-1 ONLY. sq-spoke.template
 - [quota-monitor-hub-no-ou.template](https://solutions-reference.s3.amazonaws.com/quota-monitor-for-aws/latest/quota-monitor-hub-no-ou.template)
 - [quota-monitor-ta-spoke.template](https://solutions-reference.s3.amazonaws.com/quota-monitor-for-aws/latest/quota-monitor-ta-spoke.template)
 - [quota-monitor-sq-spoke.template](https://solutions-reference.s3.amazonaws.com/quota-monitor-for-aws/latest/quota-monitor-sq-spoke.template)
+- [quota-monitor-sns-spoke.template](https://solutions-reference.s3.amazonaws.com/quota-monitor-for-aws/latest/quota-monitor-sns-spoke.template)
 - [quota-monitor-prerequisite.template](https://solutions-reference.s3.amazonaws.com/quota-monitor-for-aws/latest/quota-monitor-prerequisite.template)
 
 _Note: hub, hub-no-ou and sq-spoke templates can be deployed in ANY region; prerequisite and ta-spoke template can be deployed in us-east-1 ONLY._
@@ -125,6 +126,7 @@ npm ci
 ```
 
 Bootstrap your CDK environment
+- This solution requires that you have bootstrapped your AWS account with CDK using the default stack name. If you haven't done so already, run:
 
 ```
 npm run cdk -- bootstrap --profile <PROFILE_NAME>
@@ -139,17 +141,23 @@ _Note:_
 
 - STACK_NAME, substitute the name of the stack that you want to deploy, check cdk [app](./source/resources/bin/app.ts)
 - PROFILE_NAME, substitute the name of an AWS CLI profile that contains appropriate credentials for deploying in your preferred region
+- The deployment scripts assume the CDK bootstrap stack is named CDKToolkit. If you've used a custom name for your bootstrap stack, you'll need to modify the get-cdk-bucket script in package.json.
+- For the ORG/HYBRID mode, Ensure that the account or organization you're deploying stacks to has the necessary permissions to access the CDK assets bucket.
+- CDK creates an S3 bucket for assets in only one region. As a result, spoke stacks will deploy successfully only in the region where this bucket is created.
 
 _✅ Solution stack is deployed with your customized code._
 
 ## Independent spoke templates
 
-There are two spoke templates packaged with the solution
+There are three spoke templates packaged with the solution:
 
 - ta-spoke: provisions resources to support Trusted Advisor quota checks
 - sq-spoke: provisions resources to support Service Quotas checks
+- sns-spoke: provisions resources to support spoke account-specific notifications
 
-Both spoke templates are independent standalone stacks that can be individually deployed. You can deploy the spoke stack and route usage events and notifications to your preferred destinations. Additionally, in sq-spoke stack you can control which services to monitor, by toggling _monitored_ status of the services in the DynamoDB table _ServiceTable_. For deploying sq-spoke stack:
+All three spoke templates (TA, SQ, and SNS) are independent standalone stacks that can be individually deployed. You can deploy these spoke stacks and route usage events and notifications to your preferred destinations.
+
+For the SQ spoke stack, you can control which services to monitor by toggling the _monitored_ status of the services in the DynamoDB table _ServiceTable_. The SNS spoke stack provides an additional option for routing notifications within spoke accounts. For deploying sq-spoke stack:
 
 ```
 npm run cdk -- deploy quota-monitor-sq-spoke --parameters EventBusArn=<BUS_ARN> --profile <PROFILE_NAME>

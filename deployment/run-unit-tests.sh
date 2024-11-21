@@ -13,7 +13,6 @@ resource_dir="$template_dir/../source/resources"
 source_dir="$template_dir/../source/lambda/services"
 utils_dir="$template_dir/../source/lambda/utilsLayer"
 root_dir="$template_dir/.."
-maxrc=0
 
 # function to print headers
 function headline(){

@@ -34,16 +34,10 @@ export class CloudWatchHelper extends ServiceHelper<CloudWatchClient> {
    * @param queries - metric data query to fetch percentage utilization
    */
   @catchDecorator(CloudWatchServiceException, true)
-  async getMetricData(
-    startTime: Date,
-    endTime: Date,
-    queries: MetricDataQuery[]
-  ) {
+  async getMetricData(startTime: Date, endTime: Date, queries: MetricDataQuery[]) {
     logger.debug({
       label: this.moduleName,
-      message: `getting cloudwatch metric data for queries: ${JSON.stringify(
-        queries
-      )}`,
+      message: `getting cloudwatch metric data for queries: ${JSON.stringify(queries)}`,
     });
     const paginator = paginateGetMetricData(
       { client: this.client },

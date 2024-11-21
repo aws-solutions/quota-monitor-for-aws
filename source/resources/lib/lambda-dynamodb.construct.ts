@@ -1,30 +1,15 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  aws_dynamodb as dynamodb,
-  aws_iam as iam,
-  aws_lambda as lambda,
-  Duration,
-  Stack,
-} from "aws-cdk-lib";
+import { aws_dynamodb as dynamodb, aws_iam as iam, aws_lambda as lambda, Duration, Stack } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import {
-  DynamoDBProps,
-  LambdaProps,
-  LambdaToTarget,
-  LAMBDA_RUNTIME_NODE,
-  LOG_LEVEL,
-} from "./exports";
+import { DynamoDBProps, LambdaProps, LambdaToTarget, LAMBDA_RUNTIME_NODE, LOG_LEVEL } from "./exports";
 import { KMS } from "./kms.construct";
 
 /**
  * @description construct for lambda to dynamodb pattern
  */
-export class LambdaToDDB
-  extends Construct
-  implements LambdaToTarget<dynamodb.Table>
-{
+export class LambdaToDDB extends Construct implements LambdaToTarget<dynamodb.Table> {
   readonly function: lambda.Function;
   readonly target: dynamodb.Table;
 
@@ -42,18 +27,18 @@ export class LambdaToDDB
     this.function = props.function
       ? props.function
       : new lambda.Function(this, `${id}-Function`, {
-          description: `${this.node.tryGetContext(
-            "SOLUTION_ID"
-          )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-Lambda`,
+          description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+            "SOLUTION_NAME"
+          )} - ${id}-Lambda`,
           runtime: LAMBDA_RUNTIME_NODE,
           code: lambda.Code.fromAsset(<string>props.assetLocation),
           handler: "index.handler",
           environment: {
             ...props.environment,
             LOG_LEVEL: this.node.tryGetContext("LOG_LEVEL") || LOG_LEVEL.INFO, //change as needed
-            CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext(
-              "SOLUTION_ID"
-            )}/${this.node.tryGetContext("SOLUTION_VERSION")}`,
+            CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext("SOLUTION_ID")}/${this.node.tryGetContext(
+              "SOLUTION_VERSION"
+            )}`,
           },
           timeout: props.timeout ? props.timeout : Duration.seconds(60),
           deadLetterQueueEnabled: true,
@@ -101,11 +86,9 @@ export class LambdaToDDB
 
     // permissions to access KMS key if function created by the construct
     if (!props.function && props.encryptionKey) {
-      KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach(
-        (policyStatement) => {
-          this.function.addToRolePolicy(policyStatement);
-        }
-      );
+      KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach((policyStatement) => {
+        this.function.addToRolePolicy(policyStatement);
+      });
     }
   }
 }

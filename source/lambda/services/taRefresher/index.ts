@@ -35,9 +35,7 @@ export const handler = async (event: IEvent) => {
   });
 
   //user provided services for TA refresh
-  const _services = (<string>process.env.AWS_SERVICES)
-    .replace(/"/g, "")
-    .split(",");
+  const _services = (<string>process.env.AWS_SERVICES).replace(/"/g, "").split(",");
 
   const taRefresh = new TAHelper();
   await taRefresh.refreshChecks(_services);

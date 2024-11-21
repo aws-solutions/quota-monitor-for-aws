@@ -52,14 +52,8 @@ export class DeploymentManager {
     this.moduleName = <string>__filename.split("/").pop();
     this.stackSetOpsPrefs = {
       RegionConcurrencyType: <string>process.env.REGIONS_CONCURRENCY_TYPE,
-      MaxConcurrentPercentage: parseInt(
-        <string>process.env.MAX_CONCURRENT_PERCENTAGE,
-        10
-      ),
-      FailureTolerancePercentage: parseInt(
-        <string>process.env.FAILURE_TOLERANCE_PERCENTAGE,
-        10
-      ),
+      MaxConcurrentPercentage: parseInt(<string>process.env.MAX_CONCURRENT_PERCENTAGE, 10),
+      FailureTolerancePercentage: parseInt(<string>process.env.FAILURE_TOLERANCE_PERCENTAGE, 10),
     };
     this.sqParameterOverrides = [
       {
@@ -85,6 +79,8 @@ export class DeploymentManager {
     await this.manageStackSets();
   }
 
+  private isOnlyNOP = (arr: string[]): boolean => arr.length === 1 && arr[0] === "NOP";
+
   private async getPrincipals() {
     const accountParameter = <string>process.env.QM_ACCOUNT_PARAMETER;
     const ouParameter = <string>process.env.QM_OU_PARAMETER;
@@ -94,21 +90,34 @@ export class DeploymentManager {
     switch (process.env.DEPLOYMENT_MODEL) {
       case DEPLOYMENT_MODEL.ORG: {
         principals = await this.ssm.getParameter(ouParameter);
-        validateOrgInput(principals);
+        if (!this.isOnlyNOP(principals)) {
+          validateOrgInput(principals);
+        }
         break;
       }
       case DEPLOYMENT_MODEL.ACCOUNT: {
         principals = await this.ssm.getParameter(accountParameter);
-        validateAccountInput(principals);
+        if (!this.isOnlyNOP(principals)) {
+          validateAccountInput(principals);
+        }
         break;
       }
       case DEPLOYMENT_MODEL.HYBRID: {
         const org_principals = await this.ssm.getParameter(ouParameter);
-        validateOrgInput(org_principals);
-        const account_principals = await this.ssm.getParameter(
-          accountParameter
-        );
-        validateAccountInput(account_principals);
+        const account_principals = await this.ssm.getParameter(accountParameter);
+
+        if (this.isOnlyNOP(org_principals)) {
+          logger.warn("OU list contains only 'NOP' in hybrid mode. Proceeding with only account list.");
+        } else {
+          validateOrgInput(org_principals);
+        }
+
+        if (this.isOnlyNOP(account_principals)) {
+          logger.warn("Account list contains only 'NOP' in hybrid mode. Proceeding with only OU list.");
+        } else {
+          validateAccountInput(account_principals);
+        }
+
         principals = [...org_principals, ...account_principals];
         break;
       }
@@ -129,10 +138,7 @@ export class DeploymentManager {
     return organizationId;
   }
 
-  private async updatePermissions(
-    principals: string[],
-    organizationId: string
-  ) {
+  private async updatePermissions(principals: string[], organizationId: string) {
     await this.events.createEventBusPolicy(
       principals,
       organizationId,
@@ -165,9 +171,7 @@ export class DeploymentManager {
   }
 
   private async getUserSelectedRegions(): Promise<string[]> {
-    const regionsFromCfnTemplate = (<string>process.env.REGIONS_LIST).split(
-      ","
-    );
+    const regionsFromCfnTemplate = (<string>process.env.REGIONS_LIST).split(",");
     const ssmParamName = <string>process.env.QM_REGIONS_LIST_PARAMETER;
     const regionsFromSSMParamStore = await this.ssm.getParameter(ssmParamName);
     logger.debug({
@@ -182,40 +186,36 @@ export class DeploymentManager {
   }
 
   private async manageStackSets() {
-    const ouParameter = <string>process.env.QM_OU_PARAMETER;
-
     if (
-      process.env.DEPLOYMENT_MODEL === DEPLOYMENT_MODEL.ORG ||
-      process.env.DEPLOYMENT_MODEL === DEPLOYMENT_MODEL.HYBRID
+      process.env.DEPLOYMENT_MODEL !== DEPLOYMENT_MODEL.ORG &&
+      process.env.DEPLOYMENT_MODEL !== DEPLOYMENT_MODEL.HYBRID
     ) {
-      const cfnTA = new CloudFormationHelper(
-        <string>process.env.TA_STACKSET_ID
-      );
-      const cfnSQ = new CloudFormationHelper(
-        <string>process.env.SQ_STACKSET_ID
-      );
-      const isTAAvailable =
-        await new SupportHelper().isTrustedAdvisorAvailable();
-      const deploymentTargets = await this.ssm.getParameter(ouParameter);
-      const sqRegions = [];
-      const userSelectedRegions = await this.getUserSelectedRegions();
-      const spokeDeploymentMetricData: SpokeDeploymentMetricData = {};
-      if (
-        userSelectedRegions.length === 0 ||
-        arrayIncludesIgnoreCase(userSelectedRegions, "ALL")
-      ) {
-        sqRegions.push(...(await this.ec2.getEnabledRegionNames()));
-        spokeDeploymentMetricData.RegionsList = "ALL";
-      } else {
-        sqRegions.push(...userSelectedRegions);
-        spokeDeploymentMetricData.RegionsList = userSelectedRegions.join(",");
-      }
+      return;
+    }
+
+    const cfnSns = new CloudFormationHelper(<string>process.env.SNS_STACKSET_ID);
+    const cfnTA = new CloudFormationHelper(<string>process.env.TA_STACKSET_ID);
+    const cfnSQ = new CloudFormationHelper(<string>process.env.SQ_STACKSET_ID);
+    const isTAAvailable = await new SupportHelper().isTrustedAdvisorAvailable();
+
+    const deploymentTargets = await this.ssm.getParameter(<string>process.env.QM_OU_PARAMETER);
+
+    const isOUResetToNOP = this.isOnlyNOP(deploymentTargets);
+
+    if (isOUResetToNOP) {
+      await this.handleOUResetToNOP(cfnTA, cfnSQ, cfnSns, isTAAvailable);
+    } else {
+      const { sqRegions, spokeDeploymentMetricData } = await this.getRegionsForDeployment();
+
       logger.debug({
         label: `${this.moduleName}/handler/manageStackSets`,
-        message: `StackSet Operation Preferences = ${JSON.stringify(
-          this.stackSetOpsPrefs
-        )}`,
+        message: `StackSet Operation Preferences = ${JSON.stringify(this.stackSetOpsPrefs)}`,
       });
+
+      if (process.env.SNS_SPOKE_REGION) {
+        const snsRegion = process.env.SNS_SPOKE_REGION;
+        await this.manageStackSetInstances(cfnSns, deploymentTargets, [snsRegion], undefined, []);
+      }
       if (isTAAvailable) {
         const taRegions = this.getTARegions(sqRegions);
         await this.manageStackSetInstances(cfnTA, deploymentTargets, taRegions);
@@ -225,6 +225,7 @@ export class DeploymentManager {
           message: "Not deploying Trusted Advisor stacks",
         });
       }
+
       await this.manageStackSetInstances(
         cfnSQ,
         deploymentTargets,
@@ -238,6 +239,71 @@ export class DeploymentManager {
         },
         "Is Trusted Advisor Available"
       );
+    }
+  }
+
+  private async getRegionsForDeployment() {
+    const userSelectedRegions = await this.getUserSelectedRegions();
+    const sqRegions: string[] = [];
+    const spokeDeploymentMetricData: SpokeDeploymentMetricData = {};
+
+    if (userSelectedRegions.length === 0 || arrayIncludesIgnoreCase(userSelectedRegions, "ALL")) {
+      sqRegions.push(...(await this.ec2.getEnabledRegionNames()));
+      spokeDeploymentMetricData.RegionsList = "ALL";
+    } else {
+      sqRegions.push(...userSelectedRegions);
+      spokeDeploymentMetricData.RegionsList = userSelectedRegions.join(",");
+    }
+
+    return { sqRegions, spokeDeploymentMetricData };
+  }
+
+  private async handleOUResetToNOP(
+    cfnTA: CloudFormationHelper,
+    cfnSQ: CloudFormationHelper,
+    cfnSns: CloudFormationHelper,
+    isTAAvailable: boolean
+  ) {
+    logger.info("OU targets set to NOP. Removing existing OU-based stack instances if any.");
+    const existingTAInstances = await cfnTA.getDeploymentTargets();
+    const existingSQInstances = await cfnSQ.getDeploymentTargets();
+    const existingSnsInstances = await cfnSns.getDeploymentTargets();
+
+    // Send metric even when skipping StackSet operations
+    if (stringEqualsIgnoreCase(<string>process.env.SEND_METRIC, "Yes")) {
+      await this.sendMetric(
+        {
+          SpokeCount: 0,
+          SpokeDeploymentRegions: "",
+        },
+        "Spoke Deployment Metric"
+      );
+    }
+
+    if (isTAAvailable && existingTAInstances.length > 0) {
+      await this.deleteAllStackInstances(cfnTA);
+    } else {
+      logger.info("No existing Trusted Advisor stack instances found. No deletion needed.");
+    }
+
+    if (existingSQInstances.length > 0) {
+      await this.deleteAllStackInstances(cfnSQ);
+    } else {
+      logger.info("No existing Service Quota stack instances found. No deletion needed.");
+    }
+
+    if (existingSnsInstances.length > 0) {
+      await this.deleteAllStackInstances(cfnSns);
+    } else {
+      logger.info("No existing SNS stack instances found. No deletion needed.");
+    }
+  }
+
+  private async deleteAllStackInstances(stackSet: CloudFormationHelper) {
+    const deployedRegions = await stackSet.getDeployedRegions();
+    const deployedTargets = await stackSet.getDeploymentTargets();
+    if (deployedTargets.length > 0 && deployedRegions.length > 0) {
+      await stackSet.deleteStackSetInstances(deployedTargets, deployedRegions, this.stackSetOpsPrefs);
     }
   }
 
@@ -277,25 +343,13 @@ export class DeploymentManager {
       label: `${this.moduleName}/handler/manageStackSetInstances ${stackSet.stackSetName}`,
       message: `regionsNetNew: ${JSON.stringify(regionsNetNew)}`,
     });
-    const sendMetric =
-      stringEqualsIgnoreCase(<string>process.env.SEND_METRIC, "Yes") &&
-      spokeDeploymentMetricData;
+    const sendMetric = stringEqualsIgnoreCase(<string>process.env.SEND_METRIC, "Yes") && spokeDeploymentMetricData;
     if (deploymentTargets[0].match(ORG_REGEX)) {
       const root = await this.org.getRootId();
-      await stackSet.deleteStackSetInstances(
-        [root],
-        regionsToRemove,
-        this.stackSetOpsPrefs
-      );
-      await stackSet.createStackSetInstances(
-        [root],
-        regionsNetNew,
-        this.stackSetOpsPrefs,
-        parameterOverrides
-      );
+      await stackSet.deleteStackSetInstances([root], regionsToRemove, this.stackSetOpsPrefs);
+      await stackSet.createStackSetInstances([root], regionsNetNew, this.stackSetOpsPrefs, parameterOverrides);
       if (sendMetric) {
-        spokeDeploymentMetricData.SpokeCount =
-          (await this.org.getNumberOfAccountsInOrg()) - 1; //minus the management account
+        spokeDeploymentMetricData.SpokeCount = (await this.org.getNumberOfAccountsInOrg()) - 1; //minus the management account
       }
     } else {
       const deployedTargets = await stackSet.getDeploymentTargets();
@@ -309,22 +363,9 @@ export class DeploymentManager {
         label: `${this.moduleName}/handler/manageStackSetInstances ${stackSet.stackSetName}`,
         message: `targetsNetNew: ${JSON.stringify(targetsNetNew)}`,
       });
-      await stackSet.deleteStackSetInstances(
-        targetsToRemove,
-        deployedRegions,
-        this.stackSetOpsPrefs
-      );
-      await stackSet.deleteStackSetInstances(
-        deployedTargets,
-        regionsToRemove,
-        this.stackSetOpsPrefs
-      );
-      await stackSet.createStackSetInstances(
-        targetsNetNew,
-        regions,
-        this.stackSetOpsPrefs,
-        parameterOverrides
-      );
+      await stackSet.deleteStackSetInstances(targetsToRemove, deployedRegions, this.stackSetOpsPrefs);
+      await stackSet.deleteStackSetInstances(deployedTargets, regionsToRemove, this.stackSetOpsPrefs);
+      await stackSet.createStackSetInstances(targetsNetNew, regions, this.stackSetOpsPrefs, parameterOverrides);
       await stackSet.createStackSetInstances(
         deploymentTargets,
         regionsNetNew,
@@ -353,10 +394,7 @@ export class DeploymentManager {
     }
   }
 
-  private async sendMetric(
-    data: { [key: string]: string | number | boolean },
-    message = ""
-  ) {
+  private async sendMetric(data: { [key: string]: string | number | boolean }, message = "") {
     const metric = {
       UUID: <string>process.env.SOLUTION_UUID,
       Solution: <string>process.env.SOLUTION_ID,

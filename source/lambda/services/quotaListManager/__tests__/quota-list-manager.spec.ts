@@ -11,10 +11,7 @@ import {
   handleDynamoDBStreamEvent,
 } from "../exports";
 
-import {
-  IncorrectConfigurationException,
-  UnsupportedEventException,
-} from "solutions-utils";
+import { IncorrectConfigurationException, UnsupportedEventException } from "solutions-utils";
 
 const getItemMock = jest.fn();
 const putItemMock = jest.fn();
@@ -50,7 +47,7 @@ jest.mock("solutions-utils", () => {
   };
 });
 
-const serviceCodes = ["monitoring", "dynamodb", "ec2", "ecr", "firehose"];
+const serviceCodes = ["monitoring", "dynamodb", "ec2", "sagemaker", "connect"];
 
 const quota1 = {
   QuotaName: "Quota 1",
@@ -78,7 +75,25 @@ const insertEvent = {
             S: "ec2",
           },
           Monitored: {
-            BOOL: "Bool",
+            BOOL: true,
+          },
+        },
+      },
+    },
+  ],
+};
+
+const insertEventNotMonitored = {
+  Records: [
+    {
+      eventName: "INSERT",
+      dynamodb: {
+        NewImage: {
+          ServiceCode: {
+            S: "ec2",
+          },
+          Monitored: {
+            BOOL: false,
           },
         },
       },
@@ -144,17 +159,31 @@ describe("Quota List Manager Exports", () => {
     jest.clearAllMocks();
   });
 
-  it("should should put the service monitoring status if it doesn't exist", async () => {
-    await putServiceMonitoringStatus();
+  it("should put the service monitoring status if it doesn't exist", async () => {
+    await putServiceMonitoringStatus({
+      serviceTable: "dbTable",
+      refresh: false,
+      sageMakerMonitoring: true,
+      connectMonitoring: false,
+    });
 
     expect(getServiceCodesMock).toHaveBeenCalledTimes(1);
     expect(getItemMock).toHaveBeenCalledTimes(5);
-    expect(putItemMock).toHaveBeenCalledTimes(5);
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: true,
+    });
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "connect",
+      Monitored: false,
+    });
   });
 
   it("should should not put the service monitoring status if it already exists", async () => {
     getItemMock.mockResolvedValueOnce({});
-    await putServiceMonitoringStatus();
+    await putServiceMonitoringStatus({
+      serviceTable: "dbTable",
+    });
 
     expect(getItemMock).toHaveBeenCalledTimes(5);
     expect(putItemMock).toHaveBeenCalledTimes(4);
@@ -321,6 +350,12 @@ describe("Quota List Manager Exports", () => {
     expect(batchWriteMock).toHaveBeenCalledTimes(1);
   });
 
+  it("should not add quotas for Dynamo DB Stream INSERT Event when Monitored is false", async () => {
+    await handleDynamoDBStreamEvent(insertEventNotMonitored);
+    expect(batchDeleteMock).toHaveBeenCalledTimes(0);
+    expect(putItemMock).toHaveBeenCalledTimes(0);
+  });
+
   it("should handle Dynamo DB Stream MODIFY Event", async () => {
     await handleDynamoDBStreamEvent(modifyEvent);
     expect(batchDeleteMock).toHaveBeenCalledTimes(1);
@@ -331,6 +366,40 @@ describe("Quota List Manager Exports", () => {
     await handleDynamoDBStreamEvent(removeEvent);
     expect(batchDeleteMock).toHaveBeenCalledTimes(1);
     expect(batchWriteMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("should update only SageMaker monitoring status", async () => {
+    await putServiceMonitoringStatus({
+      serviceTable: "dbTable",
+      refresh: false,
+      sageMakerMonitoring: true,
+    });
+
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: true,
+    });
+    expect(putItemMock).not.toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "connect",
+      Monitored: expect.anything(),
+    });
+  });
+
+  it("should update only Connect monitoring status", async () => {
+    await putServiceMonitoringStatus({
+      serviceTable: "dbTable",
+      refresh: false,
+      connectMonitoring: false,
+    });
+
+    expect(putItemMock).not.toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: expect.anything(),
+    });
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "connect",
+      Monitored: false,
+    });
   });
 });
 
@@ -343,11 +412,22 @@ describe("Handler", () => {
     const event = {
       RequestType: "Create",
       ResourceType: "",
+      ResourceProperties: {
+        SageMakerMonitoring: "Yes",
+        ConnectMonitoring: "No",
+      },
     };
 
     await handler(event);
     expect(getItemMock).toHaveBeenCalledTimes(5);
-    expect(putItemMock).toHaveBeenCalledTimes(0);
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: true,
+    });
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "connect",
+      Monitored: false,
+    });
   });
 
   it("should handle an update event on a clean slate", async () => {
@@ -377,6 +457,32 @@ describe("Handler", () => {
     await handler(event);
     expect(getItemMock).toHaveBeenCalledTimes(5);
     expect(putItemMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("should handle an Update event with changes to SageMaker and Connect", async () => {
+    const event = {
+      RequestType: "Update",
+      ResourceType: "",
+      OldResourceProperties: {
+        SageMakerMonitoring: "Yes",
+        ConnectMonitoring: "No",
+      },
+      ResourceProperties: {
+        SageMakerMonitoring: "No",
+        ConnectMonitoring: "Yes",
+      },
+    };
+
+    await handler(event);
+    expect(getItemMock).toHaveBeenCalledTimes(5);
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: false,
+    });
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "connect",
+      Monitored: true,
+    });
   });
 
   it("should handle a dynamo db stream event", async () => {
@@ -435,5 +541,61 @@ describe("Handler", () => {
     };
 
     await expect(testCase()).rejects.toThrow(UnsupportedEventException);
+  });
+
+  it("should preserve existing values for SageMaker and Connect during refresh", async () => {
+    getServiceCodesMock.mockResolvedValue(["sagemaker", "connect"]);
+    getItemMock.mockResolvedValueOnce({ ServiceCode: "sagemaker", Monitored: true });
+    getItemMock.mockResolvedValueOnce({ ServiceCode: "connect", Monitored: false });
+
+    await putServiceMonitoringStatus({
+      serviceTable: "dbTable",
+      refresh: true,
+    });
+    // Check that SageMaker is toggled off and then on
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: false,
+    });
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: true,
+    });
+
+    // Connect should not be toggled because it was initially false
+    expect(putItemMock).not.toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "connect",
+      Monitored: true,
+    });
+
+    // Check the order and number of calls
+    expect(putItemMock.mock.calls).toEqual([
+      ["dbTable", { ServiceCode: "sagemaker", Monitored: false }],
+      ["dbTable", { ServiceCode: "sagemaker", Monitored: true }],
+    ]);
+
+    expect(putItemMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("should update SageMaker and Connect when values are provided", async () => {
+    getServiceCodesMock.mockResolvedValue(["sagemaker", "connect"]);
+    getItemMock.mockResolvedValueOnce({ ServiceCode: "sagemaker", Monitored: true });
+    getItemMock.mockResolvedValueOnce({ ServiceCode: "connect", Monitored: false });
+
+    await putServiceMonitoringStatus({
+      serviceTable: "dbTable",
+      refresh: false,
+      sageMakerMonitoring: false,
+      connectMonitoring: true,
+    });
+
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "sagemaker",
+      Monitored: false,
+    });
+    expect(putItemMock).toHaveBeenCalledWith("dbTable", {
+      ServiceCode: "connect",
+      Monitored: true,
+    });
   });
 });

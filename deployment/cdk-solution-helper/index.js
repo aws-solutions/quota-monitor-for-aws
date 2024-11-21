@@ -18,18 +18,12 @@ fs.readdirSync(global_s3_assets).forEach((file) => {
   // Clean-up Lambda function code dependencies
   const resources = template.Resources ? template.Resources : {};
   const lambdaFunctions = Object.keys(resources).filter(function (key) {
-    return (
-      resources[key].Type === "AWS::Lambda::Function" ||
-      resources[key].Type === "AWS::Lambda::LayerVersion"
-    );
+    return resources[key].Type === "AWS::Lambda::Function" || resources[key].Type === "AWS::Lambda::LayerVersion";
   });
   lambdaFunctions.forEach(function (f) {
     const fn = template.Resources[f];
 
-    const assetProperty =
-      fn.Type === "AWS::Lambda::Function"
-        ? fn.Properties.Code
-        : fn.Properties.Content;
+    const assetProperty = fn.Type === "AWS::Lambda::Function" ? fn.Properties.Code : fn.Properties.Content;
 
     if (assetProperty.hasOwnProperty("S3Bucket")) {
       // Set the S3 key reference

@@ -22,11 +22,7 @@ export class KMS extends Construct {
           actions: ["kms:*"],
           resources: ["*"],
           effect: iam.Effect.ALLOW,
-          principals: [
-            new iam.ArnPrincipal(
-              `arn:${Aws.PARTITION}:iam::${Aws.ACCOUNT_ID}:root`
-            ),
-          ],
+          principals: [new iam.ArnPrincipal(`arn:${Aws.PARTITION}:iam::${Aws.ACCOUNT_ID}:root`)],
         }),
       ],
     });
@@ -35,8 +31,7 @@ export class KMS extends Construct {
      * @description kms key for encryption in quota monitor resources
      */
     this.key = new kms.Key(this, "QM-EncryptionKey", {
-      description:
-        "CMK for AWS resources provisioned by Quota Monitor in this account",
+      description: "CMK for AWS resources provisioned by Quota Monitor in this account",
       enabled: true,
       enableKeyRotation: true,
       policy: encryptionKeyPolicy,

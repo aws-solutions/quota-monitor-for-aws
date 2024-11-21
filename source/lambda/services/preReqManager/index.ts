@@ -2,11 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { PreReqManager } from "./lib/preReqManager";
-import {
-  LambdaTriggers,
-  logger,
-  UnsupportedEventException,
-} from "solutions-utils";
+import { LambdaTriggers, logger, UnsupportedEventException } from "solutions-utils";
 
 const moduleName = <string>__filename.split("/").pop();
 
@@ -40,9 +36,7 @@ async function handleCreateOrUpdate(properties: Record<string, string>) {
     const preReqManager = new PreReqManager(properties.AccountId);
     await preReqManager.throwIfOrgMisconfigured();
     await preReqManager.enableTrustedAccess();
-    await preReqManager.registerDelegatedAdministrator(
-      properties.QMMonitoringAccountId
-    );
+    await preReqManager.registerDelegatedAdministrator(properties.QMMonitoringAccountId);
     logger.info({
       label: moduleName,
       message: `All pre-requisites validated & installed`,

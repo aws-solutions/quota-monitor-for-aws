@@ -1,0 +1,3409 @@
+{
+  "Description": "(SO0005) - quota-monitor-for-aws - Hub Template. Version v6.3.0",
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Deployment Configuration"
+          },
+          "Parameters": [
+            "DeploymentModel",
+            "RegionsList",
+            "SnsSpokeRegion",
+            "ManagementAccountId"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Stackset Deployment Options"
+          },
+          "Parameters": [
+            "RegionConcurrency",
+            "MaxConcurrentPercentage",
+            "FailureTolerancePercentage"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Notification Configuration"
+          },
+          "Parameters": [
+            "SNSEmail",
+            "SlackNotification"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Stackset Stack Configuration Parameters"
+          },
+          "Parameters": [
+            "SQNotificationThreshold",
+            "SQMonitoringFrequency",
+            "SQReportOKNotifications",
+            "SageMakerMonitoring",
+            "ConnectMonitoring"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "DeploymentModel": {
+          "default": "Do you want to monitor quotas across Organizational Units, Accounts or both?"
+        },
+        "SNSEmail": {
+          "default": "Email address for notifications"
+        },
+        "SlackNotification": {
+          "default": "Do you want slack notifications?"
+        },
+        "ManagementAccountId": {
+          "default": "Organization's management Id to scope permissions down for Stackset creation"
+        },
+        "RegionsList": {
+          "default": "List of regions to deploy resources to monitor service quotas"
+        },
+        "SnsSpokeRegion": {
+          "default": "Region in which to launch the SNS stack in the spoke accounts."
+        },
+        "RegionConcurrencyType": {
+          "default": "Region Concurrency"
+        },
+        "MaxConcurrentPercentage": {
+          "default": "Percentage Maximum concurrent accounts"
+        },
+        "FailureTolerancePercentage": {
+          "default": "Percentage Failure tolerance"
+        },
+        "SQNotificationThreshold": {
+          "default": "At what quota utilization do you want notifications?"
+        },
+        "SQMonitoringFrequency": {
+          "default": "Frequency to monitor quota utilization"
+        },
+        "SQReportOKNotifications": {
+          "default": "Report OK Notifications"
+        },
+        "SageMakerMonitoring": {
+          "default": "Enable monitoring for SageMaker quotas"
+        },
+        "ConnectMonitoring": {
+          "default": "Enable monitoring for Connect quotas"
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "SNSEmail": {
+      "Type": "String",
+      "Default": "",
+      "Description": "To disable email notifications, leave this blank."
+    },
+    "SlackNotification": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    },
+    "DeploymentModel": {
+      "Type": "String",
+      "Default": "Organizations",
+      "AllowedValues": [
+        "Organizations",
+        "Hybrid"
+      ]
+    },
+    "ManagementAccountId": {
+      "Type": "String",
+      "Default": "*",
+      "AllowedPattern": "^([0-9]{1}\\d{11})|\\*$",
+      "Description": "AWS Account Id for the organization's management account or *"
+    },
+    "RegionsList": {
+      "Type": "String",
+      "Default": "ALL",
+      "Description": "Comma separated list of regions like us-east-1,us-east-2 or ALL or leave it blank for ALL"
+    },
+    "SnsSpokeRegion": {
+      "Type": "String",
+      "Default": "",
+      "Description": "The region in which to launch the SNS stack in each spoke account. Leave blank if the spoke SNS is not needed"
+    },
+    "RegionConcurrency": {
+      "Type": "String",
+      "Default": "PARALLEL",
+      "AllowedValues": [
+        "PARALLEL",
+        "SEQUENTIAL"
+      ],
+      "Description": "Choose to deploy StackSets into regions sequentially or in parallel"
+    },
+    "MaxConcurrentPercentage": {
+      "Type": "Number",
+      "Default": 100,
+      "Description": "Percentage of accounts per region to which you can deploy stacks at one time. The higher the number, the faster the operation",
+      "MaxValue": 100,
+      "MinValue": 1
+    },
+    "FailureTolerancePercentage": {
+      "Type": "Number",
+      "Default": 0,
+      "Description": "Percentage of account, per region, for which stacks can fail before CloudFormation stops the operation in that region. If the operation is stopped in one region, it does not continue in other regions. The lower the number the safer the operation",
+      "MaxValue": 100,
+      "MinValue": 0
+    },
+    "SQNotificationThreshold": {
+      "Type": "String",
+      "Default": "80",
+      "AllowedPattern": "^([1-9]|[1-9][0-9])$",
+      "ConstraintDescription": "Threshold must be a whole number between 0 and 100",
+      "Description": "Threshold percentage for quota utilization alerts (0-100)"
+    },
+    "SQMonitoringFrequency": {
+      "Type": "String",
+      "Default": "rate(12 hours)",
+      "AllowedValues": [
+        "rate(6 hours)",
+        "rate(12 hours)",
+        "rate(1 day)"
+      ]
+    },
+    "SQReportOKNotifications": {
+      "Type": "String",
+      "Default": "No",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    },
+    "SageMakerMonitoring": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Description": "Enable monitoring for SageMaker quotas. NOTE: (1) SageMaker monitoring consumes a high number of quotas, potentially resulting in higher usage cost. (2) Changing this value during a stack update will affect all spoke accounts but if left unchanged, it preserves existing spoke accounts customizations."
+    },
+    "ConnectMonitoring": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ],
+      "Description": "Enable monitoring for Connect quotas. NOTE: (1) Connect monitoring consumes a high number of quotas, potentially resulting in higher usage cost. (2) Changing this value during a stack update will affect all spoke accounts but if left unchanged, it preserves existing spoke accounts customizations."
+    }
+  },
+  "Mappings": {
+    "QuotaMonitorMap": {
+      "Metrics": {
+        "SendAnonymizedData": "Yes",
+        "MetricsEndpoint": "https://metrics.awssolutionsbuilder.com/generic"
+      },
+      "SSMParameters": {
+        "SlackHook": "/QuotaMonitor/SlackHook",
+        "Accounts": "/QuotaMonitor/Accounts",
+        "OrganizationalUnits": "/QuotaMonitor/OUs",
+        "NotificationMutingConfig": "/QuotaMonitor/NotificationConfiguration",
+        "RegionsList": "/QuotaMonitor/RegionsToDeploy"
+      }
+    }
+  },
+  "Conditions": {
+    "EmailTrueCondition": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "SNSEmail"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "SlackTrueCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "SlackNotification"
+        },
+        "Yes"
+      ]
+    },
+    "AccountDeployCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "DeploymentModel"
+        },
+        "Hybrid"
+      ]
+    },
+    "IsChinaPartition": {
+      "Fn::Equals": [
+        {
+          "Ref": "AWS::Partition"
+        },
+        "aws-cn"
+      ]
+    },
+    "CDKMetadataAvailable": {
+      "Fn::Or": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "af-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ca-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-northwest-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-3"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "il-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "sa-east-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-2"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "QMBusFF5C6C0C": {
+      "Type": "AWS::Events::EventBus",
+      "Properties": {
+        "Name": "QuotaMonitorBus"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Bus/Resource"
+      }
+    },
+    "KMSHubQMEncryptionKeyA80F8C05": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "CMK for AWS resources provisioned by Quota Monitor in this account",
+        "EnableKeyRotation": true,
+        "Enabled": true,
+        "KeyPolicy": {
+          "Statement": [
+            {
+              "Action": "kms:*",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":iam::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":root"
+                    ]
+                  ]
+                }
+              },
+              "Resource": "*"
+            },
+            {
+              "Action": [
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "events.amazonaws.com"
+              },
+              "Resource": "*"
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/KMS-Hub/QM-EncryptionKey/Resource"
+      }
+    },
+    "KMSHubQMEncryptionKeyAlias6C248240": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/CMK-KMS-Hub",
+        "TargetKeyId": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/KMS-Hub/QM-EncryptionKey/Alias/Resource"
+      }
+    },
+    "QMSlackHook4F1AD495": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Description": "Slack Hook URL to send Quota Monitor events",
+        "Name": {
+          "Fn::FindInMap": [
+            "QuotaMonitorMap",
+            "SSMParameters",
+            "SlackHook"
+          ]
+        },
+        "Type": "String",
+        "Value": "NOP"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackHook/Resource"
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMOUs122D8EB4": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Description": "List of target Organizational Units",
+        "Name": {
+          "Fn::FindInMap": [
+            "QuotaMonitorMap",
+            "SSMParameters",
+            "OrganizationalUnits"
+          ]
+        },
+        "Type": "StringList",
+        "Value": "NOP"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-OUs/Resource"
+      }
+    },
+    "QMAccounts3D743F6B": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Description": "List of target Accounts",
+        "Name": {
+          "Fn::FindInMap": [
+            "QuotaMonitorMap",
+            "SSMParameters",
+            "Accounts"
+          ]
+        },
+        "Type": "StringList",
+        "Value": "NOP"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Accounts/Resource"
+      },
+      "Condition": "AccountDeployCondition"
+    },
+    "QMNotificationMutingConfig3B7948BA": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Description": "Muting configuration for services, limits e.g. ec2:L-1216C47A,ec2:Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances,dynamodb,logs:*,geo:L-05EFD12D",
+        "Name": {
+          "Fn::FindInMap": [
+            "QuotaMonitorMap",
+            "SSMParameters",
+            "NotificationMutingConfig"
+          ]
+        },
+        "Type": "StringList",
+        "Value": "NOP"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-NotificationMutingConfig/Resource"
+      }
+    },
+    "QMRegionsList17794003": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": {
+        "Description": "list of regions to deploy spoke resources (eg. us-east-1,us-west-2)",
+        "Name": {
+          "Fn::FindInMap": [
+            "QuotaMonitorMap",
+            "SSMParameters",
+            "RegionsList"
+          ]
+        },
+        "Type": "StringList",
+        "Value": {
+          "Ref": "RegionsList"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-RegionsList/Resource"
+      }
+    },
+    "QMUtilsLayerQMUtilsLayerLayer80D5D993": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Properties": {
+        "CompatibleRuntimes": [
+          "nodejs18.x"
+        ],
+        "Content": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip"
+        },
+        "LayerName": "QM-UtilsLayer"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
+        "aws:asset:path": "asset.e8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Content"
+      }
+    },
+    "QMHelperQMHelperFunctionServiceRole0506622D": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/QM-Helper-Function/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperFunction91954E97": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assetf4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip"
+        },
+        "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
+        "Environment": {
+          "Variables": {
+            "METRICS_ENDPOINT": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "MetricsEndpoint"
+              ]
+            },
+            "SEND_METRIC": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "SendAnonymizedData"
+              ]
+            },
+            "QM_STACK_ID": "quota-monitor-hub-cn",
+            "QM_SLACK_NOTIFICATION": {
+              "Ref": "SlackNotification"
+            },
+            "QM_EMAIL_NOTIFICATION": {
+              "Fn::If": [
+                "EmailTrueCondition",
+                "Yes",
+                "No"
+              ]
+            },
+            "SAGEMAKER_MONITORING": {
+              "Ref": "SageMakerMonitoring"
+            },
+            "CONNECT_MONITORING": {
+              "Ref": "ConnectMonitoring"
+            },
+            "LOG_LEVEL": "info",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
+            "SOLUTION_ID": "SO0005"
+          }
+        },
+        "Handler": "index.handler",
+        "Layers": [
+          {
+            "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
+          }
+        ],
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperFunctionServiceRole0506622D",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 5
+      },
+      "DependsOn": [
+        "QMHelperQMHelperFunctionServiceRole0506622D"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/QM-Helper-Function/Resource",
+        "aws:asset:path": "asset.f4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperFunctionEventInvokeConfig580F9F5F": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMHelperQMHelperFunction91954E97"
+        },
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/QM-Helper-Function/EventInvokeConfig/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/QM-Helper-Provider/framework-onEvent/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperProviderframeworkonEventServiceRoleDefaultPolicy86C1FCC1": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "QMHelperQMHelperFunction91954E97",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "QMHelperQMHelperFunction91954E97",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMHelperQMHelperProviderframeworkonEventServiceRoleDefaultPolicy86C1FCC1",
+        "Roles": [
+          {
+            "Ref": "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/QM-Helper-Provider/framework-onEvent/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperProviderframeworkonEventB1DF6D3F": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+        },
+        "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-hub-cn/QM-Helper/QM-Helper-Provider)",
+        "Environment": {
+          "Variables": {
+            "USER_ON_EVENT_FUNCTION_ARN": {
+              "Fn::GetAtt": [
+                "QMHelperQMHelperFunction91954E97",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "Handler": "framework.onEvent",
+        "Role": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 900
+      },
+      "DependsOn": [
+        "QMHelperQMHelperProviderframeworkonEventServiceRoleDefaultPolicy86C1FCC1",
+        "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/QM-Helper-Provider/framework-onEvent/Resource",
+        "aws:asset:path": "asset.7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMHelperCreateUUIDE0D423E6": {
+      "Type": "Custom::CreateUUID",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperProviderframeworkonEventB1DF6D3F",
+            "Arn"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/CreateUUID/Default"
+      }
+    },
+    "QMHelperLaunchData6F23B2C3": {
+      "Type": "Custom::LaunchData",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperProviderframeworkonEventB1DF6D3F",
+            "Arn"
+          ]
+        },
+        "SOLUTION_UUID": {
+          "Fn::GetAtt": [
+            "QMHelperCreateUUIDE0D423E6",
+            "UUID"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Helper/LaunchData/Default"
+      }
+    },
+    "QMSlackNotifierQMSlackNotifierEventsRuleC3528E53": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "SO0005 quota-monitor-for-aws - QM-SlackNotifier-EventsRule",
+        "EventBusName": {
+          "Ref": "QMBusFF5C6C0C"
+        },
+        "EventPattern": {
+          "detail": {
+            "status": [
+              "WARN",
+              "ERROR"
+            ]
+          },
+          "detail-type": [
+            "Trusted Advisor Check Item Refresh Notification",
+            "Service Quotas Utilization Notification"
+          ],
+          "source": [
+            "aws.trustedadvisor",
+            "aws-solutions.quota-monitor"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "QMSlackNotifierQMSlackNotifierLambda95713661",
+                "Arn"
+              ]
+            },
+            "Id": "Target0"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-EventsRule/Resource"
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSlackNotifierQMSlackNotifierEventsRuleAllowEventRulequotamonitorhubcnQMSlackNotifierQMSlackNotifierLambdaA45E70CD2991BDD8": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "QMSlackNotifierQMSlackNotifierLambda95713661",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "QMSlackNotifierQMSlackNotifierEventsRuleC3528E53",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-EventsRule/AllowEventRulequotamonitorhubcnQMSlackNotifierQMSlackNotifierLambdaA45E70CD"
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSlackNotifierQMSlackNotifierLambdaDeadLetterQueue74B865F7": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-Lambda-Dead-Letter-Queue/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "Queue itself is dead-letter queue",
+              "id": "AwsSolutions-SQS3"
+            }
+          ]
+        }
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSlackNotifierQMSlackNotifierLambdaDeadLetterQueuePolicy719E4C6A": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMSlackNotifierQMSlackNotifierLambdaDeadLetterQueue74B865F7",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Queues": [
+          {
+            "Ref": "QMSlackNotifierQMSlackNotifierLambdaDeadLetterQueue74B865F7"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-Lambda-Dead-Letter-Queue/Policy/Resource"
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSlackNotifierQMSlackNotifierLambdaServiceRole6342FD1D": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-Lambda/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSlackNotifierQMSlackNotifierLambdaServiceRoleDefaultPolicy4C4D219B": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:SendMessage",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMSlackNotifierQMSlackNotifierLambdaDeadLetterQueue74B865F7",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:CreateGrant"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "KMSHubQMEncryptionKeyA80F8C05",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": "kms:ListAliases",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "ssm:GetParameter",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":ssm:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":parameter",
+                      {
+                        "Ref": "QMSlackHook4F1AD495"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":ssm:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":parameter",
+                      {
+                        "Ref": "QMNotificationMutingConfig3B7948BA"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMSlackNotifierQMSlackNotifierLambdaServiceRoleDefaultPolicy4C4D219B",
+        "Roles": [
+          {
+            "Ref": "QMSlackNotifierQMSlackNotifierLambdaServiceRole6342FD1D"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-Lambda/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSlackNotifierQMSlackNotifierLambda95713661": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset11434a0b3246f0b4445dd28fdbc9e4e7dc808ccf355077acd9b000c5d88e6713.zip"
+        },
+        "DeadLetterConfig": {
+          "TargetArn": {
+            "Fn::GetAtt": [
+              "QMSlackNotifierQMSlackNotifierLambdaDeadLetterQueue74B865F7",
+              "Arn"
+            ]
+          }
+        },
+        "Description": "SO0005 quota-monitor-for-aws - QM-SlackNotifier-Lambda",
+        "Environment": {
+          "Variables": {
+            "SLACK_HOOK": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "SSMParameters",
+                "SlackHook"
+              ]
+            },
+            "QM_NOTIFICATION_MUTING_CONFIG_PARAMETER": {
+              "Ref": "QMNotificationMutingConfig3B7948BA"
+            },
+            "LOG_LEVEL": "info",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
+            "SOLUTION_ID": "SO0005"
+          }
+        },
+        "Handler": "index.handler",
+        "KmsKeyArn": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        },
+        "Layers": [
+          {
+            "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
+          }
+        ],
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "QMSlackNotifierQMSlackNotifierLambdaServiceRole6342FD1D",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 60
+      },
+      "DependsOn": [
+        "QMSlackNotifierQMSlackNotifierLambdaServiceRoleDefaultPolicy4C4D219B",
+        "QMSlackNotifierQMSlackNotifierLambdaServiceRole6342FD1D"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-Lambda/Resource",
+        "aws:asset:path": "asset.11434a0b3246f0b4445dd28fdbc9e4e7dc808ccf355077acd9b000c5d88e6713.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSlackNotifierQMSlackNotifierLambdaEventInvokeConfig5340A982": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMSlackNotifierQMSlackNotifierLambda95713661"
+        },
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SlackNotifier/QM-SlackNotifier-Lambda/EventInvokeConfig/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "QMSNSPublisherQMSNSPublisherSNSTopic7EE2EBF4": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "KmsMasterKeyId": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisher/QM-SNSPublisher-SNSTopic/Resource"
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionEventsRule5BDCD4FD": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "SO0005 quota-monitor-for-aws - QM-SNSPublisherFunction-EventsRule",
+        "EventBusName": {
+          "Ref": "QMBusFF5C6C0C"
+        },
+        "EventPattern": {
+          "detail": {
+            "status": [
+              "WARN",
+              "ERROR"
+            ]
+          },
+          "detail-type": [
+            "Trusted Advisor Check Item Refresh Notification",
+            "Service Quotas Utilization Notification"
+          ],
+          "source": [
+            "aws.trustedadvisor",
+            "aws-solutions.quota-monitor"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "QMSNSPublisherFunctionQMSNSPublisherFunctionLambda8BD2DBC1",
+                "Arn"
+              ]
+            },
+            "Id": "Target0"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-EventsRule/Resource"
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionEventsRuleAllowEventRulequotamonitorhubcnQMSNSPublisherFunctionQMSNSPublisherFunctionLambdaD528E83C01F26CCC": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "QMSNSPublisherFunctionQMSNSPublisherFunctionLambda8BD2DBC1",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "QMSNSPublisherFunctionQMSNSPublisherFunctionEventsRule5BDCD4FD",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-EventsRule/AllowEventRulequotamonitorhubcnQMSNSPublisherFunctionQMSNSPublisherFunctionLambdaD528E83C"
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaDeadLetterQueue72FF519A": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda-Dead-Letter-Queue/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "Queue itself is dead-letter queue",
+              "id": "AwsSolutions-SQS3"
+            }
+          ]
+        }
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaDeadLetterQueuePolicyBA6A8707": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaDeadLetterQueue72FF519A",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Queues": [
+          {
+            "Ref": "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaDeadLetterQueue72FF519A"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda-Dead-Letter-Queue/Policy/Resource"
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaServiceRoleA2F00B10": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaServiceRoleDefaultPolicy1E6E152C": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:SendMessage",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaDeadLetterQueue72FF519A",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:CreateGrant"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "KMSHubQMEncryptionKeyA80F8C05",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": "kms:ListAliases",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "SNS:Publish",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "QMSNSPublisherQMSNSPublisherSNSTopic7EE2EBF4"
+              }
+            },
+            {
+              "Action": "kms:GenerateDataKey",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "KMSHubQMEncryptionKeyA80F8C05",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": "ssm:GetParameter",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":ssm:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":parameter",
+                    {
+                      "Ref": "QMNotificationMutingConfig3B7948BA"
+                    }
+                  ]
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaServiceRoleDefaultPolicy1E6E152C",
+        "Roles": [
+          {
+            "Ref": "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaServiceRoleA2F00B10"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionLambda8BD2DBC1": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete7a324e67e467d0c22e13b0693ca4efdceb0d53025c7fb45fe524870a5c18046.zip"
+        },
+        "DeadLetterConfig": {
+          "TargetArn": {
+            "Fn::GetAtt": [
+              "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaDeadLetterQueue72FF519A",
+              "Arn"
+            ]
+          }
+        },
+        "Description": "SO0005 quota-monitor-for-aws - QM-SNSPublisherFunction-Lambda",
+        "Environment": {
+          "Variables": {
+            "QM_NOTIFICATION_MUTING_CONFIG_PARAMETER": {
+              "Ref": "QMNotificationMutingConfig3B7948BA"
+            },
+            "SOLUTION_UUID": {
+              "Fn::GetAtt": [
+                "QMHelperCreateUUIDE0D423E6",
+                "UUID"
+              ]
+            },
+            "METRICS_ENDPOINT": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "MetricsEndpoint"
+              ]
+            },
+            "SEND_METRIC": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "SendAnonymizedData"
+              ]
+            },
+            "TOPIC_ARN": {
+              "Ref": "QMSNSPublisherQMSNSPublisherSNSTopic7EE2EBF4"
+            },
+            "LOG_LEVEL": "info",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
+            "SOLUTION_ID": "SO0005"
+          }
+        },
+        "Handler": "index.handler",
+        "KmsKeyArn": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        },
+        "Layers": [
+          {
+            "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
+          }
+        ],
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaServiceRoleA2F00B10",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 60
+      },
+      "DependsOn": [
+        "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaServiceRoleDefaultPolicy1E6E152C",
+        "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaServiceRoleA2F00B10"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda/Resource",
+        "aws:asset:path": "asset.e7a324e67e467d0c22e13b0693ca4efdceb0d53025c7fb45fe524870a5c18046.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMSNSPublisherFunctionQMSNSPublisherFunctionLambdaEventInvokeConfig7A963AA0": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMSNSPublisherFunctionQMSNSPublisherFunctionLambda8BD2DBC1"
+        },
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNSPublisherFunction/QM-SNSPublisherFunction-Lambda/EventInvokeConfig/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMEmailSubscription32E71F90": {
+      "Type": "AWS::SNS::Subscription",
+      "Properties": {
+        "Endpoint": {
+          "Ref": "SNSEmail"
+        },
+        "Protocol": "email",
+        "TopicArn": {
+          "Ref": "QMSNSPublisherQMSNSPublisherSNSTopic7EE2EBF4"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-EmailSubscription/Resource"
+      },
+      "Condition": "EmailTrueCondition"
+    },
+    "QMSummarizerEventQueueQMSummarizerEventQueueEventsRuleE50B8D7C": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "SO0005 quota-monitor-for-aws - QM-Summarizer-EventQueue-EventsRule",
+        "EventBusName": {
+          "Ref": "QMBusFF5C6C0C"
+        },
+        "EventPattern": {
+          "detail": {
+            "status": [
+              "OK",
+              "WARN",
+              "ERROR"
+            ]
+          },
+          "detail-type": [
+            "Trusted Advisor Check Item Refresh Notification",
+            "Service Quotas Utilization Notification"
+          ],
+          "source": [
+            "aws.trustedadvisor",
+            "aws-solutions.quota-monitor"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "QMSummarizerEventQueueQMSummarizerEventQueueQueue95FCCD2A",
+                "Arn"
+              ]
+            },
+            "Id": "Target0"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Summarizer-EventQueue/QM-Summarizer-EventQueue-EventsRule/Resource"
+      }
+    },
+    "QMSummarizerEventQueueQMSummarizerEventQueueQueue95FCCD2A": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        },
+        "VisibilityTimeout": 60
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Summarizer-EventQueue/QM-Summarizer-EventQueue-Queue/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "dlq not implemented on sqs, will evaluate in future if there is need",
+              "id": "AwsSolutions-SQS3"
+            }
+          ]
+        }
+      }
+    },
+    "QMSummarizerEventQueueQMSummarizerEventQueueQueuePolicyE7E1F6D8": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMSummarizerEventQueueQMSummarizerEventQueueQueue95FCCD2A",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "events.amazonaws.com"
+              },
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMSummarizerEventQueueQMSummarizerEventQueueQueue95FCCD2A",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Queues": [
+          {
+            "Ref": "QMSummarizerEventQueueQMSummarizerEventQueueQueue95FCCD2A"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Summarizer-EventQueue/QM-Summarizer-EventQueue-Queue/Policy/Resource"
+      }
+    },
+    "QMTable336670B0": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "MessageId",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "TimeStamp",
+            "AttributeType": "S"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": [
+          {
+            "AttributeName": "MessageId",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "TimeStamp",
+            "KeyType": "RANGE"
+          }
+        ],
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true
+        },
+        "SSESpecification": {
+          "KMSMasterKeyId": {
+            "Fn::GetAtt": [
+              "KMSHubQMEncryptionKeyA80F8C05",
+              "Arn"
+            ]
+          },
+          "SSEEnabled": true,
+          "SSEType": "KMS"
+        },
+        "TimeToLiveSpecification": {
+          "AttributeName": "ExpiryTime",
+          "Enabled": true
+        }
+      },
+      "UpdateReplacePolicy": "Retain",
+      "DeletionPolicy": "Retain",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Table/Resource"
+      }
+    },
+    "QMReporterQMReporterEventsRule0BF77282": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "SO0005 quota-monitor-for-aws - QM-Reporter-EventsRule",
+        "ScheduleExpression": "rate(5 minutes)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "QMReporterQMReporterLambda7D98A6E4",
+                "Arn"
+              ]
+            },
+            "Id": "Target0"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-EventsRule/Resource"
+      }
+    },
+    "QMReporterQMReporterEventsRuleAllowEventRulequotamonitorhubcnQMReporterQMReporterLambda446E624CF1BB259D": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "QMReporterQMReporterLambda7D98A6E4",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "QMReporterQMReporterEventsRule0BF77282",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-EventsRule/AllowEventRulequotamonitorhubcnQMReporterQMReporterLambda446E624C"
+      }
+    },
+    "QMReporterQMReporterLambdaDeadLetterQueueA0C464BC": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-Lambda-Dead-Letter-Queue/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "Queue itself is dead-letter queue",
+              "id": "AwsSolutions-SQS3"
+            }
+          ]
+        }
+      }
+    },
+    "QMReporterQMReporterLambdaDeadLetterQueuePolicyE714847D": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMReporterQMReporterLambdaDeadLetterQueueA0C464BC",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Queues": [
+          {
+            "Ref": "QMReporterQMReporterLambdaDeadLetterQueueA0C464BC"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-Lambda-Dead-Letter-Queue/Policy/Resource"
+      }
+    },
+    "QMReporterQMReporterLambdaServiceRoleBA4CED84": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-Lambda/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMReporterQMReporterLambdaServiceRoleDefaultPolicyC6B87A76": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:SendMessage",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMReporterQMReporterLambdaDeadLetterQueueA0C464BC",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:CreateGrant"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "KMSHubQMEncryptionKeyA80F8C05",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": "kms:ListAliases",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": [
+                "sqs:DeleteMessage",
+                "sqs:ReceiveMessage"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMSummarizerEventQueueQMSummarizerEventQueueQueue95FCCD2A",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "dynamodb:GetItem",
+                "dynamodb:PutItem"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMTable336670B0",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMReporterQMReporterLambdaServiceRoleDefaultPolicyC6B87A76",
+        "Roles": [
+          {
+            "Ref": "QMReporterQMReporterLambdaServiceRoleBA4CED84"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-Lambda/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMReporterQMReporterLambda7D98A6E4": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asseta6fda81c73d731886f04e1734d036f12ceb7b94c2efec30bb511f477ac58aa9c.zip"
+        },
+        "DeadLetterConfig": {
+          "TargetArn": {
+            "Fn::GetAtt": [
+              "QMReporterQMReporterLambdaDeadLetterQueueA0C464BC",
+              "Arn"
+            ]
+          }
+        },
+        "Description": "SO0005 quota-monitor-for-aws - QM-Reporter-Lambda",
+        "Environment": {
+          "Variables": {
+            "QUOTA_TABLE": {
+              "Ref": "QMTable336670B0"
+            },
+            "SQS_URL": {
+              "Ref": "QMSummarizerEventQueueQMSummarizerEventQueueQueue95FCCD2A"
+            },
+            "MAX_MESSAGES": "10",
+            "MAX_LOOPS": "10",
+            "LOG_LEVEL": "info",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
+            "SOLUTION_ID": "SO0005"
+          }
+        },
+        "Handler": "index.handler",
+        "KmsKeyArn": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        },
+        "Layers": [
+          {
+            "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "QMReporterQMReporterLambdaServiceRoleBA4CED84",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 10
+      },
+      "DependsOn": [
+        "QMReporterQMReporterLambdaServiceRoleDefaultPolicyC6B87A76",
+        "QMReporterQMReporterLambdaServiceRoleBA4CED84"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-Lambda/Resource",
+        "aws:asset:path": "asset.a6fda81c73d731886f04e1734d036f12ceb7b94c2efec30bb511f477ac58aa9c.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMReporterQMReporterLambdaEventInvokeConfig07548BFA": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMReporterQMReporterLambda7D98A6E4"
+        },
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Reporter/QM-Reporter-Lambda/EventInvokeConfig/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMTAStackSet": {
+      "Type": "AWS::CloudFormation::StackSet",
+      "Properties": {
+        "AutoDeployment": {
+          "Enabled": true,
+          "RetainStacksOnAccountRemoval": false
+        },
+        "CallAs": "DELEGATED_ADMIN",
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "Description": "StackSet for deploying Quota Monitor Trusted Advisor spokes in Organization",
+        "ManagedExecution": {
+          "Active": true
+        },
+        "Parameters": [
+          {
+            "ParameterKey": "EventBusArn",
+            "ParameterValue": {
+              "Fn::GetAtt": [
+                "QMBusFF5C6C0C",
+                "Arn"
+              ]
+            }
+          }
+        ],
+        "PermissionModel": "SERVICE_MANAGED",
+        "StackSetName": "QM-TA-Spoke-StackSet",
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://solutions-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".s3.",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  ".cn",
+                  ""
+                ]
+              },
+              "/quota-monitor-for-aws/v6.3.0/",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  "quota-monitor-ta-spoke-cn.template",
+                  "quota-monitor-ta-spoke.template"
+                ]
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-TA-StackSet"
+      }
+    },
+    "QMSQStackSet": {
+      "Type": "AWS::CloudFormation::StackSet",
+      "Properties": {
+        "AutoDeployment": {
+          "Enabled": true,
+          "RetainStacksOnAccountRemoval": false
+        },
+        "CallAs": "DELEGATED_ADMIN",
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "Description": "StackSet for deploying Quota Monitor Service Quota spokes in Organization",
+        "ManagedExecution": {
+          "Active": true
+        },
+        "Parameters": [
+          {
+            "ParameterKey": "EventBusArn",
+            "ParameterValue": {
+              "Fn::GetAtt": [
+                "QMBusFF5C6C0C",
+                "Arn"
+              ]
+            }
+          },
+          {
+            "ParameterKey": "SpokeSnsRegion",
+            "ParameterValue": {
+              "Ref": "SnsSpokeRegion"
+            }
+          },
+          {
+            "ParameterKey": "SageMakerMonitoring",
+            "ParameterValue": {
+              "Ref": "SageMakerMonitoring"
+            }
+          },
+          {
+            "ParameterKey": "ConnectMonitoring",
+            "ParameterValue": {
+              "Ref": "ConnectMonitoring"
+            }
+          }
+        ],
+        "PermissionModel": "SERVICE_MANAGED",
+        "StackSetName": "QM-SQ-Spoke-StackSet",
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://solutions-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".s3.",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  ".cn",
+                  ""
+                ]
+              },
+              "/quota-monitor-for-aws/v6.3.0/",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  "quota-monitor-sq-spoke-cn.template",
+                  "quota-monitor-sq-spoke.template"
+                ]
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SQ-StackSet"
+      }
+    },
+    "QMSNSStackSet": {
+      "Type": "AWS::CloudFormation::StackSet",
+      "Properties": {
+        "AutoDeployment": {
+          "Enabled": true,
+          "RetainStacksOnAccountRemoval": false
+        },
+        "CallAs": "DELEGATED_ADMIN",
+        "Capabilities": [
+          "CAPABILITY_IAM"
+        ],
+        "Description": "StackSet for deploying Quota Monitor notification spokes in Organization",
+        "ManagedExecution": {
+          "Active": true
+        },
+        "Parameters": [],
+        "PermissionModel": "SERVICE_MANAGED",
+        "StackSetName": "QM-SNS-Spoke-StackSet",
+        "TemplateURL": {
+          "Fn::Join": [
+            "",
+            [
+              "https://solutions-",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".s3.",
+              {
+                "Ref": "AWS::Region"
+              },
+              ".amazonaws.com",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  ".cn",
+                  ""
+                ]
+              },
+              "/quota-monitor-for-aws/v6.3.0/",
+              {
+                "Fn::If": [
+                  "IsChinaPartition",
+                  "quota-monitor-sns-spoke-cn.template",
+                  "quota-monitor-sns-spoke.template"
+                ]
+              }
+            ]
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-SNS-StackSet"
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerEventsRule53DB2DA9": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "SO0005 quota-monitor-for-aws - QM-Deployment-Manager-EventsRule",
+        "EventPattern": {
+          "detail-type": [
+            "Parameter Store Change"
+          ],
+          "source": [
+            "aws.ssm"
+          ],
+          "resources": [
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":ssm:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":parameter",
+                  {
+                    "Ref": "QMOUs122D8EB4"
+                  }
+                ]
+              ]
+            },
+            {
+              "Fn::If": [
+                "AccountDeployCondition",
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":ssm:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":parameter",
+                      {
+                        "Ref": "QMAccounts3D743F6B"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":ssm:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":parameter",
+                  {
+                    "Ref": "QMRegionsList17794003"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "QMDeploymentManagerQMDeploymentManagerLambdaB36F1B21",
+                "Arn"
+              ]
+            },
+            "Id": "Target0"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-EventsRule/Resource"
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerEventsRuleAllowEventRulequotamonitorhubcnQMDeploymentManagerQMDeploymentManagerLambdaB3A37CA5C9D41F7E": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "QMDeploymentManagerQMDeploymentManagerLambdaB36F1B21",
+            "Arn"
+          ]
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "QMDeploymentManagerQMDeploymentManagerEventsRule53DB2DA9",
+            "Arn"
+          ]
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-EventsRule/AllowEventRulequotamonitorhubcnQMDeploymentManagerQMDeploymentManagerLambdaB3A37CA5"
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerLambdaDeadLetterQueue9B4636C2": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-Lambda-Dead-Letter-Queue/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "Queue itself is dead-letter queue",
+              "id": "AwsSolutions-SQS3"
+            }
+          ]
+        }
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerLambdaDeadLetterQueuePolicy6B59E185": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:*",
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Effect": "Deny",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMDeploymentManagerQMDeploymentManagerLambdaDeadLetterQueue9B4636C2",
+                  "Arn"
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "Queues": [
+          {
+            "Ref": "QMDeploymentManagerQMDeploymentManagerLambdaDeadLetterQueue9B4636C2"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-Lambda-Dead-Letter-Queue/Policy/Resource"
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerLambdaServiceRole84304F72": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-Lambda/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerLambdaServiceRoleDefaultPolicy7E3D0777": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sqs:SendMessage",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMDeploymentManagerQMDeploymentManagerLambdaDeadLetterQueue9B4636C2",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": [
+                "kms:Encrypt",
+                "kms:Decrypt",
+                "kms:CreateGrant"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "KMSHubQMEncryptionKeyA80F8C05",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": "kms:ListAliases",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": [
+                "events:PutPermission",
+                "events:RemovePermission"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "events:DescribeEventBus",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "QMBusFF5C6C0C",
+                  "Arn"
+                ]
+              }
+            },
+            {
+              "Action": "ssm:GetParameter",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":ssm:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":parameter",
+                      {
+                        "Ref": "QMOUs122D8EB4"
+                      }
+                    ]
+                  ]
+                },
+                {
+                  "Fn::If": [
+                    "AccountDeployCondition",
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:",
+                          {
+                            "Ref": "AWS::Partition"
+                          },
+                          ":ssm:",
+                          {
+                            "Ref": "AWS::Region"
+                          },
+                          ":",
+                          {
+                            "Ref": "AWS::AccountId"
+                          },
+                          ":parameter",
+                          {
+                            "Ref": "QMAccounts3D743F6B"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":ssm:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":parameter",
+                      {
+                        "Ref": "QMRegionsList17794003"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "organizations:DescribeOrganization",
+                "organizations:ListRoots",
+                "organizations:ListAccounts"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": [
+                "organizations:ListDelegatedAdministrators",
+                "organizations:ListAccountsForParent"
+              ],
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "cloudformation:DescribeStackSet",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-TA-Spoke-StackSet:*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-SQ-Spoke-StackSet:*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-SNS-Spoke-StackSet:*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": [
+                "cloudformation:CreateStackInstances",
+                "cloudformation:DeleteStackInstances",
+                "cloudformation:ListStackInstances"
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-TA-Spoke-StackSet:*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-SQ-Spoke-StackSet:*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset/QM-SNS-Spoke-StackSet:*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset-target/QM-SNS-Spoke-StackSet:*/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset-target/QM-TA-Spoke-StackSet:*/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*:",
+                      {
+                        "Ref": "ManagementAccountId"
+                      },
+                      ":stackset-target/QM-SQ-Spoke-StackSet:*/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":cloudformation:*::type/resource/*"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "Action": "ec2:DescribeRegions",
+              "Effect": "Allow",
+              "Resource": "*"
+            },
+            {
+              "Action": "support:DescribeTrustedAdvisorChecks",
+              "Effect": "Allow",
+              "Resource": "*"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMDeploymentManagerQMDeploymentManagerLambdaServiceRoleDefaultPolicy7E3D0777",
+        "Roles": [
+          {
+            "Ref": "QMDeploymentManagerQMDeploymentManagerLambdaServiceRole84304F72"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-Lambda/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerLambdaB36F1B21": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset6a1cf55956fc481a1f22a54b0fa78a3d78b7e61cd41e12bf80ac8c9404ff9eb2.zip"
+        },
+        "DeadLetterConfig": {
+          "TargetArn": {
+            "Fn::GetAtt": [
+              "QMDeploymentManagerQMDeploymentManagerLambdaDeadLetterQueue9B4636C2",
+              "Arn"
+            ]
+          }
+        },
+        "Description": "SO0005 quota-monitor-for-aws - QM-Deployment-Manager-Lambda",
+        "Environment": {
+          "Variables": {
+            "EVENT_BUS_NAME": {
+              "Ref": "QMBusFF5C6C0C"
+            },
+            "EVENT_BUS_ARN": {
+              "Fn::GetAtt": [
+                "QMBusFF5C6C0C",
+                "Arn"
+              ]
+            },
+            "TA_STACKSET_ID": {
+              "Fn::GetAtt": [
+                "QMTAStackSet",
+                "StackSetId"
+              ]
+            },
+            "SQ_STACKSET_ID": {
+              "Fn::GetAtt": [
+                "QMSQStackSet",
+                "StackSetId"
+              ]
+            },
+            "SNS_STACKSET_ID": {
+              "Fn::GetAtt": [
+                "QMSNSStackSet",
+                "StackSetId"
+              ]
+            },
+            "QM_OU_PARAMETER": {
+              "Ref": "QMOUs122D8EB4"
+            },
+            "QM_ACCOUNT_PARAMETER": {
+              "Fn::If": [
+                "AccountDeployCondition",
+                {
+                  "Ref": "QMAccounts3D743F6B"
+                },
+                {
+                  "Ref": "AWS::NoValue"
+                }
+              ]
+            },
+            "DEPLOYMENT_MODEL": {
+              "Ref": "DeploymentModel"
+            },
+            "REGIONS_LIST": {
+              "Ref": "RegionsList"
+            },
+            "QM_REGIONS_LIST_PARAMETER": {
+              "Ref": "QMRegionsList17794003"
+            },
+            "SNS_SPOKE_REGION": {
+              "Ref": "SnsSpokeRegion"
+            },
+            "REGIONS_CONCURRENCY_TYPE": {
+              "Ref": "RegionConcurrency"
+            },
+            "MAX_CONCURRENT_PERCENTAGE": {
+              "Ref": "MaxConcurrentPercentage"
+            },
+            "FAILURE_TOLERANCE_PERCENTAGE": {
+              "Ref": "FailureTolerancePercentage"
+            },
+            "SQ_NOTIFICATION_THRESHOLD": {
+              "Ref": "SQNotificationThreshold"
+            },
+            "SQ_MONITORING_FREQUENCY": {
+              "Ref": "SQMonitoringFrequency"
+            },
+            "SQ_REPORT_OK_NOTIFICATIONS": {
+              "Ref": "SQReportOKNotifications"
+            },
+            "SOLUTION_UUID": {
+              "Fn::GetAtt": [
+                "QMHelperCreateUUIDE0D423E6",
+                "UUID"
+              ]
+            },
+            "METRICS_ENDPOINT": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "MetricsEndpoint"
+              ]
+            },
+            "SEND_METRIC": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "SendAnonymizedData"
+              ]
+            },
+            "LOG_LEVEL": "info",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
+            "SOLUTION_ID": "SO0005"
+          }
+        },
+        "Handler": "index.handler",
+        "KmsKeyArn": {
+          "Fn::GetAtt": [
+            "KMSHubQMEncryptionKeyA80F8C05",
+            "Arn"
+          ]
+        },
+        "Layers": [
+          {
+            "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
+          }
+        ],
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "QMDeploymentManagerQMDeploymentManagerLambdaServiceRole84304F72",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 60
+      },
+      "DependsOn": [
+        "QMDeploymentManagerQMDeploymentManagerLambdaServiceRoleDefaultPolicy7E3D0777",
+        "QMDeploymentManagerQMDeploymentManagerLambdaServiceRole84304F72"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-Lambda/Resource",
+        "aws:asset:path": "asset.6a1cf55956fc481a1f22a54b0fa78a3d78b7e61cd41e12bf80ac8c9404ff9eb2.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMDeploymentManagerQMDeploymentManagerLambdaEventInvokeConfig4C3821AB": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMDeploymentManagerQMDeploymentManagerLambdaB36F1B21"
+        },
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/QM-Deployment-Manager/QM-Deployment-Manager-Lambda/EventInvokeConfig/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/11RwW7CMAz9lt1DBkzazoA2aRrTuoJ2RWlqUGiTdHHSCVX998UpK7BL/Z797PjVcz6bPfHpnfjBiSyrSa0K3m28kBVb7U0mnNDgwRF5F02jzIHgyppSeWUNi327DlowHnn3THEZkCQjzkMNlKDYs0pH3RucKENhUSuR9An0DFHT+y4+dPP4hQzFtUI/5npWC12UgndrcQL3BQ5pt9h2w1+Ckf5cGHHa89W0toLoaq8O4/L/kxk4rZAmxTUfdgIRoukFhcj5MsgK/FIgMCWiidyefVPMbK1kMj2gOOE7/ojPACGJBpC+F+kVjXoT9VvbKEmlAWxCgdKp5s/UNe9ZeTJC2zLecyuKYZcEeiZrG8q9dVqQklMnXXwDvmfJT6QHOnUOaIOTwGRAb/XOnTnyzNlWlXSbVBmFZPgKfwTfhDjV2BL4Ee/b2SOfT/n87ohKTVwwXmng+RB/AVPhZ8CMAgAA"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-hub-cn/CDKMetadata/Default"
+      },
+      "Condition": "CDKMetadataAvailable"
+    }
+  },
+  "Outputs": {
+    "SlackHookKey": {
+      "Description": "SSM parameter for Slack Web Hook, change the value for your slack workspace",
+      "Value": {
+        "Fn::FindInMap": [
+          "QuotaMonitorMap",
+          "SSMParameters",
+          "SlackHook"
+        ]
+      },
+      "Condition": "SlackTrueCondition"
+    },
+    "UUID": {
+      "Description": "UUID for the deployment",
+      "Value": {
+        "Fn::GetAtt": [
+          "QMHelperCreateUUIDE0D423E6",
+          "UUID"
+        ]
+      }
+    },
+    "EventBus": {
+      "Description": "Event Bus Arn in hub",
+      "Value": {
+        "Fn::GetAtt": [
+          "QMBusFF5C6C0C",
+          "Arn"
+        ]
+      }
+    },
+    "SNSTopic": {
+      "Description": "The SNS Topic where notifications are published to",
+      "Value": {
+        "Ref": "QMSNSPublisherQMSNSPublisherSNSTopic7EE2EBF4"
+      }
+    }
+  }
+}

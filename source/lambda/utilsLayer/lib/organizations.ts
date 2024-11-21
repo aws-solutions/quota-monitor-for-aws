@@ -67,10 +67,7 @@ export class OrganizationsHelper extends ServiceHelper<OrganizationsClient> {
   }
 
   @catchDecorator(OrganizationsServiceException, true)
-  async registerDelegatedAdministrator(
-    accountId: string,
-    servicePrincipal: string
-  ) {
+  async registerDelegatedAdministrator(accountId: string, servicePrincipal: string) {
     logger.debug({
       label: this.moduleName,
       message: `registering delegated administrator`,
@@ -97,7 +94,8 @@ export class OrganizationsHelper extends ServiceHelper<OrganizationsClient> {
   @catchDecorator(OrganizationsServiceException, true)
   async getNumberOfAccountsInOrg(): Promise<number> {
     let count = 0;
-    const paginator = paginateListAccounts({
+    const paginator = paginateListAccounts(
+      {
         client: this.client,
       },
       {}

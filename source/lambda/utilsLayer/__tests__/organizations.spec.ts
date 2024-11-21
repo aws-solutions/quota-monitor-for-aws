@@ -110,9 +110,7 @@ describe("Organizations Helper", () => {
   });
 
   const awsServiceTestCase = async () => {
-    await orgHelper.enableAWSServiceAccess(
-      "member.org.stacksets.cloudformation.amazonaws.com"
-    );
+    await orgHelper.enableAWSServiceAccess("member.org.stacksets.cloudformation.amazonaws.com");
   };
 
   it("should enable AWS Service Access", async () => {
@@ -130,9 +128,7 @@ describe("Organizations Helper", () => {
       })
     );
 
-    await expect(awsServiceTestCase).rejects.toThrow(
-      OrganizationsServiceException
-    );
+    await expect(awsServiceTestCase).rejects.toThrow(OrganizationsServiceException);
   });
 
   it("should register a delegated administrator", async () => {
@@ -223,5 +219,4 @@ describe("Organizations Helper", () => {
 
     await expect(testCase).rejects.toThrow(OrganizationsServiceException);
   });
-
 });

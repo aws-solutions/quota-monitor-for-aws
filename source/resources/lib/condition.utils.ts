@@ -37,13 +37,9 @@ export class ConditionAspect implements IAspect {
  * @param resource - resource on which to apply condition,
  * @param condition - condition to apply
  */
-function applyCondition(
-  resource: Resource | CfnResource,
-  condition: CfnCondition
-) {
+function applyCondition(resource: Resource | CfnResource, condition: CfnCondition) {
   if (resource) {
-    if (resource instanceof Resource)
-      resource = resource.node.defaultChild as CfnResource;
+    if (resource instanceof Resource) resource = resource.node.defaultChild as CfnResource;
     resource.cfnOptions.condition = condition;
   }
 }

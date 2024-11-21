@@ -19,15 +19,13 @@ import {
   StackProps,
 } from "aws-cdk-lib";
 import { Subscription } from "aws-cdk-lib/aws-sns";
+import { addCfnGuardSuppression, addCfnGuardSuppressionToNestedResources } from "./cfn-guard-utils";
 import * as path from "path";
 import { ConditionAspect } from "./condition.utils";
 import { CustomResourceLambda } from "./custom-resource-lambda.construct";
 import { EventsToLambda } from "./events-lambda.construct";
 import { EventsToSQS } from "./events-sqs.construct";
-import {
-  EVENT_NOTIFICATION_DETAIL_TYPE,
-  EVENT_NOTIFICATION_SOURCES,
-} from "./exports";
+import { EVENT_NOTIFICATION_DETAIL_TYPE, EVENT_NOTIFICATION_SOURCES } from "./exports";
 import { Layer } from "./lambda-layer.construct";
 import { EventsToLambdaToSNS } from "./events-lambda-sns.construct";
 import { KMS } from "./kms.construct";
@@ -41,12 +39,16 @@ import { AppRegistryApplication } from "./app-registry-application";
  * @author aws-solutions
  */
 
+interface QuotaMonitorHubNoOUProps extends StackProps {
+  targetPartition: "Commercial" | "China";
+}
+
 export class QuotaMonitorHubNoOU extends Stack {
   /**
    * @param {App} scope - parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props?: StackProps) {
+  constructor(scope: App, id: string, props: QuotaMonitorHubNoOUProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -67,28 +69,14 @@ export class QuotaMonitorHubNoOU extends Stack {
     // Mapping & Conditions
     //=============================================================================================
     const map = new CfnMapping(this, "QuotaMonitorMap");
-    map.setValue(
-      "Metrics",
-      "SendAnonymizedData",
-      this.node.tryGetContext("SEND_METRICS")
-    );
-    map.setValue(
-      "Metrics",
-      "MetricsEndpoint",
-      this.node.tryGetContext("METRICS_ENDPOINT")
-    );
+    map.setValue("Metrics", "SendAnonymizedData", this.node.tryGetContext("SEND_METRICS"));
+    map.setValue("Metrics", "MetricsEndpoint", this.node.tryGetContext("METRICS_ENDPOINT"));
     map.setValue("SSMParameters", "SlackHook", "/QuotaMonitor/SlackHook");
     map.setValue("SSMParameters", "Accounts", "/QuotaMonitor/Accounts");
-    map.setValue(
-      "SSMParameters",
-      "NotificationMutingConfig",
-      "/QuotaMonitor/NotificationConfiguration"
-    );
+    map.setValue("SSMParameters", "NotificationMutingConfig", "/QuotaMonitor/NotificationConfiguration");
 
     const emailTrue = new CfnCondition(this, "EmailTrueCondition", {
-      expression: Fn.conditionNot(
-        Fn.conditionEquals(snsEmail.valueAsString, "")
-      ),
+      expression: Fn.conditionNot(Fn.conditionEquals(snsEmail.valueAsString, "")),
     });
 
     const slackTrue = new CfnCondition(this, "SlackTrueCondition", {
@@ -118,9 +106,7 @@ export class QuotaMonitorHubNoOU extends Stack {
         },
       },
     };
-    this.templateOptions.description = `(${this.node.tryGetContext(
-      "SOLUTION_ID"
-    )}-NoOU) - ${this.node.tryGetContext(
+    this.templateOptions.description = `(${this.node.tryGetContext("SOLUTION_ID")}-NoOU) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
     )} - Hub Template, use it when you are not using AWS Organizations. Version ${this.node.tryGetContext(
       "SOLUTION_VERSION"
@@ -172,20 +158,13 @@ export class QuotaMonitorHubNoOU extends Stack {
      * @description list of muted services and limits (quotas) for quota monitoring
      * value could be list of serviceCode[:quota_name|quota_code|resource]
      */
-    const ssmNotificationMutingConfig = new ssm.StringListParameter(
-      this,
-      "QM-NotificationMutingConfig",
-      {
-        parameterName: map.findInMap(
-          "SSMParameters",
-          "NotificationMutingConfig"
-        ),
-        stringListValue: ["NOP"],
-        description:
-          "Muting configuration for services, limits e.g. ec2:L-1216C47A,ec2:Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances,dynamodb,logs:*,geo:L-05EFD12D",
-        simpleName: false,
-      }
-    );
+    const ssmNotificationMutingConfig = new ssm.StringListParameter(this, "QM-NotificationMutingConfig", {
+      parameterName: map.findInMap("SSMParameters", "NotificationMutingConfig"),
+      stringListValue: ["NOP"],
+      description:
+        "Muting configuration for services, limits e.g. ec2:L-1216C47A,ec2:Running On-Demand Standard (A, C, D, H, I, M, R, T, Z) instances,dynamodb,logs:*,geo:L-05EFD12D",
+      simpleName: false,
+    });
 
     /**
      * @description utility layer for solution microservices
@@ -206,14 +185,8 @@ export class QuotaMonitorHubNoOU extends Stack {
       detail: {
         status: ["WARN", "ERROR"],
       },
-      detailType: [
-        EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
-        EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA,
-      ],
-      source: [
-        EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR,
-        EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA,
-      ],
+      detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR, EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
+      source: [EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR, EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
     };
 
     /**
@@ -222,37 +195,53 @@ export class QuotaMonitorHubNoOU extends Stack {
     const slackNotifierSSMReadPolicy = new iam.PolicyStatement({
       actions: ["ssm:GetParameter"],
       effect: iam.Effect.ALLOW,
-      resources: [
-        ssmSlackHook.parameterArn,
-        ssmNotificationMutingConfig.parameterArn,
-      ],
+      resources: [ssmSlackHook.parameterArn, ssmNotificationMutingConfig.parameterArn],
     });
 
     /**
      * @description construct for events-lambda
      */
-    const slackNotifier = new EventsToLambda<events.EventPattern>(
-      this,
-      "QM-SlackNotifier",
-      {
-        assetLocation: `${path.dirname(
-          __dirname
-        )}/../lambda/services/slackNotifier/dist/slack-notifier.zip`,
-        environment: {
-          SLACK_HOOK: map.findInMap("SSMParameters", "SlackHook"),
-          QM_NOTIFICATION_MUTING_CONFIG_PARAMETER:
-            ssmNotificationMutingConfig.parameterName,
-        },
-        layers: [utilsLayer.layer],
-        eventRule: slackRulePattern,
-        eventBus: quotaMonitorBus,
-        encryptionKey: kms.key,
-      }
-    );
+    const slackNotifier = new EventsToLambda<events.EventPattern>(this, "QM-SlackNotifier", {
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/slackNotifier/dist/slack-notifier.zip`,
+      environment: {
+        SLACK_HOOK: map.findInMap("SSMParameters", "SlackHook"),
+        QM_NOTIFICATION_MUTING_CONFIG_PARAMETER: ssmNotificationMutingConfig.parameterName,
+      },
+      layers: [utilsLayer.layer],
+      eventRule: slackRulePattern,
+      eventBus: quotaMonitorBus,
+      encryptionKey: kms.key,
+    });
+    addCfnGuardSuppression(slackNotifier.target, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
+
     slackNotifier.target.addToRolePolicy(slackNotifierSSMReadPolicy);
 
     // applying condition on all child nodes
     Aspects.of(slackNotifier).add(new ConditionAspect(slackTrue));
+
+    //===========================
+    // Solution helper components
+    //===========================
+    /**
+     * @description construct to deploy lambda backed custom resource
+     */
+    const helper = new CustomResourceLambda(this, "QM-Helper", {
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/helper/dist/helper.zip`,
+      layers: [utilsLayer.layer],
+      environment: {
+        METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
+        SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
+        QM_STACK_ID: id,
+      },
+    });
+    addCfnGuardSuppression(helper.function, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
+    addCfnGuardSuppressionToNestedResources(helper, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
+
+    // Custom resources
+    const createUUID = helper.addCustomResource("CreateUUID");
+    helper.addCustomResource("LaunchData", {
+      SOLUTION_UUID: createUUID.getAttString("UUID"),
+    });
 
     //=======================
     // SNS workflow component
@@ -264,14 +253,8 @@ export class QuotaMonitorHubNoOU extends Stack {
       detail: {
         status: ["WARN", "ERROR"],
       },
-      detailType: [
-        EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
-        EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA,
-      ],
-      source: [
-        EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR,
-        EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA,
-      ],
+      detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR, EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
+      source: [EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR, EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
     };
 
     /**
@@ -287,23 +270,20 @@ export class QuotaMonitorHubNoOU extends Stack {
      * @description construct for events-lambda
      */
 
-    const snsPublisher = new EventsToLambdaToSNS<events.EventPattern>(
-      this,
-      "QM-SNSPublisher",
-      {
-        assetLocation: `${path.dirname(
-          __dirname
-        )}/../lambda/services/snsPublisher/dist/sns-publisher.zip`,
-        environment: {
-          QM_NOTIFICATION_MUTING_CONFIG_PARAMETER:
-            ssmNotificationMutingConfig.parameterName,
-        },
-        layers: [utilsLayer.layer],
-        eventRule: snsRulePattern,
-        eventBus: quotaMonitorBus,
-        encryptionKey: kms.key,
-      }
-    );
+    const snsPublisher = new EventsToLambdaToSNS<events.EventPattern>(this, "QM-SNSPublisher", {
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/snsPublisher/dist/sns-publisher.zip`,
+      environment: {
+        QM_NOTIFICATION_MUTING_CONFIG_PARAMETER: ssmNotificationMutingConfig.parameterName,
+        SOLUTION_UUID: createUUID.getAttString("UUID"),
+        METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
+        SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
+      },
+      layers: [utilsLayer.layer],
+      eventRule: snsRulePattern,
+      eventBus: quotaMonitorBus,
+      encryptionKey: kms.key,
+    });
+    addCfnGuardSuppression(snsPublisher.target, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     snsPublisher.target.addToRolePolicy(snsPublisherSSMReadPolicy);
 
@@ -329,28 +309,18 @@ export class QuotaMonitorHubNoOU extends Stack {
       detail: {
         status: ["OK", "WARN", "ERROR"],
       },
-      detailType: [
-        EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR,
-        EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA,
-      ],
-      source: [
-        EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR,
-        EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA,
-      ],
+      detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR, EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
+      source: [EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR, EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
     };
 
     /**
      * @description construct for event-sqs
      */
-    const summarizerEventQueue = new EventsToSQS<events.EventPattern>(
-      this,
-      "QM-Summarizer-EventQueue",
-      {
-        eventRule: summarizerRulePattern,
-        encryptionKey: kms.key,
-        eventBus: quotaMonitorBus,
-      }
-    );
+    const summarizerEventQueue = new EventsToSQS<events.EventPattern>(this, "QM-Summarizer-EventQueue", {
+      eventRule: summarizerRulePattern,
+      encryptionKey: kms.key,
+      eventBus: quotaMonitorBus,
+    });
 
     /**
      * @description quota summary dynamodb table
@@ -374,26 +344,21 @@ export class QuotaMonitorHubNoOU extends Stack {
     /**
      * @description event-lambda construct for capturing quota summary
      */
-    const summarizer = new EventsToLambda<events.Schedule>(
-      this,
-      "QM-Reporter",
-      {
-        eventRule: events.Schedule.rate(Duration.minutes(5)),
-        encryptionKey: kms.key,
-        assetLocation: `${path.dirname(
-          __dirname
-        )}/../lambda/services/reporter/dist/reporter.zip`,
-        environment: {
-          QUOTA_TABLE: summaryTable.tableName,
-          SQS_URL: summarizerEventQueue.target.queueUrl,
-          MAX_MESSAGES: "10", //100 messages can be read with each invocation, change as needed
-          MAX_LOOPS: "10",
-        },
-        memorySize: 512,
-        timeout: Duration.seconds(10),
-        layers: [utilsLayer.layer],
-      }
-    );
+    const summarizer = new EventsToLambda<events.Schedule>(this, "QM-Reporter", {
+      eventRule: events.Schedule.rate(Duration.minutes(5)),
+      encryptionKey: kms.key,
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/reporter/dist/reporter.zip`,
+      environment: {
+        QUOTA_TABLE: summaryTable.tableName,
+        SQS_URL: summarizerEventQueue.target.queueUrl,
+        MAX_MESSAGES: "10", //100 messages can be read with each invocation, change as needed
+        MAX_LOOPS: "10",
+      },
+      memorySize: 512,
+      timeout: Duration.seconds(10),
+      layers: [utilsLayer.layer],
+    });
+    addCfnGuardSuppression(summarizer.target, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     // adding queue permissions to summarizer lambda function
     summarizer.target.addToRolePolicy(
@@ -428,25 +393,20 @@ export class QuotaMonitorHubNoOU extends Stack {
     /**
      * @description construct for events-lambda
      */
-    const deploymentManager = new EventsToLambda<events.EventPattern>(
-      this,
-      "QM-Deployment-Manager",
-      {
-        eventRule: ssmRulePattern,
-        encryptionKey: kms.key,
-        assetLocation: `${path.dirname(
-          __dirname
-        )}/../lambda/services/deploymentManager/dist/deployment-manager.zip`,
-        environment: {
-          EVENT_BUS_NAME: quotaMonitorBus.eventBusName,
-          EVENT_BUS_ARN: quotaMonitorBus.eventBusArn,
-          QM_ACCOUNT_PARAMETER: ssmQMAccounts.parameterName,
-          DEPLOYMENT_MODEL: "Accounts",
-        },
-        layers: [utilsLayer.layer],
-        memorySize: 512,
-      }
-    );
+    const deploymentManager = new EventsToLambda<events.EventPattern>(this, "QM-Deployment-Manager", {
+      eventRule: ssmRulePattern,
+      encryptionKey: kms.key,
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/deploymentManager/dist/deployment-manager.zip`,
+      environment: {
+        EVENT_BUS_NAME: quotaMonitorBus.eventBusName,
+        EVENT_BUS_ARN: quotaMonitorBus.eventBusArn,
+        QM_ACCOUNT_PARAMETER: ssmQMAccounts.parameterName,
+        DEPLOYMENT_MODEL: "Accounts",
+      },
+      layers: [utilsLayer.layer],
+      memorySize: 512,
+    });
+    addCfnGuardSuppression(deploymentManager.target, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     /**
      * @description policy statement to allow CRUD on event bus permissions
@@ -482,44 +442,18 @@ export class QuotaMonitorHubNoOU extends Stack {
       actions: ["support:DescribeTrustedAdvisorChecks"],
       resources: ["*"], // does not allow resource-level permissions
     });
-    deploymentManager.target.addToRolePolicy(
-      taDescribeTrustedAdvisorChecksPolicy
-    );
-
-    //===========================
-    // Solution helper components
-    //===========================
-    /**
-     * @description construct to deploy lambda backed custom resource
-     */
-    const helper = new CustomResourceLambda(this, "QM-Helper", {
-      assetLocation: `${path.dirname(
-        __dirname
-      )}/../lambda/services/helper/dist/helper.zip`,
-      layers: [utilsLayer.layer],
-      environment: {
-        METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
-        SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
-        QM_STACK_ID: id,
-      },
-    });
-
-    // Custom resources
-    const createUUID = helper.addCustomResource("CreateUUID");
-    helper.addCustomResource("LaunchData", {
-      SOLUTION_UUID: createUUID.getAttString("UUID"),
-    });
+    deploymentManager.target.addToRolePolicy(taDescribeTrustedAdvisorChecksPolicy);
 
     /**
      * app registry application for hub-no-ou-stack
      */
 
-    new AppRegistryApplication(this, "HubNoOUAppRegistryApplication", {
-      appRegistryApplicationName: this.node.tryGetContext(
-        "APP_REG_HUB_NO_OU_APPLICATION_NAME"
-      ),
-      solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-NoOU`,
-    });
+    if (props.targetPartition !== "China") {
+      new AppRegistryApplication(this, "HubNoOUAppRegistryApplication", {
+        appRegistryApplicationName: this.node.tryGetContext("APP_REG_HUB_NO_OU_APPLICATION_NAME"),
+        solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-NoOU`,
+      });
+    }
 
     //=============================================================================================
     // Outputs
@@ -527,8 +461,7 @@ export class QuotaMonitorHubNoOU extends Stack {
     new CfnOutput(this, "SlackHookKey", {
       condition: slackTrue,
       value: map.findInMap("SSMParameters", "SlackHook"),
-      description:
-        "SSM parameter for Slack Web Hook, change the value for your slack workspace",
+      description: "SSM parameter for Slack Web Hook, change the value for your slack workspace",
     });
 
     new CfnOutput(this, "UUID", {

@@ -1,11 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  SNSClient,
-  PublishCommand,
-  SNSServiceException,
-} from "@aws-sdk/client-sns";
+import { SNSClient, PublishCommand, SNSServiceException } from "@aws-sdk/client-sns";
 import { ServiceHelper } from "./exports";
 import { catchDecorator } from "./catch";
 

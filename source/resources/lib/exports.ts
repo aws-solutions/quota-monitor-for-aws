@@ -8,6 +8,7 @@ import {
   aws_dynamodb as dynamodb,
   Duration,
 } from "aws-cdk-lib";
+import { IAlias } from "aws-cdk-lib/aws-kms";
 import { ILayerVersion } from "aws-cdk-lib/aws-lambda";
 
 /**
@@ -54,13 +55,7 @@ export const TA_CHECKS_SERVICES = [
   "VPC",
 ];
 
-export const SQ_CHECKS_SERVICES = [
-  "monitoring",
-  "dynamodb",
-  "ec2",
-  "ecr",
-  "firehose",
-];
+export const SQ_CHECKS_SERVICES = ["monitoring", "dynamodb", "ec2", "ecr", "firehose"];
 
 /**
  * @description supported event rule types
@@ -92,7 +87,7 @@ export interface RuleTargetProps<T> {
   /**
    * @description kms key to be used for encryption
    */
-  encryptionKey?: kms.Key;
+  encryptionKey?: kms.Key | IAlias;
   /**
    * @description event bus on to attach the rule to, if undefined rule will be attached to default bus
    */
@@ -136,7 +131,7 @@ export interface LambdaProps {
   /**
    * @description kms key to be used for encryption
    */
-  encryptionKey?: kms.Key;
+  encryptionKey?: kms.Key | IAlias;
   /**
    * @description layers to apply for this function
    */
@@ -147,6 +142,12 @@ export interface LambdaProps {
   memorySize?: number;
 }
 
+export interface LambdaTestSchemaProps {
+  lambdaFunctionName: string;
+  type: "OpenApi3" | "JSONSchemaDraft4";
+  description?: string;
+  content: string;
+}
 export interface DynamoDBProps {
   /**
    * @description pre-provisioned dynamodb table  to use

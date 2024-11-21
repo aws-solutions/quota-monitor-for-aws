@@ -1,11 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 import { v4 as uuidv4 } from "uuid";
-import {
-  logger,
-  sendAnonymizedMetric,
-  stringEqualsIgnoreCase
-} from "solutions-utils";
+import { logger, sendAnonymizedMetric, stringEqualsIgnoreCase } from "solutions-utils";
 
 /**
  * @description interface for cloudformation events
@@ -27,10 +23,7 @@ export interface IEvent {
  */
 const MODULE_NAME = __filename.split("/").pop();
 
-export const handler = async (
-  event: IEvent,
-  context: { [key: string]: string }
-) => {
+export const handler = async (event: IEvent, context: { [key: string]: string }) => {
   logger.debug({
     label: `${MODULE_NAME}/handler`,
     message: `received event: ${JSON.stringify(event)}`,
@@ -44,10 +37,7 @@ export const handler = async (
   const properties = event.ResourceProperties;
 
   // Generate UUID
-  if (
-    event.ResourceType === "Custom::CreateUUID" &&
-    event.RequestType === "Create"
-  ) {
+  if (event.ResourceType === "Custom::CreateUUID" && event.RequestType === "Create") {
     responseData = {
       UUID: uuidv4(),
     };
@@ -73,6 +63,8 @@ export const handler = async (
         Stack: <string>process.env.QM_STACK_ID,
         SlackNotification: <string>process.env.QM_SLACK_NOTIFICATION,
         EmailNotification: <string>process.env.QM_EMAIL_NOTIFICATION,
+        SagemakerMonitoring: <string>process.env.SAGEMAKER_MONITORING,
+        ConnectMonitoring: <string>process.env.CONNECT_MONITORING,
       },
     };
     try {
@@ -112,9 +104,7 @@ async function sendResponse(
   const responseBody = {
     Status: responseStatus,
     Reason: `${JSON.stringify(responseData)}`,
-    PhysicalResourceId: event.PhysicalResourceId
-      ? event.PhysicalResourceId
-      : logStreamName,
+    PhysicalResourceId: event.PhysicalResourceId ? event.PhysicalResourceId : logStreamName,
     StackId: event.StackId,
     RequestId: event.RequestId,
     LogicalResourceId: event.LogicalResourceId,

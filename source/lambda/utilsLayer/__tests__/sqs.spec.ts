@@ -3,12 +3,7 @@
 
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
-import {
-  DeleteMessageCommand,
-  ReceiveMessageCommand,
-  SQSClient,
-  SQSServiceException,
-} from "@aws-sdk/client-sqs";
+import { DeleteMessageCommand, ReceiveMessageCommand, SQSClient, SQSServiceException } from "@aws-sdk/client-sqs";
 
 import { SQSHelper } from "../lib/sqs";
 

@@ -187,9 +187,7 @@ describe("Service Quotas Helper", () => {
         },
       });
 
-      const processBatchSpy = jest
-        .spyOn(sqHelper as any, "processBatch")
-        .mockResolvedValue(undefined);
+      const processBatchSpy = jest.spyOn(sqHelper as any, "processBatch").mockResolvedValue(undefined);
 
       await sqHelper.getQuotasWithUtilizationMetrics(quotas, "testService");
 
@@ -197,10 +195,7 @@ describe("Service Quotas Helper", () => {
     });
 
     it("should handle empty quota list", async () => {
-      const result = await sqHelper.getQuotasWithUtilizationMetrics(
-        [],
-        "testService"
-      );
+      const result = await sqHelper.getQuotasWithUtilizationMetrics([], "testService");
       expect(result).toEqual([]);
     });
   });
@@ -211,17 +206,9 @@ describe("Service Quotas Helper", () => {
       const validatedQuotas: ServiceQuota[] = [];
       const cwMock = new CloudWatchHelper();
 
-      const generateQueriesSpy = jest
-        .spyOn(sqHelper as any, "generateCWQueriesForQuotas")
-        .mockReturnValue([]);
+      const generateQueriesSpy = jest.spyOn(sqHelper as any, "generateCWQueriesForQuotas").mockReturnValue([]);
 
-      await (sqHelper as any).processBatch(
-        batch,
-        validatedQuotas,
-        cwMock,
-        1,
-        "testService"
-      );
+      await (sqHelper as any).processBatch(batch, validatedQuotas, cwMock, 1, "testService");
 
       expect(generateQueriesSpy).toHaveBeenCalledTimes(1);
       expect(cwMock.getMetricData).not.toHaveBeenCalled();
@@ -234,20 +221,12 @@ describe("Service Quotas Helper", () => {
       const cwMock = new CloudWatchHelper();
       const error = new Error("Non-validation error");
 
-      jest
-        .spyOn(sqHelper as any, "generateCWQueriesForQuotas")
-        .mockReturnValue([{}]);
+      jest.spyOn(sqHelper as any, "generateCWQueriesForQuotas").mockReturnValue([{}]);
       cwMock.getMetricData = jest.fn().mockRejectedValue(error);
 
       const loggerErrorSpy = jest.spyOn(logger, "error");
 
-      await (sqHelper as any).processBatch(
-        batch,
-        validatedQuotas,
-        cwMock,
-        1,
-        "testService"
-      );
+      await (sqHelper as any).processBatch(batch, validatedQuotas, cwMock, 1, "testService");
 
       expect(loggerErrorSpy).toHaveBeenCalledWith({
         label: expect.any(String),
@@ -274,9 +253,7 @@ describe("Service Quotas Helper", () => {
       ];
       const validatedQuotas: ServiceQuota[] = [];
 
-      const validationError = new Error(
-        "Error in expression 'test_metric_pct_utilization': Test error"
-      );
+      const validationError = new Error("Error in expression 'test_metric_pct_utilization': Test error");
       validationError.name = "ValidationError";
 
       const getMetricDataMock = jest.fn().mockRejectedValue(validationError);
@@ -285,37 +262,22 @@ describe("Service Quotas Helper", () => {
         getMetricData: getMetricDataMock,
       } as any;
 
-      jest
-        .spyOn(sqHelper as any, "generateCWQueriesForQuotas")
-        .mockReturnValue([{}]);
-      const handleValidationErrorSpy = jest.spyOn(
-        sqHelper as any,
-        "handleValidationError"
-      );
-      jest
-        .spyOn(sqHelper as any, "extractProblematicMetric")
-        .mockReturnValue("test_metric");
+      jest.spyOn(sqHelper as any, "generateCWQueriesForQuotas").mockReturnValue([{}]);
+      const handleValidationErrorSpy = jest.spyOn(sqHelper as any, "handleValidationError");
+      jest.spyOn(sqHelper as any, "extractProblematicMetric").mockReturnValue("test_metric");
       jest.spyOn(sqHelper as any, "removeProblematicQuota").mockReturnValue({
         problematicQuota: batch[0],
         updatedBatch: [],
       });
 
-      await (sqHelper as any).processBatch(
-        batch,
-        validatedQuotas,
-        cwMock,
-        1,
-        "testService"
-      );
+      await (sqHelper as any).processBatch(batch, validatedQuotas, cwMock, 1, "testService");
 
       expect(getMetricDataMock).toHaveBeenCalledTimes(1);
       expect(handleValidationErrorSpy).toHaveBeenCalledTimes(1);
       expect(handleValidationErrorSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "ValidationError",
-          message: expect.stringContaining(
-            "Error in expression 'test_metric_pct_utilization'"
-          ),
+          message: expect.stringContaining("Error in expression 'test_metric_pct_utilization'"),
         }),
         batch,
         validatedQuotas,
@@ -335,17 +297,13 @@ describe("Service Quotas Helper", () => {
     });
 
     it("should extract the problematic metric from the error message with _pct_utilization", () => {
-      const errorMessage =
-        "Error in expression 'service_resource_none_type_quotacode_pct_utilization': Some error";
+      const errorMessage = "Error in expression 'service_resource_none_type_quotacode_pct_utilization': Some error";
       const result = (sqHelper as any).extractProblematicMetric(errorMessage);
-      expect(result).toBe(
-        "service_resource_none_type_quotacode_pct_utilization"
-      );
+      expect(result).toBe("service_resource_none_type_quotacode_pct_utilization");
     });
 
     it("should extract the problematic metric from the error message without _pct_utilization", () => {
-      const errorMessage =
-        "Error in expression 'service_resource_none_type_quotacode': Some error";
+      const errorMessage = "Error in expression 'service_resource_none_type_quotacode': Some error";
       const result = (sqHelper as any).extractProblematicMetric(errorMessage);
       expect(result).toBe("service_resource_none_type_quotacode");
     });
@@ -354,9 +312,7 @@ describe("Service Quotas Helper", () => {
       const errorMessage =
         "Error in expression 'service_resource_none_type_quotacode_pct_utilization' and 'another_service_resource_none_type_quotacode': Some error";
       const result = (sqHelper as any).extractProblematicMetric(errorMessage);
-      expect(result).toBe(
-        "service_resource_none_type_quotacode_pct_utilization"
-      );
+      expect(result).toBe("service_resource_none_type_quotacode_pct_utilization");
     });
   });
 
@@ -375,9 +331,7 @@ describe("Service Quotas Helper", () => {
       const validatedQuotas: ServiceQuota[] = [];
       const cwMock = new CloudWatchHelper();
 
-      jest
-        .spyOn(sqHelper as any, "extractProblematicMetric")
-        .mockReturnValue("bad_metric");
+      jest.spyOn(sqHelper as any, "extractProblematicMetric").mockReturnValue("bad_metric");
       jest.spyOn(sqHelper as any, "removeProblematicQuota").mockReturnValue({
         problematicQuota: {
           QuotaCode: "BadQuota",
@@ -390,9 +344,7 @@ describe("Service Quotas Helper", () => {
           },
         ],
       });
-      const processBatchSpy = jest
-        .spyOn(sqHelper as any, "processBatch")
-        .mockResolvedValue(undefined);
+      const processBatchSpy = jest.spyOn(sqHelper as any, "processBatch").mockResolvedValue(undefined);
 
       await (sqHelper as any).handleValidationError(
         new Error("Test error"),
@@ -429,9 +381,7 @@ describe("Service Quotas Helper", () => {
       const validatedQuotas: ServiceQuota[] = [];
       const cwMock = new CloudWatchHelper();
 
-      jest
-        .spyOn(sqHelper as any, "extractProblematicMetric")
-        .mockReturnValue("bad_metric");
+      jest.spyOn(sqHelper as any, "extractProblematicMetric").mockReturnValue("bad_metric");
       jest.spyOn(sqHelper as any, "removeProblematicQuota").mockReturnValue({
         problematicQuota: {
           QuotaCode: "BadQuota",
@@ -460,9 +410,7 @@ describe("Service Quotas Helper", () => {
       const cwMock = new CloudWatchHelper();
       const error = new Error("Test error");
 
-      jest
-        .spyOn(sqHelper as any, "extractProblematicMetric")
-        .mockReturnValue("test_metric");
+      jest.spyOn(sqHelper as any, "extractProblematicMetric").mockReturnValue("test_metric");
       jest.spyOn(sqHelper as any, "removeProblematicQuota").mockReturnValue({
         problematicQuota: undefined,
         updatedBatch: batch,
@@ -470,15 +418,7 @@ describe("Service Quotas Helper", () => {
 
       const loggerWarnSpy = jest.spyOn(logger, "warn");
 
-      await (sqHelper as any).handleValidationError(
-        error,
-        batch,
-        validatedQuotas,
-        cwMock,
-        1,
-        "testService",
-        0
-      );
+      await (sqHelper as any).handleValidationError(error, batch, validatedQuotas, cwMock, 1, "testService", 0);
 
       expect(loggerWarnSpy).toHaveBeenCalledWith({
         label: expect.any(String),
@@ -493,26 +433,15 @@ describe("Service Quotas Helper", () => {
       const cwMock = new CloudWatchHelper();
       const error = new Error("Test error");
 
-      jest
-        .spyOn(sqHelper as any, "extractProblematicMetric")
-        .mockReturnValue(null);
+      jest.spyOn(sqHelper as any, "extractProblematicMetric").mockReturnValue(null);
 
       const loggerWarnSpy = jest.spyOn(logger, "warn");
 
-      await (sqHelper as any).handleValidationError(
-        error,
-        batch,
-        validatedQuotas,
-        cwMock,
-        1,
-        "testService",
-        0
-      );
+      await (sqHelper as any).handleValidationError(error, batch, validatedQuotas, cwMock, 1, "testService", 0);
 
       expect(loggerWarnSpy).toHaveBeenCalledWith({
         label: expect.any(String),
-        message:
-          "Unable to extract problematic metric. Skipping remaining quotas in this batch for testService.",
+        message: "Unable to extract problematic metric. Skipping remaining quotas in this batch for testService.",
       });
     });
   });
@@ -544,18 +473,13 @@ describe("Service Quotas Helper", () => {
         },
       ];
 
-      jest
-        .spyOn(sqHelper, "generateMetricQueryId")
-        .mockImplementation((_metricInfo, quotaCode) => {
-          if (quotaCode === "GoodQuota") return "good_metric";
-          if (quotaCode === "BadQuota") return "bad_metric";
-          return "";
-        });
+      jest.spyOn(sqHelper, "generateMetricQueryId").mockImplementation((_metricInfo, quotaCode) => {
+        if (quotaCode === "GoodQuota") return "good_metric";
+        if (quotaCode === "BadQuota") return "bad_metric";
+        return "";
+      });
 
-      const result = (sqHelper as any).removeProblematicQuota(
-        batch,
-        "bad_metric"
-      );
+      const result = (sqHelper as any).removeProblematicQuota(batch, "bad_metric");
 
       expect(result.problematicQuota).toBeDefined();
       expect(result.problematicQuota?.QuotaCode).toBe("BadQuota");
@@ -589,14 +513,9 @@ describe("Service Quotas Helper", () => {
         },
       ];
 
-      jest
-        .spyOn(sqHelper as any, "generateMetricQueryId")
-        .mockReturnValue("good_metric");
+      jest.spyOn(sqHelper as any, "generateMetricQueryId").mockReturnValue("good_metric");
 
-      const result = (sqHelper as any).removeProblematicQuota(
-        batch,
-        "bad_metric"
-      );
+      const result = (sqHelper as any).removeProblematicQuota(batch, "bad_metric");
 
       expect(result.problematicQuota).toBeUndefined();
       expect(result.updatedBatch).toHaveLength(2);
@@ -617,9 +536,7 @@ describe("Service Quotas Helper", () => {
 
       const result = sqHelper.generateMetricQueryId(metricInfo, quotaCode);
 
-      expect(result).toBe(
-        "testservice_testresource_testclass_testtype_testquotacode"
-      );
+      expect(result).toBe("testservice_testresource_testclass_testtype_testquotacode");
     });
 
     it("should handle missing dimensions", () => {
@@ -660,12 +577,8 @@ describe("Service Quotas Helper", () => {
         // UsageMetric is missing
       };
 
-      expect(() =>
-        (sqHelper as any).validateQuotaHasUsageMetrics(invalidQuota)
-      ).toThrow(UnsupportedQuotaException);
-      expect(() =>
-        (sqHelper as any).validateQuotaHasUsageMetrics(invalidQuota)
-      ).toThrow(
+      expect(() => (sqHelper as any).validateQuotaHasUsageMetrics(invalidQuota)).toThrow(UnsupportedQuotaException);
+      expect(() => (sqHelper as any).validateQuotaHasUsageMetrics(invalidQuota)).toThrow(
         "TestQuota for TestService does not currently support utilization monitoring"
       );
     });
@@ -684,9 +597,7 @@ describe("Service Quotas Helper", () => {
         },
       };
 
-      expect(() =>
-        (sqHelper as any).validateQuotaHasUsageMetrics(validQuota)
-      ).not.toThrow();
+      expect(() => (sqHelper as any).validateQuotaHasUsageMetrics(validQuota)).not.toThrow();
     });
   });
 });

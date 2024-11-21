@@ -31,15 +31,10 @@ export class SlackNotifier {
    */
   async sendNotification(event: any) {
     try {
-      const slackUrl = (
-        await this.ssmHelper.getParameter(this.slackHookParameter, true)
-      )[0];
+      const slackUrl = (await this.ssmHelper.getParameter(this.slackHookParameter, true))[0];
 
       const slackMessage = this.slackMessageBuilder(event);
-      const processEventResponse = await this.processEvent(
-        slackUrl,
-        slackMessage
-      );
+      const processEventResponse = await this.processEvent(slackUrl, slackMessage);
 
       return {
         result: processEventResponse,
@@ -88,8 +83,7 @@ export class SlackNotifier {
             },
             {
               title: "TimeStamp",
-              value:
-                event.detail["check-item-detail"]["Timestamp"] ?? event.time,
+              value: event.detail["check-item-detail"]["Timestamp"] ?? event.time,
               short: true,
             },
             {
@@ -122,14 +116,13 @@ export class SlackNotifier {
           fallback: "new notification from Quota Monitor for AWS",
           author_name: "@quota-monitor-for-aws",
           title: "Quota Monitor for AWS Documentation",
-          title_link:
-            "https://aws.amazon.com/solutions/implementations/quota-monitor/",
+          title_link: "https://aws.amazon.com/solutions/implementations/quota-monitor/",
           footer: "Take Action?",
           actions: [
             {
-              text: "AWS Console",
+              text: "Request Limit Increase",
               type: "button",
-              url: "https://console.aws.amazon.com/support/home?region=us-east-1#",
+              url: event.quotaIncreaseLink || "https://console.aws.amazon.com/servicequotas/home",
             },
           ],
         },
@@ -143,10 +136,7 @@ export class SlackNotifier {
    * @param  {Function} callback [description]
    * @return {[type]}            [description]
    */
-  async postMessage(
-    slackUrl: string,
-    message: string
-  ): Promise<MessageResponse> {
+  async postMessage(slackUrl: string, message: string): Promise<MessageResponse> {
     const messageBody = JSON.stringify(message);
     const url = new URL(slackUrl);
     const options = {
@@ -187,9 +177,7 @@ export class SlackNotifier {
     if (response.statusCode && response.statusCode < 400) {
       return "Message posted successfully";
     } else if (response.statusCode && response.statusCode < 500) {
-      logger.warn(
-        `Error posting message to Slack API: ${response.statusCode} - ${response.statusMessage}`
-      );
+      logger.warn(`Error posting message to Slack API: ${response.statusCode} - ${response.statusMessage}`);
       return response.statusMessage;
     } else {
       // Let Lambda retry

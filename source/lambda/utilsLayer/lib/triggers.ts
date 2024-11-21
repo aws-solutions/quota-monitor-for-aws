@@ -23,10 +23,7 @@ interface IScheduledEvent extends Record<string, any> {}
 /**
  * @description supported triggering events
  */
-type TriggerEvent =
-  | IDynamoDBStreamEvent
-  | ICloudFormationEvent
-  | IScheduledEvent;
+type TriggerEvent = IDynamoDBStreamEvent | ICloudFormationEvent | IScheduledEvent;
 
 /**
  * @description class with methods to check incoming trigger event
@@ -51,5 +48,9 @@ export class LambdaTriggers {
    */
   static isScheduledEvent(event: TriggerEvent) {
     return "detail-type" in event && event["detail-type"] == "Scheduled Event";
+  }
+
+  static isQMLambdaTestEvent(event: TriggerEvent) {
+    return "detail-type" in event && event["detail-type"] == "QM Lambda Test Event";
   }
 }

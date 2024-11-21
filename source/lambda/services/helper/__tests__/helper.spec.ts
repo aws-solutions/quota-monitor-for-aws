@@ -123,9 +123,7 @@ describe("Helper", function () {
     });
 
     it("should handle a failure to send a metric", async () => {
-      sendAnonymizedMetricMock.mockRejectedValueOnce(
-        new Error("Failed to send metrics")
-      );
+      sendAnonymizedMetricMock.mockRejectedValueOnce(new Error("Failed to send metrics"));
       const response = await handler(mockLaunchEvent, {});
       expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
       expect(response.Data.Data).toEqual("NOV");

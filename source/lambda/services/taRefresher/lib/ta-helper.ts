@@ -41,14 +41,7 @@ serviceChecks[TAServices.EBS] = [
 ];
 serviceChecks[TAServices.EC2] = ["0Xc6LMYG8P", "iH7PP0l7J9", "aW9HH0l8J6"];
 serviceChecks[TAServices.ELB] = ["iK7OO0l7J9", "EM8b3yLRTr", "8wIqYSt25K"];
-serviceChecks[TAServices.IAM] = [
-  "sU7XX0l7J9",
-  "nO7SS0l7J9",
-  "pR7UU0l7J9",
-  "oQ7TT0l7J9",
-  "rT7WW0l7J9",
-  "qS7VV0l7J9",
-];
+serviceChecks[TAServices.IAM] = ["sU7XX0l7J9", "nO7SS0l7J9", "pR7UU0l7J9", "oQ7TT0l7J9", "rT7WW0l7J9", "qS7VV0l7J9"];
 serviceChecks[TAServices.KINESIS] = ["bW7HH0l7J9"];
 serviceChecks[TAServices.RDS] = [
   "jtlIMO3qZM",
@@ -67,13 +60,7 @@ serviceChecks[TAServices.RDS] = [
   "jEhCtdJKOY",
   "P1jhKWEmLa",
 ];
-serviceChecks[TAServices.ROUTE53] = [
-  "dx3xfcdfMr",
-  "ru4xfcdfMr",
-  "ty3xfcdfMr",
-  "dx3xfbjfMr",
-  "dx8afcdfMr",
-];
+serviceChecks[TAServices.ROUTE53] = ["dx3xfcdfMr", "ru4xfcdfMr", "ty3xfcdfMr", "dx3xfbjfMr", "dx8afcdfMr"];
 serviceChecks[TAServices.SES] = ["hJ7NN0l7J9"];
 serviceChecks[TAServices.VPC] = ["lN7RR0l7J9", "kM7QQ0l7J9", "jL7PP0l7J9"];
 
