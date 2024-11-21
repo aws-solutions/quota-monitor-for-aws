@@ -71,13 +71,9 @@ export function validateOrgInput(list: string[]) {
   // iterate over list
   list.forEach((item) => {
     if (!(item.match(OU_REGEX) || item.match(ORG_REGEX)))
-      throw new IncorrectConfigurationException(
-        `valid values include OU-Ids or Org-Id ${item}`
-      );
+      throw new IncorrectConfigurationException(`valid values include OU-Ids or Org-Id ${item}`);
     if (item.match(ORG_REGEX) && list.length > 1)
-      throw new IncorrectConfigurationException(
-        `when providing Org-Id, provide single Org-Id ${item}'`
-      );
+      throw new IncorrectConfigurationException(`when providing Org-Id, provide single Org-Id ${item}'`);
   });
   return true;
 }
@@ -89,9 +85,7 @@ export function validateOrgInput(list: string[]) {
 export function validateAccountInput(accounts: string[]) {
   accounts.forEach((account) => {
     if (!account.match(ACCOUNT_REGEX))
-      throw new IncorrectConfigurationException(
-        `invalid Account Id provided:${account}`
-      );
+      throw new IncorrectConfigurationException(`invalid Account Id provided:${account}`);
   });
 }
 
@@ -100,10 +94,7 @@ export function validateAccountInput(accounts: string[]) {
  * @param array
  * @returns
  */
-export function createChunksFromArray(
-  array: Record<string, any>[],
-  chunkSize: number
-) {
+export function createChunksFromArray(array: Record<string, any>[], chunkSize: number) {
   const chunks = [];
   for (let i = 0; i < array.length; i += chunkSize) {
     const chunk = array.slice(i, i + chunkSize);
@@ -178,11 +169,7 @@ function getMutedNotificationMap(mutingConfig: string[], separator: string) {
  * @param separator
  * @param service
  */
-function getMutedQuotasForService(
-  mutingConfig: string[],
-  separator: string,
-  service: string
-) {
+function getMutedQuotasForService(mutingConfig: string[], separator: string, service: string) {
   // using the whole return map is more readable than getting the array for a specific
   // service and differentiating between when a service not included in the config, and
   // when the service specified with no quotas to mute all quotas in that service
@@ -221,11 +208,7 @@ export function getNotificationMutingStatus(
   const SEPARATOR = ":";
   const WILD_CARD = "*";
   const lowerCaseServiceCode = mutingDetail.service.toLowerCase();
-  const mutedQuotas = getMutedQuotasForService(
-    mutingConfig,
-    SEPARATOR,
-    mutingDetail.service
-  );
+  const mutedQuotas = getMutedQuotasForService(mutingConfig, SEPARATOR, mutingDetail.service);
   if (!mutedQuotas) {
     //service not included in the muting config
     return { muted: false };
@@ -241,11 +224,9 @@ export function getNotificationMutingStatus(
       arrayIncludesAnyIgnoreCase(
         mutedQuotas,
         <string[]>(
-          [
-            mutingDetail.quotaCode,
-            mutingDetail.quotaName,
-            mutingDetail.resource,
-          ].filter((s) => s !== undefined && s !== "")
+          [mutingDetail.quotaCode, mutingDetail.quotaName, mutingDetail.resource].filter(
+            (s) => s !== undefined && s !== ""
+          )
         )
       )
     ) {

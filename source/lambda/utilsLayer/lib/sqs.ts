@@ -5,7 +5,7 @@ import {
   QueueAttributeName,
   ReceiveMessageCommand,
   SQSClient,
-  SQSServiceException
+  SQSServiceException,
 } from "@aws-sdk/client-sqs";
 import { catchDecorator } from "./catch";
 import { ServiceHelper } from "./exports";

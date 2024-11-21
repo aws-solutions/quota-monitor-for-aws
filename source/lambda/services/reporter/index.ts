@@ -1,11 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  LambdaTriggers,
-  logger,
-  UnsupportedEventException,
-} from "solutions-utils";
+import { LambdaTriggers, logger, UnsupportedEventException } from "solutions-utils";
 import { LimitReport } from "./lib/limit-report";
 
 const moduleName = <string>__filename.split("/").pop();

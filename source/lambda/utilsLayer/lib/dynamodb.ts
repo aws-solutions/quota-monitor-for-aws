@@ -1,10 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  DynamoDBClient,
-  DynamoDBServiceException,
-} from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, DynamoDBServiceException } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   PutCommand,
@@ -54,9 +51,7 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
       label: this.moduleName,
       message: `putting JSON item on ${tableName}: ${JSON.stringify(item)}`,
     });
-    await this.ddbDocClient.send(
-      new PutCommand({ TableName: tableName, Item: item })
-    );
+    await this.ddbDocClient.send(new PutCommand({ TableName: tableName, Item: item }));
   }
 
   /**
@@ -187,9 +182,7 @@ export class DynamoDBHelper extends ServiceHelper<DynamoDBClient> {
       );
       if (response.Items) {
         allItems.push(
-          ...response.Items.filter((item) => item["Monitored"] === true).map(
-            (item) => item["ServiceCode"]
-          )
+          ...response.Items.filter((item) => item["Monitored"] === true).map((item) => item["ServiceCode"])
         );
       }
     } while (response.LastEvaluatedKey);

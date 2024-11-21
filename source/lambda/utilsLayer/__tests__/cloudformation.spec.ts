@@ -12,11 +12,7 @@ import {
   DescribeStackSetCommand,
   StackSetOperationPreferences,
 } from "@aws-sdk/client-cloudformation";
-import {
-  CloudFormationHelper,
-  defaultOpsPercentagePrefs,
-  StackSetOpsPercentagePrefs
-} from "../lib/cloudformation";
+import { CloudFormationHelper, defaultOpsPercentagePrefs, StackSetOpsPercentagePrefs } from "../lib/cloudformation";
 import { IncorrectConfigurationException } from "../lib/error";
 
 describe("Cloud Formation Helper", () => {
@@ -188,7 +184,6 @@ describe("Cloud Formation Helper", () => {
       await cfHelper.createStackSetInstances(target, regions, opsPrefs);
     };
     await expect(testCase).rejects.toThrow(IncorrectConfigurationException);
-
   });
 
   it("should throw an exception when createStackSetInstances fails", async () => {
@@ -278,5 +273,4 @@ describe("Cloud Formation Helper", () => {
     await cfHelper.deleteStackSetInstances(target, regions);
     expect(cfMock).toHaveReceivedCommandTimes(DeleteStackInstancesCommand, 0);
   });
-
 });

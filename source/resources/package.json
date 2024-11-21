@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor",
-  "version": "6.2.11",
+  "version": "6.3.0",
   "description": "cdk resources to provision needed infrastructure",
   "author": {
     "name": "Amazon Web Services",
@@ -14,7 +14,11 @@
     "pretest": "npm ci",
     "test": "npx jest",
     "cdk": "npx cdk",
-    "orgHub:deploy": "echo 'fixing stackset template paths for cdk assets by forcing it to synth twice' && rm -rf cdk.out && cdk synth && cdk deploy"
+    "get-cdk-bucket": "aws cloudformation describe-stacks --stack-name CDKToolkit --query 'Stacks[0].Outputs[?OutputKey==`BucketName`].OutputValue' --output text",
+    "update-bucket-encryption": "aws s3api put-bucket-encryption --bucket $SOLUTION_BUCKET --server-side-encryption-configuration '{\"Rules\": [{\"ApplyServerSideEncryptionByDefault\": {\"SSEAlgorithm\": \"AES256\"}}]}'",
+    "synth": "npm run cdk -- synth -c SOLUTION_NAME=quota-monitor-for-aws -c SOLUTION_VERSION=6.3.0",
+    "deploy": "npm run cdk -- deploy -c SOLUTION_NAME=quota-monitor-for-aws -c SOLUTION_VERSION=6.3.0",
+    "orgHub:deploy": "export MODIFY_TEMPLATES=true && export SOLUTION_BUCKET=$(npm run -s get-cdk-bucket) && npm run update-bucket-encryption && rm -rf cdk.out && echo 'fixing stackset template paths for cdk assets by forcing it to synth twice' && npm run synth && npm run deploy"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

@@ -126,6 +126,7 @@ describe("limitreport", function () {
     it("should delete sqs message if all APIs successful", async () => {
       await limitReport.readQueueAsync();
 
+      expect(receiveMessagesMock.mock.calls[0][1]).toBe(2);
       expect(receiveMessagesMock).toHaveBeenCalledTimes(2);
       expect(deleteMessageMock).toHaveBeenCalledTimes(4);
       expect(putItemMock).toHaveBeenCalledTimes(4);
@@ -142,9 +143,7 @@ describe("limitreport", function () {
     });
 
     it("should handle some message loops returning empty arrays", async () => {
-      receiveMessagesMock
-        .mockResolvedValueOnce(data.Messages)
-        .mockResolvedValueOnce(emptyData);
+      receiveMessagesMock.mockResolvedValueOnce(data.Messages).mockResolvedValueOnce(emptyData);
 
       await limitReport.readQueueAsync();
 
@@ -188,6 +187,54 @@ describe("limitreport", function () {
       expect(deleteMessageMock).toHaveBeenCalledTimes(0);
       expect(putItemMock).toHaveBeenCalledTimes(0);
       expect(destroyMock).toHaveBeenCalledTimes(0);
+    });
+
+    it("should handle MAX_MESSAGES > 10", async () => {
+      process.env.MAX_MESSAGES = "11";
+
+      await limitReport.readQueueAsync();
+
+      expect(receiveMessagesMock.mock.calls[0][1]).toBe(10);
+      expect(receiveMessagesMock).toHaveBeenCalledTimes(2);
+      expect(deleteMessageMock).toHaveBeenCalledTimes(4);
+      expect(putItemMock).toHaveBeenCalledTimes(4);
+      expect(destroyMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("should handle MAX_MESSAGES == 0", async () => {
+      process.env.MAX_MESSAGES = "0";
+
+      await limitReport.readQueueAsync();
+
+      expect(receiveMessagesMock.mock.calls[0][1]).toBe(10);
+      expect(receiveMessagesMock).toHaveBeenCalledTimes(2);
+      expect(deleteMessageMock).toHaveBeenCalledTimes(4);
+      expect(putItemMock).toHaveBeenCalledTimes(4);
+      expect(destroyMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("should handle MAX_MESSAGES < 0", async () => {
+      process.env.MAX_MESSAGES = "-1";
+
+      await limitReport.readQueueAsync();
+
+      expect(receiveMessagesMock.mock.calls[0][1]).toBe(10);
+      expect(receiveMessagesMock).toHaveBeenCalledTimes(2);
+      expect(deleteMessageMock).toHaveBeenCalledTimes(4);
+      expect(putItemMock).toHaveBeenCalledTimes(4);
+      expect(destroyMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("should handle MAX_MESSAGES being undefined", async () => {
+      process.env.MAX_MESSAGES = undefined;
+
+      await limitReport.readQueueAsync();
+
+      expect(receiveMessagesMock.mock.calls[0][1]).toBe(10);
+      expect(receiveMessagesMock).toHaveBeenCalledTimes(2);
+      expect(deleteMessageMock).toHaveBeenCalledTimes(4);
+      expect(putItemMock).toHaveBeenCalledTimes(4);
+      expect(destroyMock).toHaveBeenCalledTimes(2);
     });
   });
 });

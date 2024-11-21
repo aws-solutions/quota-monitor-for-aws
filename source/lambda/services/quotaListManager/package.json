@@ -1,6 +1,6 @@
 {
   "name": "quota-list-manager",
-  "version": "6.2.11",
+  "version": "6.3.0",
   "description": "microservice to manage quota list to monitor",
   "main": "./index.js",
   "author": {
@@ -10,7 +10,8 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@aws-sdk/client-dynamodb-streams": "^3.621.0",
-    "@aws-sdk/client-service-quotas": "^3.621.0"
+    "@aws-sdk/client-service-quotas": "^3.621.0",
+    "@types/aws-lambda": "^8.10.145"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

@@ -146,17 +146,11 @@ export function assertCommonHubResources(template: Template) {
   });
 
   it("should have Service Catalog AppRegistry AttributeGroup, ", () => {
-    template.resourceCountIs(
-      "AWS::ServiceCatalogAppRegistry::AttributeGroup",
-      1
-    );
+    template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroup", 1);
   });
 
   it("should have Service Catalog AppRegistry AttributeGroup Association, ", () => {
-    template.resourceCountIs(
-      "AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation",
-      1
-    );
+    template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation", 1);
   });
 }
 

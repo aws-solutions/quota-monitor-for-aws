@@ -54,14 +54,9 @@ describe("Dynamo DB", () => {
   });
 
   it("should query for service items", async () => {
-    ddbDocMock
-      .on(QueryCommand)
-      .resolves({ Items: [{ data: "data1" }, { data: "data2" }] });
+    ddbDocMock.on(QueryCommand).resolves({ Items: [{ data: "data1" }, { data: "data2" }] });
 
-    const response = await ddbHelper.queryQuotasForService(
-      tableName,
-      "dynamodb"
-    );
+    const response = await ddbHelper.queryQuotasForService(tableName, "dynamodb");
 
     expect(ddbDocMock).toHaveReceivedCommandTimes(QueryCommand, 1);
     expect(response).toEqual([{ data: "data1" }, { data: "data2" }]);
@@ -173,10 +168,7 @@ describe("Dynamo DB", () => {
           [tableName]: [unprocessedItem],
         },
       });
-      const writeRequests = [
-        { PutRequest: { Item: { id: "1", data: "test1" } } },
-        unprocessedItem,
-      ];
+      const writeRequests = [{ PutRequest: { Item: { id: "1", data: "test1" } } }, unprocessedItem];
       await ddbHelper.batchWrite(tableName, writeRequests);
       expect(ddbDocMock).toHaveReceivedCommandTimes(BatchWriteCommand, 5);
       expect(sleep).toHaveBeenCalledTimes(5);

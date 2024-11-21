@@ -9,10 +9,7 @@ import { logger } from "./logger";
  * @param raiseException - whether or not raise exception
  * @returns
  */
-export const catchDecorator = (
-  errorType: any,
-  raiseException: boolean
-): any => {
+export const catchDecorator = (errorType: any, raiseException: boolean): any => {
   return (_: any, key: string | symbol, descriptor?: PropertyDescriptor) => {
     if (!descriptor) {
       logger.warn({
@@ -46,12 +43,7 @@ export const catchDecorator = (
  * @param errorType
  * @param raiseException
  */
-const _handleError = (
-  error: any,
-  key: string | symbol,
-  errorType: any,
-  raiseException: boolean
-) => {
+const _handleError = (error: any, key: string | symbol, errorType: any, raiseException: boolean) => {
   if (error instanceof errorType)
     logger.warn({
       label: key,

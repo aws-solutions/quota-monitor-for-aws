@@ -6,16 +6,10 @@ import {
   PutEventsCommand,
   PutEventsRequestEntry,
   PutPermissionCommand,
-  RemovePermissionCommand
+  RemovePermissionCommand,
 } from "@aws-sdk/client-cloudwatch-events";
 import { catchDecorator } from "./catch";
-import {
-  ServiceHelper,
-  ORG_REGEX,
-  ACCOUNT_REGEX,
-  OU_REGEX,
-  createChunksFromArray,
-} from "./exports";
+import { ServiceHelper, ORG_REGEX, ACCOUNT_REGEX, OU_REGEX, createChunksFromArray } from "./exports";
 import { logger } from "./logger";
 
 /**
@@ -43,18 +37,11 @@ export class EventsHelper extends ServiceHelper<CloudWatchEventsClient> {
    * @param eventBusName
    */
   @catchDecorator(CloudWatchEventsServiceException, true)
-  async createEventBusPolicy(
-    principals: string[],
-    orgId: string,
-    eventBusArn: string,
-    eventBusName: string
-  ) {
+  async createEventBusPolicy(principals: string[], orgId: string, eventBusArn: string, eventBusName: string) {
     const policyStatements = [];
     const orgIds = principals.filter((principal) => principal.match(ORG_REGEX));
     const ouIds = principals.filter((principal) => principal.match(OU_REGEX));
-    const accountIds = principals.filter((principal) =>
-      principal.match(ACCOUNT_REGEX)
-    );
+    const accountIds = principals.filter((principal) => principal.match(ACCOUNT_REGEX));
     if (orgIds.length > 0) {
       //the caller shouldn't provide multiple orgIds, this is checked upstream
       policyStatements.push({

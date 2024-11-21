@@ -1,11 +1,12 @@
 {
   "name": "quota-monitor-for-aws",
-  "version": "6.2.11",
+  "version": "6.3.0",
   "description": "Quota Monitor for AWS",
   "author": "aws-solutions",
   "license": "Apache-2.0",
   "scripts": {
     "lint": "./node_modules/eslint/bin/eslint.js . --ext .ts",
+    "precommit": "pre-commit run --all-files",
     "prettier-format": "./node_modules/prettier/bin-prettier.js --config .prettierrc.yml '**/*.ts' --write",
     "build:cwPoller": "cd source/lambda/services/cwPoller && npm run build:all",
     "build:deploymentManager": "cd source/lambda/services/deploymentManager && npm run build:all",

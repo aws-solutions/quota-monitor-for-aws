@@ -38,13 +38,7 @@ const config: Config = {
   verbose: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-  collectCoverageFrom: [
-    "**/*.ts",
-    "!**/*.spec.ts",
-    "!./jest.config.ts",
-    "!./jest.setup.ts",
-    "!**/app.ts",
-  ],
+  collectCoverageFrom: ["**/*.ts", "!**/*.spec.ts", "!./jest.config.ts", "!./jest.setup.ts", "!**/app.ts"],
 
   coverageReporters: [["lcov", { projectRoot: "../" }], "text"],
 

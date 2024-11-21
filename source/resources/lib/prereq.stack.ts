@@ -1,20 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  aws_iam as iam,
-  App,
-  Stack,
-  CfnOutput,
-  CfnParameter,
-  CfnMapping,
-  StackProps,
-} from "aws-cdk-lib";
+import { aws_iam as iam, App, Stack, CfnOutput, CfnParameter, CfnMapping, StackProps } from "aws-cdk-lib";
 import { NagSuppressions } from "cdk-nag";
 import { IConstruct } from "constructs";
 import * as path from "path";
 import { CustomResourceLambda } from "./custom-resource-lambda.construct";
 import { Layer } from "./lambda-layer.construct";
+import { addCfnGuardSuppression, addCfnGuardSuppressionToNestedResources } from "./cfn-guard-utils";
 
 /**
  * @description
@@ -22,12 +15,17 @@ import { Layer } from "./lambda-layer.construct";
  * The stack should be deployed in the Organization Management account
  * @author aws-solutions
  */
+
+interface PreReqStackProps extends StackProps {
+  targetPartition: "Commercial" | "China";
+}
+
 export class PreReqStack extends Stack {
   /**
    * @param {Construct} scope parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props?: StackProps) {
+  constructor(scope: App, id: string, props: PreReqStackProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -43,16 +41,8 @@ export class PreReqStack extends Stack {
     // Mapping & Conditions
     //=============================================================================================
     const map = new CfnMapping(this, "QuotaMonitorMap");
-    map.setValue(
-      "Metrics",
-      "SendAnonymizedData",
-      this.node.tryGetContext("SEND_METRICS")
-    );
-    map.setValue(
-      "Metrics",
-      "MetricsEndpoint",
-      this.node.tryGetContext("METRICS_ENDPOINT")
-    );
+    map.setValue("Metrics", "SendAnonymizedData", this.node.tryGetContext("SEND_METRICS"));
+    map.setValue("Metrics", "MetricsEndpoint", this.node.tryGetContext("METRICS_ENDPOINT"));
 
     //=============================================================================================
     // Metadata
@@ -73,13 +63,9 @@ export class PreReqStack extends Stack {
       },
     };
 
-    this.templateOptions.description = `(${this.node.tryGetContext(
-      "SOLUTION_ID"
-    )}-PreReq) - ${this.node.tryGetContext(
+    this.templateOptions.description = `(${this.node.tryGetContext("SOLUTION_ID")}-PreReq) - ${this.node.tryGetContext(
       "SOLUTION_NAME"
-    )} - Prerequisite Template. Version ${this.node.tryGetContext(
-      "SOLUTION_VERSION"
-    )}`;
+    )} - Prerequisite Template. Version ${this.node.tryGetContext("SOLUTION_VERSION")}`;
     this.templateOptions.templateFormatVersion = "2010-09-09";
 
     //=============================================================================================
@@ -102,9 +88,7 @@ export class PreReqStack extends Stack {
      * @description construct to deploy lambda backed custom resource
      */
     const helper = new CustomResourceLambda(this, "QM-Helper", {
-      assetLocation: `${path.dirname(
-        __dirname
-      )}/../lambda/services/helper/dist/helper.zip`,
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/helper/dist/helper.zip`,
       layers: [utilsLayer.layer],
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
@@ -112,6 +96,8 @@ export class PreReqStack extends Stack {
         QM_STACK_ID: id,
       },
     });
+    addCfnGuardSuppression(helper.function, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
+    addCfnGuardSuppressionToNestedResources(helper, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     // Custom resources
     const uuid = helper.addCustomResource("CreateUUID");
@@ -126,15 +112,15 @@ export class PreReqStack extends Stack {
      * @description construct to deploy lambda backed custom resource
      */
     const preReqManager = new CustomResourceLambda(this, "QM-PreReqManager", {
-      assetLocation: `${path.dirname(
-        __dirname
-      )}/../lambda/services/preReqManager/dist/prereq-manager.zip`,
+      assetLocation: `${path.dirname(__dirname)}/../lambda/services/preReqManager/dist/prereq-manager.zip`,
       environment: {
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
         SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),
       },
       layers: [utilsLayer.layer],
     });
+    addCfnGuardSuppression(preReqManager.function, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
+    addCfnGuardSuppressionToNestedResources(preReqManager, ["LAMBDA_INSIDE_VPC", "LAMBDA_CONCURRENCY_CHECK"]);
 
     /**
      * @description policy to allow write permissions for pre-requisite manager lambda
@@ -167,8 +153,7 @@ export class PreReqStack extends Stack {
       [
         {
           id: "AwsSolutions-L1",
-          reason:
-            "GovCloud regions support only up to nodejs 16, risk is tolerable",
+          reason: "GovCloud regions support only up to nodejs 16, risk is tolerable",
         },
       ],
       true

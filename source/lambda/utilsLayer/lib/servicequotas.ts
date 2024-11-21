@@ -1,9 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
-import {
-  CloudWatchServiceException,
-  MetricDataQuery,
-} from "@aws-sdk/client-cloudwatch";
+import { CloudWatchServiceException, MetricDataQuery } from "@aws-sdk/client-cloudwatch";
 import {
   MetricInfo,
   paginateListServiceQuotas,
@@ -88,11 +85,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     // get list of quotas which support usage metric
     for await (const page of paginator) {
       if (page.Quotas) {
-        quotasSupportingUsage.push(
-          ...page.Quotas.filter(
-            (Quota) => Quota.UsageMetric?.MetricNamespace == "AWS/Usage"
-          )
-        );
+        quotasSupportingUsage.push(...page.Quotas.filter((Quota) => Quota.UsageMetric?.MetricNamespace == "AWS/Usage"));
       }
       await sleep(1000);
     }
@@ -110,10 +103,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
    * @param serviceCode optional parameter needed only for logging
    */
   @catchDecorator(CloudWatchServiceException, true)
-  async getQuotasWithUtilizationMetrics(
-    quotas: ServiceQuota[],
-    serviceCode?: string
-  ) {
+  async getQuotasWithUtilizationMetrics(quotas: ServiceQuota[], serviceCode?: string) {
     logger.debug({
       label: this.moduleName,
       message: `Starting to process ${quotas.length} quotas for ${serviceCode}`,
@@ -125,13 +115,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     for (let i = 0; i < quotas.length; i += BATCH_SIZE) {
       batchCount++;
       const batch = quotas.slice(i, i + BATCH_SIZE);
-      await this.processBatch(
-        batch,
-        validatedQuotas,
-        cw,
-        batchCount,
-        serviceCode
-      );
+      await this.processBatch(batch, validatedQuotas, cw, batchCount, serviceCode);
       await sleep(1000);
     }
     logger.debug({
@@ -165,11 +149,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
       return;
     }
     try {
-      await cw.getMetricData(
-        new Date(Date.now() - 15 * 60 * 1000),
-        new Date(),
-        queries
-      );
+      await cw.getMetricData(new Date(Date.now() - 15 * 60 * 1000), new Date(), queries);
       validatedQuotas.push(...batch);
       logger.debug({
         label: this.moduleName,
@@ -177,15 +157,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
       });
     } catch (error) {
       if (error instanceof Error && error.name === "ValidationError") {
-        await this.handleValidationError(
-          error,
-          batch,
-          validatedQuotas,
-          cw,
-          batchCount,
-          serviceCode,
-          retryCount
-        );
+        await this.handleValidationError(error, batch, validatedQuotas, cw, batchCount, serviceCode, retryCount);
       } else {
         logger.error({
           label: this.moduleName,
@@ -224,10 +196,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
       message: `Extracted problematic metric: ${problematicMetric}`,
     });
     if (problematicMetric) {
-      const { problematicQuota, updatedBatch } = this.removeProblematicQuota(
-        batch,
-        problematicMetric
-      );
+      const { problematicQuota, updatedBatch } = this.removeProblematicQuota(batch, problematicMetric);
       // Log the skipping of the problematic quota and process the updated batch
       if (problematicQuota) {
         logger.info({
@@ -239,18 +208,9 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
             label: this.moduleName,
             message: `Retrying batch ${batchCount} for ${serviceCode} with ${
               updatedBatch.length
-            } remaining quotas. Retry attempt ${
-              retryCount + 1
-            } of ${MAX_RETRIES}`,
+            } remaining quotas. Retry attempt ${retryCount + 1} of ${MAX_RETRIES}`,
           });
-          await this.processBatch(
-            updatedBatch,
-            validatedQuotas,
-            cw,
-            batchCount,
-            serviceCode,
-            retryCount + 1
-          );
+          await this.processBatch(updatedBatch, validatedQuotas, cw, batchCount, serviceCode, retryCount + 1);
         } else {
           logger.warn({
             label: this.moduleName,
@@ -310,22 +270,14 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     const problematicQuota = batch.find(
       (q) =>
         q.UsageMetric &&
-        (this.generateMetricQueryId(q.UsageMetric, q.QuotaCode) ===
-          problematicMetric ||
-          `${this.generateMetricQueryId(
-            q.UsageMetric,
-            q.QuotaCode
-          )}_pct_utilization` === problematicMetric)
+        (this.generateMetricQueryId(q.UsageMetric, q.QuotaCode) === problematicMetric ||
+          `${this.generateMetricQueryId(q.UsageMetric, q.QuotaCode)}_pct_utilization` === problematicMetric)
     );
     const updatedBatch = batch.filter(
       (q) =>
         q.UsageMetric &&
-        this.generateMetricQueryId(q.UsageMetric, q.QuotaCode) !==
-          problematicMetric &&
-        `${this.generateMetricQueryId(
-          q.UsageMetric,
-          q.QuotaCode
-        )}_pct_utilization` !== problematicMetric
+        this.generateMetricQueryId(q.UsageMetric, q.QuotaCode) !== problematicMetric &&
+        `${this.generateMetricQueryId(q.UsageMetric, q.QuotaCode)}_pct_utilization` !== problematicMetric
     );
     return { problematicQuota, updatedBatch };
   }
@@ -335,9 +287,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
    * @param quotas An array of ServiceQuota objects to generate queries for
    * @returns An array of MetricDataQuery objects for CloudWatch
    */
-  private generateCWQueriesForQuotas(
-    quotas: ServiceQuota[]
-  ): MetricDataQuery[] {
+  private generateCWQueriesForQuotas(quotas: ServiceQuota[]): MetricDataQuery[] {
     const queries: MetricDataQuery[] = [];
     for (const quota of quotas) {
       if (quota.UsageMetric) {
@@ -361,14 +311,8 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     });
 
     this.validateQuotaHasUsageMetrics(quota);
-    const usageQuery = this.generateUsageQuery(
-      <MetricInfo>quota.UsageMetric,
-      period,
-      quota.QuotaCode
-    );
-    const percentageUsageQuery = this.generatePercentageUtilizationQuery(
-      <string>usageQuery.Id
-    );
+    const usageQuery = this.generateUsageQuery(<MetricInfo>quota.UsageMetric, period, quota.QuotaCode);
+    const percentageUsageQuery = this.generatePercentageUtilizationQuery(<string>usageQuery.Id);
     logger.debug({
       label: this.moduleName,
       message: `${JSON.stringify({
@@ -401,26 +345,15 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
    * @param metricInfo
    * @param quotaCode
    */
-  public generateMetricQueryId(
-    metricInfo: MetricInfo,
-    quotaCode: string | undefined
-  ): string {
+  public generateMetricQueryId(metricInfo: MetricInfo, quotaCode: string | undefined): string {
     logger.debug({
       label: `generateMetricQueryId/metricInfo`,
       message: JSON.stringify(metricInfo),
     });
-    const service = (metricInfo.MetricDimensions?.Service || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, "");
-    const resource = (metricInfo.MetricDimensions?.Resource || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, "");
-    const classValue = (metricInfo.MetricDimensions?.Class || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, "");
-    const type = (metricInfo.MetricDimensions?.Type || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, "");
+    const service = (metricInfo.MetricDimensions?.Service || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+    const resource = (metricInfo.MetricDimensions?.Resource || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+    const classValue = (metricInfo.MetricDimensions?.Class || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+    const type = (metricInfo.MetricDimensions?.Type || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
     const code = (quotaCode || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
 
     const metricQueryId = `${service}_${resource}_${classValue}_${type}_${code}`;
@@ -440,20 +373,14 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
    * @param quotaCode - the code which identifies the quota.
    * @returns
    */
-  private generateUsageQuery(
-    metricInfo: MetricInfo,
-    period: number,
-    quotaCode: string | undefined
-  ) {
+  private generateUsageQuery(metricInfo: MetricInfo, period: number, quotaCode: string | undefined) {
     const usageQuery: MetricDataQuery = {
       Id: this.generateMetricQueryId(metricInfo, quotaCode),
       MetricStat: {
         Metric: {
           Namespace: metricInfo.MetricNamespace,
           MetricName: metricInfo.MetricName,
-          Dimensions: Object.entries(
-            metricInfo.MetricDimensions as Record<string, string>
-          ).map(([key, value]) => {
+          Dimensions: Object.entries(metricInfo.MetricDimensions as Record<string, string>).map(([key, value]) => {
             return { Name: key, Value: value };
           }),
         },

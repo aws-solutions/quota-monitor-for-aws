@@ -11,15 +11,9 @@ import {
   MetricQueryIdToQuotaMap,
 } from "../exports";
 
-import {
-  UnsupportedEventException,
-  ServiceQuotasHelper,
-} from "solutions-utils";
+import { UnsupportedEventException, ServiceQuotasHelper } from "solutions-utils";
 import { handler } from "../index";
-import {
-  MetricDataQuery,
-  MetricDataResult
-} from "@aws-sdk/client-cloudwatch";
+import { MetricDataQuery, MetricDataResult } from "@aws-sdk/client-cloudwatch";
 
 const getMetricDataMock = jest.fn();
 const queryQuotasForServiceMock = jest.fn();
@@ -103,22 +97,14 @@ const metric1: MetricDataResult = {
   Label: "data label",
   Values: [100, 81, 10],
   StatusCode: "Complete",
-  Timestamps: [
-    new Date(1664386148),
-    new Date(1664390148),
-    new Date(1664396148),
-  ],
+  Timestamps: [new Date(1664386148), new Date(1664390148), new Date(1664396148)],
 };
 const metric2: MetricDataResult = {
   Id: "service2_resource2_none_resource_quota2_pct_utilization",
   Label: "data label",
   Values: [100, 81, 10],
   StatusCode: "Complete",
-  Timestamps: [
-    new Date(1664386148),
-    new Date(1664390148),
-    new Date(1664396148),
-  ],
+  Timestamps: [new Date(1664386148), new Date(1664390148), new Date(1664396148)],
 };
 const metricQueryIdToQuotaMap: MetricQueryIdToQuotaMap = {};
 const metricId1 = metric1?.Id ?? "";
@@ -179,9 +165,7 @@ describe("CWPoller", () => {
     putEventMock.mockResolvedValue({});
     getAllEnabledServicesMock.mockResolvedValue(serviceCodes);
 
-    jest
-      .spyOn(ServiceQuotasHelper.prototype, "generateCWQuery")
-      .mockReturnValue([usageQuery, percentageUsageQuery]);
+    jest.spyOn(ServiceQuotasHelper.prototype, "generateCWQuery").mockReturnValue([usageQuery, percentageUsageQuery]);
   });
 
   beforeEach(() => {
@@ -218,24 +202,16 @@ describe("CWPoller", () => {
   });
 
   it("should create quota utilization events", () => {
-    const events = createQuotaUtilizationEvents(
-      metric1,
-      metricQueryIdToQuotaMap
-    );
+    const events = createQuotaUtilizationEvents(metric1, metricQueryIdToQuotaMap);
 
     expect(events).toEqual(utilizationEvents);
   });
 
   it("should create only WARN AND ERROR quota utilization events when REPORT_OK_NOTIFICATIONS = No", () => {
     process.env.SQ_REPORT_OK_NOTIFICATIONS = "No";
-    const events = createQuotaUtilizationEvents(
-      metric1,
-      metricQueryIdToQuotaMap
-    );
+    const events = createQuotaUtilizationEvents(metric1, metricQueryIdToQuotaMap);
 
-    expect(events).toEqual(
-      utilizationEvents.filter((m) => m.status != QUOTA_STATUS.OK)
-    );
+    expect(events).toEqual(utilizationEvents.filter((m) => m.status != QUOTA_STATUS.OK));
   });
 
   it("should send quota utilization events to bridge", async () => {
@@ -248,6 +224,15 @@ describe("CWPoller", () => {
     await handler(event);
 
     expect(putEventMock).toHaveBeenCalled();
+  });
+
+  it("should handle a scheduled event with 1-day frequency", async () => {
+    process.env.POLLER_FREQUENCY = "rate(1 day)";
+    await handler(event);
+
+    expect(putEventMock).toHaveBeenCalled();
+    // Check if the frequency is correctly interpreted as 24 hours
+    expect(getMetricDataMock).toHaveBeenCalledWith(expect.any(Date), expect.any(Date), expect.anything());
   });
 
   it("should return if no quotas are found", async () => {

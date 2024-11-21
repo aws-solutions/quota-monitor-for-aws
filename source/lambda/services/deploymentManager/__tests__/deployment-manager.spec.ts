@@ -3,10 +3,7 @@
 
 import { handler } from "../index";
 import { DEPLOYMENT_MODEL } from "../lib/deployment-manager";
-import {
-  IParameterChangeEvent,
-  IncorrectConfigurationException,
-} from "solutions-utils";
+import { IParameterChangeEvent, IncorrectConfigurationException } from "solutions-utils";
 
 const getParameterMock = jest.fn();
 const getOrganizationIdMock = jest.fn();
@@ -95,8 +92,12 @@ enum TestScenarios {
   Account = "Account",
   HybridSingleOU = "HybridSingleOU",
   HybridMultiOU = "HybridMultiOU",
+  HybridOUNOP = "HybridOUNOP",
+  HybridAccountNOP = "HybridAccountNOP",
   SingleOUInvalid = "SingleOUInvalid",
+  SingleOUNOP = "SingleOUNOP",
   AccountInvalid = "AccountInvalid",
+  AccountNOP = "AccountNOP",
   SingleOUSelectedRegions = "SingleOUSelectedRegions",
   MultiOUSelectedRegions = "MultiOUSelectedRegions",
   HybridSelectedRegions = "HybridSelectedRegions",
@@ -105,25 +106,25 @@ enum TestScenarios {
 //populate the objects to be used for the different test scenarios
 const orgsMap: { [key: string]: string[] } = {};
 orgsMap[TestScenarios.SingleOU] = ["o-0000000000"];
+orgsMap[TestScenarios.SingleOUNOP] = ["NOP"];
 orgsMap[TestScenarios.MultiOU] = ["ou-0000-00000000", "ou-0000-00000001"];
 orgsMap[TestScenarios.HybridSingleOU] = ["o-0000000000"];
 orgsMap[TestScenarios.HybridMultiOU] = ["ou-0000-00000000", "ou-0000-00000001"];
-orgsMap[TestScenarios.SingleOUInvalid] = ["NOP"];
+orgsMap[TestScenarios.HybridOUNOP] = ["NOP"];
+orgsMap[TestScenarios.HybridAccountNOP] = ["o-0000000000"];
+orgsMap[TestScenarios.SingleOUInvalid] = ["x-0000"];
 orgsMap[TestScenarios.SingleOUSelectedRegions] = ["o-0000000000"];
-orgsMap[TestScenarios.MultiOUSelectedRegions] = [
-  "ou-0000-00000000",
-  "ou-0000-00000001",
-];
-orgsMap[TestScenarios.HybridSelectedRegions] = [
-  "ou-0000-00000000",
-  "ou-0000-00000001",
-];
+orgsMap[TestScenarios.MultiOUSelectedRegions] = ["ou-0000-00000000", "ou-0000-00000001"];
+orgsMap[TestScenarios.HybridSelectedRegions] = ["ou-0000-00000000", "ou-0000-00000001"];
 
 const accountsMap: { [key: string]: string[] } = {};
 accountsMap[TestScenarios.Account] = ["000000000000"];
 accountsMap[TestScenarios.HybridSingleOU] = ["000000000000"];
 accountsMap[TestScenarios.HybridMultiOU] = ["000000000000"];
-accountsMap[TestScenarios.AccountInvalid] = ["NOP"];
+accountsMap[TestScenarios.HybridOUNOP] = ["000000000000"];
+accountsMap[TestScenarios.HybridAccountNOP] = ["NOP"];
+accountsMap[TestScenarios.AccountNOP] = ["NOP"];
+accountsMap[TestScenarios.AccountInvalid] = ["1234"];
 accountsMap[TestScenarios.HybridSelectedRegions] = ["000000000000"];
 
 const regionsMap: { [key: string]: string[] } = {};
@@ -132,6 +133,10 @@ regionsMap[TestScenarios.MultiOU] = ["ALL"];
 regionsMap[TestScenarios.Account] = ["ALL"];
 regionsMap[TestScenarios.HybridSingleOU] = ["ALL"];
 regionsMap[TestScenarios.HybridMultiOU] = ["ALL"];
+regionsMap[TestScenarios.HybridOUNOP] = ["ALL"];
+regionsMap[TestScenarios.HybridAccountNOP] = ["ALL"];
+regionsMap[TestScenarios.SingleOUNOP] = ["us-east-1", "us-west-2"];
+regionsMap[TestScenarios.AccountNOP] = ["ALL"];
 regionsMap[TestScenarios.SingleOUSelectedRegions] = ["us-east-1", "us-west-2"];
 regionsMap[TestScenarios.MultiOUSelectedRegions] = ["us-east-1", "us-west-2"];
 regionsMap[TestScenarios.HybridSelectedRegions] = ["us-east-1", "us-west-2"];
@@ -142,12 +147,9 @@ regionsMap[TestScenarios.HybridSelectedRegions] = ["us-east-1", "us-west-2"];
  */
 const getParameterMockGenerator = (testType: TestScenarios) => {
   return (paramName: string) => {
-    if (paramName === "/QuotaMonitor/OUs")
-      return Promise.resolve(orgsMap[testType]);
-    else if (paramName === "/QuotaMonitor/Accounts")
-      return Promise.resolve(accountsMap[testType]);
-    else if (paramName === "/QuotaMonitor/RegionsToDeploy")
-      return Promise.resolve(regionsMap[testType]);
+    if (paramName === "/QuotaMonitor/OUs") return Promise.resolve(orgsMap[testType]);
+    else if (paramName === "/QuotaMonitor/Accounts") return Promise.resolve(accountsMap[testType]);
+    else if (paramName === "/QuotaMonitor/RegionsToDeploy") return Promise.resolve(regionsMap[testType]);
     else return Promise.reject("Error");
   };
 };
@@ -201,21 +203,14 @@ describe("Deployment Manager", () => {
 
     process.env.REGIONS_CONCURRENCY_TYPE = testConcurrncyType;
     process.env.MAX_CONCURRENT_PERCENTAGE = "" + testMaxConcurrentPercentage;
-    process.env.FAILURE_TOLERANCE_PERCENTAGE =
-      "" + testFailureTolerancePercentage;
+    process.env.FAILURE_TOLERANCE_PERCENTAGE = "" + testFailureTolerancePercentage;
     process.env.SQ_NOTIFICATION_THRESHOLD = testSQNotificationThreshold;
     process.env.SQ_MONITORING_FREQUENCY = testSQMonitoringFequency;
     process.env.SQ_REPORT_OK_NOTIFICATIONS = testSQReportOKNotifications;
   });
 
   function assertCreateStackInstancesCallOrgIdMode() {
-    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
-      1,
-      ["r-0000"],
-      [],
-      testStackSetOpsPrefs,
-      undefined
-    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(1, ["r-0000"], [], testStackSetOpsPrefs, undefined);
     expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
       ["r-0000"],
       ["us-east-2"],
@@ -225,13 +220,7 @@ describe("Deployment Manager", () => {
   }
 
   function assertCreateStackInstancesCallOrgIdModeSelectedRegions() {
-    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
-      1,
-      ["r-0000"],
-      [],
-      testStackSetOpsPrefs,
-      undefined
-    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(1, ["r-0000"], [], testStackSetOpsPrefs, undefined);
     expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
       ["r-0000"],
       ["us-west-2"],
@@ -301,9 +290,7 @@ describe("Deployment Manager", () => {
   }
 
   it("should manage deployments in Organization deployment mode with single Org Id", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.SingleOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOU));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     await handler(event);
 
@@ -323,9 +310,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Organization deployment mode with single Org Id, with SEND_METRICS yes", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.SingleOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOU));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     process.env.SEND_METRIC = "Yes";
     await handler(event);
@@ -346,9 +331,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Organization deployment mode with single Org Id with selected regions", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.SingleOUSelectedRegions)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOUSelectedRegions));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     await handler(event);
 
@@ -368,9 +351,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Organization deployment mode with single Org Id with TA not available", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.SingleOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOU));
     isTAAvailableMock.mockResolvedValue(false);
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     await handler(event);
@@ -396,9 +377,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.MultiOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.MultiOU));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     await handler(event);
 
@@ -418,9 +397,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids, with SEND_METRICS Yes", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.MultiOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.MultiOU));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     process.env.SEND_METRIC = "Yes";
     await handler(event);
@@ -441,9 +418,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids with selected regions", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.MultiOUSelectedRegions)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.MultiOUSelectedRegions));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     await handler(event);
 
@@ -463,9 +438,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Organization deployment mode with multiple OU-Ids with TA not available", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.MultiOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.MultiOU));
     isTAAvailableMock.mockResolvedValue(false);
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     await handler(event);
@@ -498,9 +471,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Account deployment mode", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.Account)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.Account));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ACCOUNT;
     await handler(event);
 
@@ -519,9 +490,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Hybrid single OU mode", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.HybridSingleOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.HybridSingleOU));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.HYBRID;
     await handler(event);
 
@@ -540,9 +509,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Hybrid multi OU mode", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.HybridMultiOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.HybridMultiOU));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.HYBRID;
     await handler(event);
 
@@ -561,9 +528,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should manage deployments in Hybrid multi OU mode with selected regions", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.HybridSelectedRegions)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.HybridSelectedRegions));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.HYBRID;
     await handler(event);
 
@@ -582,13 +547,8 @@ describe("Deployment Manager", () => {
   });
 
   it("should delete unused stacksets when updating", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.MultiOU)
-    );
-    getDeploymentTargetsMock.mockResolvedValue([
-      "ou-0000-00000002",
-      "ou-0000-00000003",
-    ]);
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.MultiOU));
+    getDeploymentTargetsMock.mockResolvedValue(["ou-0000-00000002", "ou-0000-00000003"]);
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
     await handler(event);
 
@@ -607,9 +567,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should throw an exception when the org id is malformed", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.SingleOUInvalid)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOUInvalid));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
 
     const testCase = async () => {
@@ -620,9 +578,7 @@ describe("Deployment Manager", () => {
   });
 
   it("should throw an exception when the account id is malformed", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.AccountInvalid)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.AccountInvalid));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ACCOUNT;
 
     const testCase = async () => {
@@ -633,19 +589,105 @@ describe("Deployment Manager", () => {
   });
 
   it("should throw an exception when trying to install in a partition where Trusted Advisor isn't available", async () => {
-    getParameterMock.mockImplementation(
-      getParameterMockGenerator(TestScenarios.SingleOU)
-    );
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOU));
     process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
-    getEnabledRegionNamesMock.mockResolvedValue([
-      "us-iso-east-1",
-      "us-iso-west-1",
-    ]);
+    getEnabledRegionNamesMock.mockResolvedValue(["us-iso-east-1", "us-iso-west-1"]);
 
     const testCase = async () => {
       await handler(event);
     };
 
     await expect(testCase).rejects.toThrow(IncorrectConfigurationException);
+  });
+
+  it("should skip StackSet operations when deploymentTargets is empty", async () => {
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.HybridOUNOP));
+    process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.HYBRID;
+    process.env.SEND_METRIC = "Yes";
+    await handler(event);
+
+    expect(getParameterMock).toHaveBeenCalledTimes(3);
+    expect(getOrganizationIdMock).toHaveBeenCalledTimes(1);
+    expect(getRootIdMock).toHaveBeenCalledTimes(0);
+    expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
+    expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(0);
+    expect(createStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(3);
+    expect(getDeployedRegionsMock).toHaveBeenCalledTimes(0);
+    expect(getNumberOfAccountsInOrgMock).toHaveBeenCalledTimes(0);
+    expect(getNumberOfAccountsInOUMock).toHaveBeenCalledTimes(0);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle 'NOP' in Organization deployment mode", async () => {
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOUNOP));
+    process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
+    process.env.SEND_METRIC = "Yes";
+    await handler(event);
+
+    expect(getParameterMock).toHaveBeenCalledTimes(2);
+    expect(getOrganizationIdMock).toHaveBeenCalledTimes(1);
+    expect(getRootIdMock).toHaveBeenCalledTimes(0);
+    expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
+    expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(0);
+    expect(createStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(3);
+    expect(getDeployedRegionsMock).toHaveBeenCalledTimes(0);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle 'NOP' in Account deployment mode", async () => {
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.AccountNOP));
+    process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ACCOUNT;
+    process.env.SEND_METRIC = "Yes";
+    await handler(event);
+
+    expect(getParameterMock).toHaveBeenCalledTimes(1);
+    expect(getOrganizationIdMock).toHaveBeenCalledTimes(0);
+    expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
+    expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(0);
+    expect(createStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(0);
+    expect(getDeployedRegionsMock).toHaveBeenCalledTimes(0);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("should delete all stack instances when OU is reset to 'NOP'", async () => {
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.SingleOUNOP));
+    getDeploymentTargetsMock.mockResolvedValue(["ou-0000-00000000"]);
+    process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
+    process.env.SEND_METRIC = "Yes";
+    await handler(event);
+
+    expect(getParameterMock).toHaveBeenCalledTimes(2);
+    expect(getOrganizationIdMock).toHaveBeenCalledTimes(1);
+    expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
+    expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(0);
+    expect(createStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(3);
+    expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(6);
+    expect(getDeployedRegionsMock).toHaveBeenCalledTimes(3);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle when Trusted Advisor is not available and OU is reset to 'NOP'", async () => {
+    getParameterMock.mockImplementation(getParameterMockGenerator(TestScenarios.HybridOUNOP));
+    getDeploymentTargetsMock.mockResolvedValue(["ou-0000-00000000"]);
+    isTAAvailableMock.mockResolvedValue(false);
+    process.env.DEPLOYMENT_MODEL = DEPLOYMENT_MODEL.ORG;
+    await handler(event);
+
+    expect(getParameterMock).toHaveBeenCalledTimes(2);
+    expect(getOrganizationIdMock).toHaveBeenCalledTimes(1);
+    expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
+    expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(0);
+    expect(createStackSetInstancesMock).toHaveBeenCalledTimes(0);
+    expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(2);
+    expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(5);
+    expect(getDeployedRegionsMock).toHaveBeenCalledTimes(2);
+    expect(sendAnonymizedMetricMock).toHaveBeenCalledTimes(0);
   });
 });

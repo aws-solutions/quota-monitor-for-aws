@@ -26,14 +26,30 @@ interface IServiceTableItem extends Record<string, any> {
 }
 
 /**
- * @description performs put on service table, updates monitoring status
- * @param {string} serviceTable - dynamodb table name for service table
- * @param {boolean} refresh - if true forces re-populating of the quotas for services
+ * @description Interface for the properties of the putServiceMonitoringStatus function
+ * @property {string} [serviceTable] - DynamoDB table name for service table
+ * @property {boolean} [refresh] - If true, forces re-populating of the quotas for services
+ * @property {boolean} [sageMakerMonitoring] - Optional. Specifies the monitoring status for SageMaker
+ * @property {boolean} [connectMonitoring] - Optional. Specifies the monitoring status for Connect
  */
-export async function putServiceMonitoringStatus(
-  serviceTable: string = <string>process.env.SQ_SERVICE_TABLE,
-  refresh = false
-) {
+interface PutServiceMonitoringStatusProps {
+  serviceTable?: string;
+  refresh?: boolean;
+  sageMakerMonitoring?: boolean;
+  connectMonitoring?: boolean;
+}
+
+/**
+ * @description performs put on service table, updates monitoring status
+ * @param {PutServiceMonitoringStatusProps} props - The properties for the function
+ */
+export async function putServiceMonitoringStatus(props: PutServiceMonitoringStatusProps) {
+  const {
+    serviceTable = <string>process.env.SQ_SERVICE_TABLE,
+    refresh = false,
+    sageMakerMonitoring,
+    connectMonitoring,
+  } = props;
   const ddb = new DynamoDBHelper();
   const sq = new ServiceQuotasHelper();
   const serviceCodes: string[] = await sq.getServiceCodes();
@@ -42,17 +58,19 @@ export async function putServiceMonitoringStatus(
   const newServices: string[] = [];
 
   logger.debug({
+    label: `${MODULE_NAME}/putServiceMonitoringStatus`,
+    message: `Starting with refresh=${refresh}, sageMakerMonitoring=${sageMakerMonitoring}, connectMonitoring=${connectMonitoring}`,
+  });
+
+  logger.debug({
     label: `${MODULE_NAME}/serviceCodes`,
     message: JSON.stringify(serviceCodes),
   });
   await Promise.allSettled(
     serviceCodes.map(async (service) => {
-      const getItemResponse = <IServiceTableItem>await ddb.getItem(
-        serviceTable,
-        {
-          ServiceCode: service,
-        }
-      );
+      const getItemResponse = <IServiceTableItem>await ddb.getItem(serviceTable, {
+        ServiceCode: service,
+      });
       if (!getItemResponse) newServices.push(service);
       else if (getItemResponse.Monitored) monitoredServices.push(service);
       else disabledServices.push(service);
@@ -77,9 +95,19 @@ export async function putServiceMonitoringStatus(
     });
     await Promise.allSettled(
       newServices.map(async (service) => {
+        logger.debug({
+          label: `${MODULE_NAME}/putServiceMonitoringStatus`,
+          message: `Adding new services`,
+        });
+        let monitoringStatus = true;
+        if (service === "sagemaker" && sageMakerMonitoring !== undefined) {
+          monitoringStatus = sageMakerMonitoring;
+        } else if (service === "connect" && connectMonitoring !== undefined) {
+          monitoringStatus = connectMonitoring;
+        }
         await ddb.putItem(serviceTable, {
           ServiceCode: service,
-          Monitored: true,
+          Monitored: monitoringStatus,
         });
       })
     );
@@ -110,27 +138,43 @@ export async function putServiceMonitoringStatus(
       })
     );
   }
+  // Update Monitoring status for SageMaker and Connect services
+  if (sageMakerMonitoring !== undefined) {
+    await ddb.putItem(serviceTable, {
+      ServiceCode: "sagemaker",
+      Monitored: sageMakerMonitoring,
+    });
+    logger.info({
+      label: `${MODULE_NAME}/putServiceMonitoringStatus`,
+      message: `Updated SageMaker monitoring status: ${sageMakerMonitoring}`,
+    });
+  }
+  if (connectMonitoring !== undefined) {
+    await ddb.putItem(serviceTable, {
+      ServiceCode: "connect",
+      Monitored: connectMonitoring,
+    });
+    logger.info({
+      label: `${MODULE_NAME}/putServiceMonitoringStatus`,
+      message: `Updated Connect monitoring status: ${connectMonitoring}`,
+    });
+  }
 }
 
 /**
  * @description performs get on service table to retrieve monitoring status
  * @param {string} serviceTable - dynamodb table name for service table
  */
-export async function getServiceMonitoringStatus(
-  serviceTable: string = <string>process.env.SQ_SERVICE_TABLE
-) {
+export async function getServiceMonitoringStatus(serviceTable: string = <string>process.env.SQ_SERVICE_TABLE) {
   const ddb = new DynamoDBHelper();
   const statusItems: IServiceTableItem[] = [];
   const sq = new ServiceQuotasHelper();
   const serviceCodes = await sq.getServiceCodes();
   await Promise.allSettled(
     serviceCodes.map(async (service) => {
-      const getItemResponse = <IServiceTableItem>await ddb.getItem(
-        serviceTable,
-        {
-          ServiceCode: service,
-        }
-      );
+      const getItemResponse = <IServiceTableItem>await ddb.getItem(serviceTable, {
+        ServiceCode: service,
+      });
       if (getItemResponse) statusItems.push(getItemResponse);
     })
   );
@@ -144,32 +188,25 @@ export async function getServiceMonitoringStatus(
  */
 export function readDynamoDBStreamEvent(event: Record<string, any>) {
   if (LambdaTriggers.isDynamoDBStreamEvent(event) && event.Records.length > 1)
-    throw new IncorrectConfigurationException(
-      "batch size more than 1 not supported"
-    );
+    throw new IncorrectConfigurationException("batch size more than 1 not supported");
   const streamRecord = event.Records[0];
   // service monitoring turned ON
   if (
     streamRecord.eventName == "INSERT" &&
     streamRecord.dynamodb?.NewImage?.ServiceCode?.S &&
-    streamRecord.dynamodb?.NewImage?.Monitored?.BOOL
+    "BOOL" in streamRecord.dynamodb?.NewImage?.Monitored
   )
     return <OperationType>"INSERT";
   // service monitoring toggled
   if (
     streamRecord.eventName == "MODIFY" &&
-    streamRecord.dynamodb?.NewImage?.Monitored?.BOOL !=
-      streamRecord.dynamodb?.OldImage?.Monitored?.BOOL
+    streamRecord.dynamodb?.NewImage?.Monitored?.BOOL != streamRecord.dynamodb?.OldImage?.Monitored?.BOOL
   )
     return <OperationType>"MODIFY";
   // service monitoring turned OFF
-  if (
-    streamRecord.eventName == "REMOVE" &&
-    streamRecord.dynamodb?.OldImage?.ServiceCode?.S
-  )
+  if (streamRecord.eventName == "REMOVE" && streamRecord.dynamodb?.OldImage?.ServiceCode?.S)
     return <OperationType>"REMOVE";
-  else
-    throw new IncorrectConfigurationException("incorrect stream record format");
+  else throw new IncorrectConfigurationException("incorrect stream record format");
 }
 
 /**
@@ -189,10 +226,7 @@ export async function putQuotasForService(serviceCode: string) {
 async function _getQuotasWithUtilizationMetrics(serviceCode: string) {
   const sq = new ServiceQuotasHelper();
   const quotas = (await sq.getQuotaList(serviceCode)) || [];
-  const quotasWithMetric = await sq.getQuotasWithUtilizationMetrics(
-    quotas,
-    serviceCode
-  );
+  const quotasWithMetric = await sq.getQuotasWithUtilizationMetrics(quotas, serviceCode);
   return quotasWithMetric;
 }
 
@@ -223,9 +257,7 @@ async function _putMonitoredQuotas(quotas: ServiceQuota[], table: string) {
       } else {
         logger.warn({
           label: `${MODULE_NAME}/_putMonitoredQuotas`,
-          message: `Some items were not processed: ${JSON.stringify(
-            result.UnprocessedItems
-          )}`,
+          message: `Some items were not processed: ${JSON.stringify(result.UnprocessedItems)}`,
         });
       }
     } catch (error) {
@@ -243,13 +275,8 @@ async function _putMonitoredQuotas(quotas: ServiceQuota[], table: string) {
  */
 export async function deleteQuotasForService(serviceCode: string) {
   const ddb = new DynamoDBHelper();
-  const quotaItems = await ddb.queryQuotasForService(
-    <string>process.env.SQ_QUOTA_TABLE,
-    serviceCode
-  );
-  const deleteRequestChunks = _getChunkedDeleteQuotasRequests(
-    <ServiceQuota[]>quotaItems
-  );
+  const quotaItems = await ddb.queryQuotasForService(<string>process.env.SQ_QUOTA_TABLE, serviceCode);
+  const deleteRequestChunks = _getChunkedDeleteQuotasRequests(<ServiceQuota[]>quotaItems);
   await Promise.allSettled(
     deleteRequestChunks.map(async (chunk) => {
       await ddb.batchDelete(<string>process.env.SQ_QUOTA_TABLE, chunk);
@@ -284,25 +311,19 @@ export async function handleDynamoDBStreamEvent(event: Record<string, any>) {
   const _record = <_Record>event.Records[0];
   switch (readDynamoDBStreamEvent(event)) {
     case "INSERT": {
-      await putQuotasForService(
-        <string>_record.dynamodb?.NewImage?.ServiceCode.S
-      );
+      if (_record.dynamodb?.NewImage?.Monitored?.BOOL === true) {
+        await putQuotasForService(<string>_record.dynamodb?.NewImage?.ServiceCode.S);
+      }
       break;
     }
     case "MODIFY": {
-      await deleteQuotasForService(
-        <string>_record.dynamodb?.NewImage?.ServiceCode.S
-      );
+      await deleteQuotasForService(<string>_record.dynamodb?.NewImage?.ServiceCode.S);
       if (_record.dynamodb?.NewImage?.Monitored?.BOOL)
-        await putQuotasForService(
-          <string>_record.dynamodb?.NewImage?.ServiceCode.S
-        );
+        await putQuotasForService(<string>_record.dynamodb?.NewImage?.ServiceCode.S);
       break;
     }
     case "REMOVE": {
-      await deleteQuotasForService(
-        <string>_record.dynamodb?.OldImage?.ServiceCode.S
-      );
+      await deleteQuotasForService(<string>_record.dynamodb?.OldImage?.ServiceCode.S);
       break;
     }
   }

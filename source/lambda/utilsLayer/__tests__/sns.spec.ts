@@ -4,11 +4,8 @@
 import { mockClient } from "aws-sdk-client-mock";
 import "aws-sdk-client-mock-jest";
 
-import { SNSHelper} from "../lib";
-import {
-  PublishCommand,
-  SNSClient
-} from "@aws-sdk/client-sns";
+import { SNSHelper } from "../lib";
+import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
 
 describe("SNSHelper", () => {
   const snsMock = mockClient(SNSClient);

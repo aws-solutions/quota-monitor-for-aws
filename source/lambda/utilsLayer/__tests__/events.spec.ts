@@ -55,16 +55,8 @@ describe("Event Helper", () => {
       }),
     };
 
-    await eventsHelper.createEventBusPolicy(
-      [principalOrg],
-      orgId,
-      eventBusArn,
-      eventBusName
-    );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
+    await eventsHelper.createEventBusPolicy([principalOrg], orgId, eventBusArn, eventBusName);
+    expect(eventsClient).toHaveReceivedCommandWith(PutPermissionCommand, expectedCommand);
   });
 
   it("should create a resource based policy for an ou", async () => {
@@ -90,16 +82,8 @@ describe("Event Helper", () => {
       }),
     };
 
-    await eventsHelper.createEventBusPolicy(
-      [principalOU],
-      orgId,
-      eventBusArn,
-      eventBusName
-    );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
+    await eventsHelper.createEventBusPolicy([principalOU], orgId, eventBusArn, eventBusName);
+    expect(eventsClient).toHaveReceivedCommandWith(PutPermissionCommand, expectedCommand);
   });
 
   it("should create a resource based policy for multiple ous", async () => {
@@ -117,10 +101,7 @@ describe("Event Helper", () => {
             Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
             Condition: {
               "ForAnyValue:StringLike": {
-                "aws:PrincipalOrgPaths": [
-                  orgId + "/*/" + principalOU + "/*",
-                  orgId + "/*/" + principalOU2 + "/*",
-                ],
+                "aws:PrincipalOrgPaths": [orgId + "/*/" + principalOU + "/*", orgId + "/*/" + principalOU2 + "/*"],
               },
             },
           },
@@ -128,16 +109,8 @@ describe("Event Helper", () => {
       }),
     };
 
-    await eventsHelper.createEventBusPolicy(
-      [principalOU, principalOU2],
-      orgId,
-      eventBusArn,
-      eventBusName
-    );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
+    await eventsHelper.createEventBusPolicy([principalOU, principalOU2], orgId, eventBusArn, eventBusName);
+    expect(eventsClient).toHaveReceivedCommandWith(PutPermissionCommand, expectedCommand);
   });
 
   it("should create a resource based policy for an account", async () => {
@@ -160,16 +133,8 @@ describe("Event Helper", () => {
       }),
     };
 
-    await eventsHelper.createEventBusPolicy(
-      [principalAccount],
-      orgId,
-      eventBusArn,
-      eventBusName
-    );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
+    await eventsHelper.createEventBusPolicy([principalAccount], orgId, eventBusArn, eventBusName);
+    expect(eventsClient).toHaveReceivedCommandWith(PutPermissionCommand, expectedCommand);
   });
 
   it("should create a resource based policy for multiple accounts", async () => {
@@ -192,16 +157,8 @@ describe("Event Helper", () => {
       }),
     };
 
-    await eventsHelper.createEventBusPolicy(
-      [principalAccount, principalAccount2],
-      orgId,
-      eventBusArn,
-      eventBusName
-    );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
+    await eventsHelper.createEventBusPolicy([principalAccount, principalAccount2], orgId, eventBusArn, eventBusName);
+    expect(eventsClient).toHaveReceivedCommandWith(PutPermissionCommand, expectedCommand);
   });
 
   it("should create a resource based policy for multiple ous and accounts", async () => {
@@ -219,10 +176,7 @@ describe("Event Helper", () => {
             Resource: "arn:aws:events:us-east-1:000000000000:event-bus/MyBus",
             Condition: {
               "ForAnyValue:StringLike": {
-                "aws:PrincipalOrgPaths": [
-                  orgId + "/*/" + principalOU + "/*",
-                  orgId + "/*/" + principalOU2 + "/*",
-                ],
+                "aws:PrincipalOrgPaths": [orgId + "/*/" + principalOU + "/*", orgId + "/*/" + principalOU2 + "/*"],
               },
             },
           },
@@ -245,10 +199,7 @@ describe("Event Helper", () => {
       eventBusArn,
       eventBusName
     );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
+    expect(eventsClient).toHaveReceivedCommandWith(PutPermissionCommand, expectedCommand);
   });
 
   it("should create a resource based policy for org and accounts", async () => {
@@ -289,10 +240,7 @@ describe("Event Helper", () => {
       eventBusArn,
       eventBusName
     );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      PutPermissionCommand,
-      expectedCommand
-    );
+    expect(eventsClient).toHaveReceivedCommandWith(PutPermissionCommand, expectedCommand);
   });
 
   it("should try to remove existing policy for empty/invalid inputs", async () => {
@@ -303,17 +251,12 @@ describe("Event Helper", () => {
     };
 
     await eventsHelper.createEventBusPolicy(
-      [principalOrg, principalAccount, principalAccount2].map(
-        (s) => "INVALID_" + s
-      ),
+      [principalOrg, principalAccount, principalAccount2].map((s) => "INVALID_" + s),
       orgId,
       eventBusArn,
       eventBusName
     );
-    expect(eventsClient).toHaveReceivedCommandWith(
-      RemovePermissionCommand,
-      expectedRemoveCommand
-    );
+    expect(eventsClient).toHaveReceivedCommandWith(RemovePermissionCommand, expectedRemoveCommand);
   });
 
   it("should throw an exception if PutPermissionCommand fails", async () => {
@@ -326,12 +269,7 @@ describe("Event Helper", () => {
     );
 
     const testCase = async () => {
-      await eventsHelper.createEventBusPolicy(
-        [principalOrg],
-        orgId,
-        eventBusArn,
-        eventBusName
-      );
+      await eventsHelper.createEventBusPolicy([principalOrg], orgId, eventBusArn, eventBusName);
     };
 
     await expect(testCase).rejects.toThrow(CloudWatchEventsServiceException);

@@ -65,17 +65,8 @@ describe("tarefresh", () => {
     process.env.AWS_SERVICES = "AutoScaling,CloudFormation";
     handler(mockEvent);
 
-    expect(refreshTrustedAdvisorCheckMock).toHaveBeenNthCalledWith(
-      1,
-      serviceIds[0]
-    );
-    expect(refreshTrustedAdvisorCheckMock).toHaveBeenNthCalledWith(
-      2,
-      serviceIds[1]
-    );
-    expect(refreshTrustedAdvisorCheckMock).toHaveBeenNthCalledWith(
-      3,
-      serviceIds[2]
-    );
+    expect(refreshTrustedAdvisorCheckMock).toHaveBeenNthCalledWith(1, serviceIds[0]);
+    expect(refreshTrustedAdvisorCheckMock).toHaveBeenNthCalledWith(2, serviceIds[1]);
+    expect(refreshTrustedAdvisorCheckMock).toHaveBeenNthCalledWith(3, serviceIds[2]);
   });
 });

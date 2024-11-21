@@ -176,9 +176,7 @@ describe("PreReqManager", function () {
     });
 
     it("should throw an exception if it fails to register the delegated admin due to a service failure", async () => {
-      registerDelegatedAdministratorMock.mockRejectedValueOnce(
-        new IncorrectConfigurationException("error")
-      );
+      registerDelegatedAdministratorMock.mockRejectedValueOnce(new IncorrectConfigurationException("error"));
       const testCase = async () => {
         await preReqManager.registerDelegatedAdministrator(MASTER_ACCOUNT_ID);
       };
@@ -186,9 +184,7 @@ describe("PreReqManager", function () {
     });
 
     it("should throw an exception if it fails to check org details due to a service failure", async () => {
-      getOrgDetailsMock.mockRejectedValueOnce(
-        new IncorrectConfigurationException("error")
-      );
+      getOrgDetailsMock.mockRejectedValueOnce(new IncorrectConfigurationException("error"));
       const testCase = async () => {
         await preReqManager.throwIfOrgMisconfigured();
       };

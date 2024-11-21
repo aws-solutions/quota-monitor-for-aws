@@ -12,10 +12,7 @@ import {
 import { catchDecorator } from "./catch";
 import { ServiceHelper } from "./exports";
 import { logger } from "./logger";
-import {
-  StackSetOperationPreferences,
-  Parameter,
-} from "@aws-sdk/client-cloudformation/dist-types/models/models_0";
+import { StackSetOperationPreferences, Parameter } from "@aws-sdk/client-cloudformation/dist-types/models/models_0";
 import { IncorrectConfigurationException } from "./error";
 
 export interface StackSetOpsPercentagePrefs {
@@ -30,22 +27,17 @@ export const defaultOpsPercentagePrefs: StackSetOpsPercentagePrefs = {
   FailureTolerancePercentage: 0,
 };
 
-function validateStackSetOpsPercentagePrefs(
-  opsPrefs: StackSetOpsPercentagePrefs
-) {
+function validateStackSetOpsPercentagePrefs(opsPrefs: StackSetOpsPercentagePrefs) {
   if (
-    ![
-      <string>RegionConcurrencyType.PARALLEL,
-      <string>RegionConcurrencyType.SEQUENTIAL,
-    ].includes(<string>opsPrefs.RegionConcurrencyType) ||
-    <number>opsPrefs.MaxConcurrentPercentage < 1 ||
-    <number>opsPrefs.MaxConcurrentPercentage > 100 ||
-    <number>opsPrefs.FailureTolerancePercentage < 0 ||
-    <number>opsPrefs.FailureTolerancePercentage > 100
+    ![<string>RegionConcurrencyType.PARALLEL, <string>RegionConcurrencyType.SEQUENTIAL].includes(
+      opsPrefs.RegionConcurrencyType
+    ) ||
+    opsPrefs.MaxConcurrentPercentage < 1 ||
+    opsPrefs.MaxConcurrentPercentage > 100 ||
+    opsPrefs.FailureTolerancePercentage < 0 ||
+    opsPrefs.FailureTolerancePercentage > 100
   )
-    throw new IncorrectConfigurationException(
-      "Invalid StackSetOperationPreferences"
-    );
+    throw new IncorrectConfigurationException("Invalid StackSetOperationPreferences");
 }
 
 /**
@@ -110,11 +102,7 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
       })
     );
     //remove duplicates coming from different OUs
-    return Array.from(
-      new Set(
-        <string[]>result?.Summaries?.map((summary) => summary.Region)
-      ).values()
-    );
+    return Array.from(new Set(<string[]>result?.Summaries?.map((summary) => summary.Region)).values());
   }
 
   /**
@@ -131,18 +119,14 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
     validateStackSetOpsPercentagePrefs(opsPrefs);
     logger.debug({
       label: this.moduleName,
-      message: `creating stackset instances for ${
-        this.stackSetName
-      }; regions: ${JSON.stringify(regions)}; targets :${JSON.stringify(
-        target
-      )}`,
+      message: `creating stackset instances for ${this.stackSetName}; regions: ${JSON.stringify(
+        regions
+      )}; targets :${JSON.stringify(target)}`,
     });
     if (target.length === 0 || regions.length === 0) {
       logger.debug({
         label: this.moduleName,
-        message: `creating stackset instances aborted because ${
-          target.length === 0 ? "targets" : "regions"
-        } is empty`,
+        message: `creating stackset instances aborted because ${target.length === 0 ? "targets" : "regions"} is empty`,
       });
       return;
     }
@@ -171,18 +155,14 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
     validateStackSetOpsPercentagePrefs(opsPrefs);
     logger.debug({
       label: this.moduleName,
-      message: `deleting stackset instances for ${
-        this.stackSetName
-      }; regions: ${JSON.stringify(regions)}; targets :${JSON.stringify(
-        target
-      )}`,
+      message: `deleting stackset instances for ${this.stackSetName}; regions: ${JSON.stringify(
+        regions
+      )}; targets :${JSON.stringify(target)}`,
     });
     if (target.length === 0 || regions.length === 0) {
       logger.debug({
         label: this.moduleName,
-        message: `deleting stackset instances aborted because ${
-          target.length === 0 ? "targets" : "regions"
-        } is empty`,
+        message: `deleting stackset instances aborted because ${target.length === 0 ? "targets" : "regions"} is empty`,
       });
       return;
     }

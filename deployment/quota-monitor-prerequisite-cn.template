@@ -1,0 +1,1050 @@
+{
+  "Description": "(SO0005-PreReq) - quota-monitor-for-aws - Prerequisite Template. Version v6.3.0",
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "Pre-Requisite Configuration"
+          },
+          "Parameters": [
+            "MonitoringAccountId"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "MonitoringAccountId": {
+          "default": "Quota Monitor Monitoring Account"
+        }
+      }
+    }
+  },
+  "Parameters": {
+    "MonitoringAccountId": {
+      "Type": "String",
+      "AllowedPattern": "^[0-9]{1}\\d{11}$",
+      "Description": "AWS Account Id for the monitoring account"
+    }
+  },
+  "Mappings": {
+    "QuotaMonitorMap": {
+      "Metrics": {
+        "SendAnonymizedData": "Yes",
+        "MetricsEndpoint": "https://metrics.awssolutionsbuilder.com/generic"
+      }
+    }
+  },
+  "Resources": {
+    "QMUtilsLayerQMUtilsLayerLayer80D5D993": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Properties": {
+        "CompatibleRuntimes": [
+          "nodejs18.x"
+        ],
+        "Content": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip"
+        },
+        "LayerName": "QM-UtilsLayer"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-UtilsLayer/QM-UtilsLayer-Layer/Resource",
+        "aws:asset:path": "asset.e8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Content"
+      }
+    },
+    "QMHelperQMHelperFunctionServiceRole0506622D": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/QM-Helper-Function/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperFunction91954E97": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assetf4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip"
+        },
+        "Description": "SO0005 quota-monitor-for-aws - QM-Helper-Function",
+        "Environment": {
+          "Variables": {
+            "METRICS_ENDPOINT": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "MetricsEndpoint"
+              ]
+            },
+            "SEND_METRIC": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "SendAnonymizedData"
+              ]
+            },
+            "QM_STACK_ID": "quota-monitor-prerequisite-cn",
+            "LOG_LEVEL": "info",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
+            "SOLUTION_ID": "SO0005"
+          }
+        },
+        "Handler": "index.handler",
+        "Layers": [
+          {
+            "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
+          }
+        ],
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperFunctionServiceRole0506622D",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 5
+      },
+      "DependsOn": [
+        "QMHelperQMHelperFunctionServiceRole0506622D"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/QM-Helper-Function/Resource",
+        "aws:asset:path": "asset.f4ee0c3d949f011b3f0f60d231fdacecab71c5f3ccf9674352231cedf831f6cd.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperFunctionEventInvokeConfig580F9F5F": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMHelperQMHelperFunction91954E97"
+        },
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/QM-Helper-Function/EventInvokeConfig/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/QM-Helper-Provider/framework-onEvent/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperProviderframeworkonEventServiceRoleDefaultPolicy86C1FCC1": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "QMHelperQMHelperFunction91954E97",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "QMHelperQMHelperFunction91954E97",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMHelperQMHelperProviderframeworkonEventServiceRoleDefaultPolicy86C1FCC1",
+        "Roles": [
+          {
+            "Ref": "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/QM-Helper-Provider/framework-onEvent/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMHelperQMHelperProviderframeworkonEventB1DF6D3F": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+        },
+        "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-prerequisite-cn/QM-Helper/QM-Helper-Provider)",
+        "Environment": {
+          "Variables": {
+            "USER_ON_EVENT_FUNCTION_ARN": {
+              "Fn::GetAtt": [
+                "QMHelperQMHelperFunction91954E97",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "Handler": "framework.onEvent",
+        "Role": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 900
+      },
+      "DependsOn": [
+        "QMHelperQMHelperProviderframeworkonEventServiceRoleDefaultPolicy86C1FCC1",
+        "QMHelperQMHelperProviderframeworkonEventServiceRole4A1EBBAB"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/QM-Helper-Provider/framework-onEvent/Resource",
+        "aws:asset:path": "asset.7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMHelperCreateUUIDE0D423E6": {
+      "Type": "Custom::CreateUUID",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperProviderframeworkonEventB1DF6D3F",
+            "Arn"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/CreateUUID/Default"
+      }
+    },
+    "QMHelperLaunchData6F23B2C3": {
+      "Type": "Custom::LaunchData",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "QMHelperQMHelperProviderframeworkonEventB1DF6D3F",
+            "Arn"
+          ]
+        },
+        "SOLUTION_UUID": {
+          "Fn::GetAtt": [
+            "QMHelperCreateUUIDE0D423E6",
+            "UUID"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-Helper/LaunchData/Default"
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerFunctionServiceRole8AAB636E": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Function/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "Actions restricted on kms key ARN. Only actions that do not support resource-level permissions have * in resource",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            },
+            {
+              "reason": "Actions do not support resource-level permissions",
+              "id": "AwsSolutions-IAM5"
+            }
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerFunctionServiceRoleDefaultPolicy2A680D95": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "organizations:EnableAWSServiceAccess",
+                "organizations:DescribeOrganization",
+                "organizations:RegisterDelegatedAdministrator"
+              ],
+              "Effect": "Allow",
+              "Resource": "*",
+              "Sid": "QMPreReqWrite"
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMPreReqManagerQMPreReqManagerFunctionServiceRoleDefaultPolicy2A680D95",
+        "Roles": [
+          {
+            "Ref": "QMPreReqManagerQMPreReqManagerFunctionServiceRole8AAB636E"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Function/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "Actions do not support resource-level permissions",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerFunction1DC63BE9": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete3fd9e117d4b88891e0a84a7e27b4d4a52637e08ba8620125cbae56a0fa5b5b5.zip"
+        },
+        "Description": "SO0005 quota-monitor-for-aws - QM-PreReqManager-Function",
+        "Environment": {
+          "Variables": {
+            "METRICS_ENDPOINT": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "MetricsEndpoint"
+              ]
+            },
+            "SEND_METRIC": {
+              "Fn::FindInMap": [
+                "QuotaMonitorMap",
+                "Metrics",
+                "SendAnonymizedData"
+              ]
+            },
+            "LOG_LEVEL": "info",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
+            "SOLUTION_ID": "SO0005"
+          }
+        },
+        "Handler": "index.handler",
+        "Layers": [
+          {
+            "Ref": "QMUtilsLayerQMUtilsLayerLayer80D5D993"
+          }
+        ],
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "QMPreReqManagerQMPreReqManagerFunctionServiceRole8AAB636E",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 5
+      },
+      "DependsOn": [
+        "QMPreReqManagerQMPreReqManagerFunctionServiceRoleDefaultPolicy2A680D95",
+        "QMPreReqManagerQMPreReqManagerFunctionServiceRole8AAB636E"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Function/Resource",
+        "aws:asset:path": "asset.e3fd9e117d4b88891e0a84a7e27b4d4a52637e08ba8620125cbae56a0fa5b5b5.zip",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerFunctionEventInvokeConfig83FEE4E4": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "QMPreReqManagerQMPreReqManagerFunction1DC63BE9"
+        },
+        "MaximumEventAgeInSeconds": 14400,
+        "Qualifier": "$LATEST"
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Function/EventInvokeConfig/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRole15413DEC": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+              ]
+            ]
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Provider/framework-onEvent/ServiceRole/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRoleDefaultPolicy58FD5499": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "QMPreReqManagerQMPreReqManagerFunction1DC63BE9",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "QMPreReqManagerQMPreReqManagerFunction1DC63BE9",
+                          "Arn"
+                        ]
+                      },
+                      ":*"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRoleDefaultPolicy58FD5499",
+        "Roles": [
+          {
+            "Ref": "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRole15413DEC"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Provider/framework-onEvent/ServiceRole/DefaultPolicy/Resource",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerQMPreReqManagerProviderframeworkonEvent898B02B6": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "solutions-${AWS::Region}"
+          },
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+        },
+        "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Provider)",
+        "Environment": {
+          "Variables": {
+            "USER_ON_EVENT_FUNCTION_ARN": {
+              "Fn::GetAtt": [
+                "QMPreReqManagerQMPreReqManagerFunction1DC63BE9",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "Handler": "framework.onEvent",
+        "Role": {
+          "Fn::GetAtt": [
+            "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRole15413DEC",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs18.x",
+        "Timeout": 900
+      },
+      "DependsOn": [
+        "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRoleDefaultPolicy58FD5499",
+        "QMPreReqManagerQMPreReqManagerProviderframeworkonEventServiceRole15413DEC"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/QM-PreReqManager-Provider/framework-onEvent/Resource",
+        "aws:asset:path": "asset.7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94",
+        "aws:asset:is-bundled": false,
+        "aws:asset:property": "Code",
+        "cdk_nag": {
+          "rules_to_suppress": [
+            {
+              "reason": "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+              "id": "AwsSolutions-IAM4"
+            },
+            {
+              "reason": "IAM policy is appropriated scoped, ARN is provided in policy resource, false warning",
+              "id": "AwsSolutions-IAM5"
+            },
+            {
+              "reason": "Lambda function created by Provider L2 construct uses nodejs 14, risk is tolerable",
+              "id": "AwsSolutions-L1"
+            }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
+        }
+      }
+    },
+    "QMPreReqManagerPreReqManagerCRB1E370C2": {
+      "Type": "Custom::PreReqManagerCR",
+      "Properties": {
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "QMPreReqManagerQMPreReqManagerProviderframeworkonEvent898B02B6",
+            "Arn"
+          ]
+        },
+        "QMMonitoringAccountId": {
+          "Ref": "MonitoringAccountId"
+        },
+        "AccountId": {
+          "Ref": "AWS::AccountId"
+        },
+        "Region": {
+          "Ref": "AWS::Region"
+        },
+        "SolutionUuid": {
+          "Fn::GetAtt": [
+            "QMHelperCreateUUIDE0D423E6",
+            "UUID"
+          ]
+        }
+      },
+      "UpdateReplacePolicy": "Delete",
+      "DeletionPolicy": "Delete",
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/QM-PreReqManager/PreReqManagerCR/Default"
+      }
+    },
+    "CDKMetadata": {
+      "Type": "AWS::CDK::Metadata",
+      "Properties": {
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/2VP0WrDMBD7lr47tyaD7XktKww2FjLYa7g613BNbAefnVFC/n1xVsrGniRZOiMVkOePsN3gl2S66bKejzB9BNSd2p9siR4NBfJJvOEwsG3VEq2nHs2xQZhe8UL+k7ywsyn0Rx+i1eFq3PjzSDa82NF1tHf2xG1y/z3OSu5rFKEg8JRg0bCLuqOwQyHFaGCqXE/pesXS9awva+uVzbNaD5cxbapdkbjoNSkdJThT+6sWKL0buUkjV+cWTD//4u8xDDEktlRsOI2ZlXUNwVnuxvwBii0Um7MwZz7awIag+sFvZeuSSWUBAAA="
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-prerequisite-cn/CDKMetadata/Default"
+      },
+      "Condition": "CDKMetadataAvailable"
+    }
+  },
+  "Outputs": {
+    "UUID": {
+      "Description": "UUID for deployment",
+      "Value": {
+        "Fn::GetAtt": [
+          "QMHelperCreateUUIDE0D423E6",
+          "UUID"
+        ]
+      }
+    }
+  },
+  "Conditions": {
+    "CDKMetadataAvailable": {
+      "Fn::Or": [
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "af-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-northeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ap-southeast-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "ca-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "cn-northwest-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-north-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "eu-west-3"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "il-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-central-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "me-south-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "sa-east-1"
+              ]
+            }
+          ]
+        },
+        {
+          "Fn::Or": [
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-east-2"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-1"
+              ]
+            },
+            {
+              "Fn::Equals": [
+                {
+                  "Ref": "AWS::Region"
+                },
+                "us-west-2"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -2,10 +2,10 @@
 #
 # This script packages your project into a solution distributable that can be
 # used as an input to the solution builder validation pipeline.
-# 
+#
 # This script will perform the following tasks:
 #   1. Remove any old dist files from previous runs.
-#   2. Install dependencies for the cdk-solution-helper; responsible for 
+#   2. Install dependencies for the cdk-solution-helper; responsible for
 #      converting standard 'cdk synth' output into solution assets.
 #   3. Build and synthesize your CDK project.
 #   4. Run the cdk-solution-helper on template outputs and organize
@@ -42,9 +42,6 @@ staging_dist_dir="$template_dir/staging"
 template_dist_dir="$template_dir/global-s3-assets"
 build_dist_dir="$template_dir/regional-s3-assets"
 source_dir="$template_dir/../source"
-lambda_services_dir="$source_dir/lambda/services"
-lambda_utils_dir="$source_dir/lambda/utilsLayer"
-cdk_dir="$source_dir/resources"
 
 
 headline "[Init] Clean old folders"
@@ -72,7 +69,7 @@ cp $staging_dist_dir/*.template.json $template_dist_dir/
 rm *.template.json
 
 # Rename all *.template.json files to *.template
-for f in $template_dist_dir/*.template.json; do 
+for f in $template_dist_dir/*.template.json; do
     mv -- "$f" "${f%.template.json}.template"
 done
 
@@ -118,13 +115,14 @@ find $staging_dist_dir -iname "node_modules" -type d -exec rm -rf "{}" \; 2> /de
 
 # ... For each asset.* source code artifact in the temporary /staging folder...
 cd $staging_dist_dir
+# shellcheck disable=SC2044
 for i in `find . -mindepth 1 -maxdepth 1 -type f \( -iname "*.zip" \) -or -type d`; do
 
     # Rename the artifact, removing the period for handler compatibility
-    pfname="$(basename -- $i)" 
+    pfname="$(basename -- $i)"
     fname="$(echo $pfname | sed -e 's/\.//')"
     mv $i $fname
-    
+
     if [[ $fname != *".zip" ]]
     then
         # Zip the artifact
@@ -132,12 +130,12 @@ for i in `find . -mindepth 1 -maxdepth 1 -type f \( -iname "*.zip" \) -or -type 
         zip -rj $fname.zip $fname
     fi
 
-# ... repeat until all source code artifacts are zipped      
+# ... repeat until all source code artifacts are zipped
 done
 
 cp -R *.zip $build_dist_dir
 
-# the spoke templates need to be in a regional S3 bucket for GovCloud regions
+# the spoke templates need to be in a regional S3 bucket for GovCloud and China regions
 # copy all templates to regional assets folder (less brittle against refactoring ...)
 cp $template_dist_dir/* $build_dist_dir
 

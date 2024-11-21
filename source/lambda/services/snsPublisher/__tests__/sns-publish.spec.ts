@@ -64,6 +64,23 @@ describe("SNS publisher", function () {
     expect(snsPublishMock).toHaveBeenCalledTimes(1);
   });
 
+  it("should call sns publisher with pretty-printed JSON", async () => {
+    getSSMParameterMock.mockResolvedValue(["NOP"]);
+    await handler(sampleEvent);
+    expect(snsPublishMock).toHaveBeenCalledTimes(1);
+
+    const publishArgs = snsPublishMock.mock.calls[0];
+    expect(publishArgs).toHaveLength(2);
+    expect(typeof publishArgs[1]).toBe("string");
+    expect(publishArgs[1]).toContain('{\n  "version": "0"');
+
+    const publishedMessage = publishArgs[1];
+    expect(publishedMessage).toMatch(/^{/);
+    expect(publishedMessage).toMatch(/}$/);
+    expect(publishedMessage.split("\n").length).toBeGreaterThan(5);
+    expect(JSON.parse(publishedMessage)).toEqual(sampleEvent);
+  });
+
   it("should publish the message successfully if service isn't muted", async () => {
     getSSMParameterMock.mockResolvedValue(["NOP"]);
     await handler(sampleEvent);
@@ -150,6 +167,4 @@ describe("SNS publisher", function () {
     expect(snsPublishMock).toHaveBeenCalledTimes(1);
     expect(getSSMParameterMock).toHaveBeenCalledTimes(1);
   });
-
-
 });

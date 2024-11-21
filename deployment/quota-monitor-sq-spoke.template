@@ -1,5 +1,5 @@
 {
-  "Description": "(SO0005-SQ) - quota-monitor-for-aws - Service Quotas Template. Version v6.2.11",
+  "Description": "(SO0005-SQ) - quota-monitor-for-aws - Service Quotas Template. Version v6.3.0",
   "AWSTemplateFormatVersion": "2010-09-09",
   "Metadata": {
     "AWS::CloudFormation::Interface": {
@@ -9,7 +9,8 @@
             "default": "Monitoring Account Configuration"
           },
           "Parameters": [
-            "EventBusArn"
+            "EventBusArn",
+            "SpokeSnsRegion"
           ]
         },
         {
@@ -19,13 +20,18 @@
           "Parameters": [
             "NotificationThreshold",
             "MonitoringFrequency",
-            "ReportOKNotifications"
+            "ReportOKNotifications",
+            "SageMakerMonitoring",
+            "ConnectMonitoring"
           ]
         }
       ],
       "ParameterLabels": {
         "EventBusArn": {
           "default": "Arn for the EventBridge bus in the monitoring account"
+        },
+        "SpokeSnsRegion": {
+          "default": "Region in which the spoke SNS stack exists in this account"
         },
         "NotificationThreshold": {
           "default": "At what quota utilization do you want notifications?"
@@ -35,6 +41,12 @@
         },
         "ReportOKNotifications": {
           "default": "Report OK Notifications"
+        },
+        "SageMakerMonitoring": {
+          "default": "Enable monitoring for SageMaker quotas"
+        },
+        "ConnectMonitoring": {
+          "default": "Enable monitoring for Connect quotas"
         }
       }
     }
@@ -43,21 +55,25 @@
     "EventBusArn": {
       "Type": "String"
     },
+    "SpokeSnsRegion": {
+      "Type": "String",
+      "Default": "",
+      "Description": "The region in which the spoke SNS stack exists in this account. Leave blank if the spoke SNS is not needed."
+    },
     "NotificationThreshold": {
       "Type": "String",
       "Default": "80",
-      "AllowedValues": [
-        "60",
-        "70",
-        "80"
-      ]
+      "AllowedPattern": "^([1-9]|[1-9][0-9])$",
+      "ConstraintDescription": "Threshold must be a whole number between 0 and 100",
+      "Description": "Threshold percentage for quota utilization alerts (0-100)"
     },
     "MonitoringFrequency": {
       "Type": "String",
       "Default": "rate(12 hours)",
       "AllowedValues": [
         "rate(6 hours)",
-        "rate(12 hours)"
+        "rate(12 hours)",
+        "rate(1 day)"
       ]
     },
     "ReportOKNotifications": {
@@ -66,6 +82,43 @@
       "AllowedValues": [
         "Yes",
         "No"
+      ]
+    },
+    "SageMakerMonitoring": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    },
+    "ConnectMonitoring": {
+      "Type": "String",
+      "Default": "Yes",
+      "AllowedValues": [
+        "Yes",
+        "No"
+      ]
+    }
+  },
+  "Mappings": {
+    "QuotaMonitorMap": {
+      "SSMParameters": {
+        "NotificationMutingConfig": "/QuotaMonitor/spoke/NotificationConfiguration"
+      }
+    }
+  },
+  "Conditions": {
+    "SpokeSnsRegionExists": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "SpokeSnsRegion"
+            },
+            ""
+          ]
+        }
       ]
     }
   },
@@ -89,13 +142,13 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/assete8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip"
         },
         "LayerName": "QM-UtilsLayer-quota-monitor-sq-spoke"
       },
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke/QM-UtilsLayer-quota-monitor-sq-spoke-Layer/Resource",
-        "aws:asset:path": "asset.11e8019ce0550d340c842c1a14bc8797872e01186f9f5b7ba02745ff143d145a.zip",
+        "aws:asset:path": "asset.e8b91b89616aa81e100a9f9ce53981ad5df4ba7439cebca83d5dc68349ed3703.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content"
       }
@@ -129,7 +182,12 @@
       "UpdateReplacePolicy": "Delete",
       "DeletionPolicy": "Delete",
       "Metadata": {
-        "aws:cdk:path": "quota-monitor-sq-spoke/SQ-ServiceTable/Resource"
+        "aws:cdk:path": "quota-monitor-sq-spoke/SQ-ServiceTable/Resource",
+        "guard": {
+          "SuppressedRules": [
+            "DYNAMODB_TABLE_ENCRYPTED_KMS"
+          ]
+        }
       }
     },
     "SQQuotaTableD0BC5741": {
@@ -166,7 +224,12 @@
       "UpdateReplacePolicy": "Delete",
       "DeletionPolicy": "Delete",
       "Metadata": {
-        "aws:cdk:path": "quota-monitor-sq-spoke/SQ-QuotaTable/Resource"
+        "aws:cdk:path": "quota-monitor-sq-spoke/SQ-QuotaTable/Resource",
+        "guard": {
+          "SuppressedRules": [
+            "DYNAMODB_TABLE_ENCRYPTED_KMS"
+          ]
+        }
       }
     },
     "QMListManagerQMListManagerFunctionServiceRole12D19CB7": {
@@ -323,7 +386,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset342732eb7e556ffc25fba169c334315dec6049e2c695bcda829c862c9ac1ebcc.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset3701f2abae7e46f2ca278d27abfbafbf17499950bb5782fed31eb776c07ad072.zip"
         },
         "Description": "SO0005 quota-monitor-for-aws - QM-ListManager-Function",
         "Environment": {
@@ -337,8 +400,8 @@
             "PARTITION_KEY": "ServiceCode",
             "SORT": "QuotaCode",
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -364,7 +427,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-ListManager/QM-ListManager-Function/Resource",
-        "aws:asset:path": "asset.342732eb7e556ffc25fba169c334315dec6049e2c695bcda829c862c9ac1ebcc.zip",
+        "aws:asset:path": "asset.3701f2abae7e46f2ca278d27abfbafbf17499950bb5782fed31eb776c07ad072.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -373,6 +436,14 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK",
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -535,7 +606,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset7382a0addb9f34974a1ea6c6c9b063882af874828f366f5c93b2b7b64db15c94.zip"
         },
         "Description": "AWS CDK resource provider framework - onEvent (quota-monitor-sq-spoke/QM-ListManager/QM-ListManager-Provider)",
         "Environment": {
@@ -582,6 +653,12 @@
               "id": "AwsSolutions-L1"
             }
           ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
+          ]
         }
       }
     },
@@ -594,7 +671,13 @@
             "Arn"
           ]
         },
-        "VERSION": "v6.2.11"
+        "VERSION": "v6.3.0",
+        "SageMakerMonitoring": {
+          "Ref": "SageMakerMonitoring"
+        },
+        "ConnectMonitoring": {
+          "Ref": "ConnectMonitoring"
+        }
       },
       "DependsOn": [
         "QMUtilizationErr3AEC9915",
@@ -894,7 +977,7 @@
           "S3Bucket": {
             "Fn::Sub": "solutions-${AWS::Region}"
           },
-          "S3Key": "quota-monitor-for-aws/v6.2.11/assete3fcc4fd4830a156b44e04bc61dce9ede2885443fb9be7f623e18947f9e92342.zip"
+          "S3Key": "quota-monitor-for-aws/v6.3.0/asset4ae69af36e954d598ae25d7f2f8f5ea5ecb93bf4ba61963aa7d8d571cf71ecce.zip"
         },
         "DeadLetterConfig": {
           "TargetArn": {
@@ -926,8 +1009,8 @@
               "Ref": "ReportOKNotifications"
             },
             "LOG_LEVEL": "info",
-            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.2.11",
-            "VERSION": "v6.2.11",
+            "CUSTOM_SDK_USER_AGENT": "AwsSolution/SO0005/v6.3.0",
+            "VERSION": "v6.3.0",
             "SOLUTION_ID": "SO0005"
           }
         },
@@ -953,7 +1036,7 @@
       ],
       "Metadata": {
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-CWPoller/QM-CWPoller-Lambda/Resource",
-        "aws:asset:path": "asset.e3fcc4fd4830a156b44e04bc61dce9ede2885443fb9be7f623e18947f9e92342.zip",
+        "aws:asset:path": "asset.4ae69af36e954d598ae25d7f2f8f5ea5ecb93bf4ba61963aa7d8d571cf71ecce.zip",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Code",
         "cdk_nag": {
@@ -962,6 +1045,12 @@
               "reason": "GovCloud regions support only up to nodejs 16, risk is tolerable",
               "id": "AwsSolutions-L1"
             }
+          ]
+        },
+        "guard": {
+          "SuppressedRules": [
+            "LAMBDA_INSIDE_VPC",
+            "LAMBDA_CONCURRENCY_CHECK"
           ]
         }
       }
@@ -1260,6 +1349,132 @@
         "aws:cdk:path": "quota-monitor-sq-spoke/QM-Utilization-Err/EventsRole/DefaultPolicy/Resource"
       }
     },
+    "SpokeSnsRule5A40CA85": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "SO0005 quota-monitor-for-aws - quota-monitor-sq-spoke-SpokeSnsEventsRule",
+        "EventBusName": {
+          "Ref": "QMSpokeBus1D13B121"
+        },
+        "EventPattern": {
+          "detail": {
+            "status": [
+              "WARN",
+              "ERROR"
+            ]
+          },
+          "detail-type": [
+            "Trusted Advisor Check Item Refresh Notification",
+            "Service Quotas Utilization Notification"
+          ],
+          "source": [
+            "aws.trustedadvisor",
+            "aws-solutions.quota-monitor"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":events:",
+                  {
+                    "Ref": "SpokeSnsRegion"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":event-bus/QuotaMonitorSnsSpokeBus"
+                ]
+              ]
+            },
+            "Id": "Target0",
+            "RoleArn": {
+              "Fn::GetAtt": [
+                "SpokeSnsRuleEventsRole851D8C25",
+                "Arn"
+              ]
+            }
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-sq-spoke/SpokeSnsRule/Resource"
+      },
+      "Condition": "SpokeSnsRegionExists"
+    },
+    "SpokeSnsRuleEventsRole851D8C25": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "events.amazonaws.com"
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-sq-spoke/SpokeSnsRule/EventsRole/Resource"
+      },
+      "Condition": "SpokeSnsRegionExists"
+    },
+    "SpokeSnsRuleEventsRoleDefaultPolicyC16FF840": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "events:PutEvents",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":events:",
+                    {
+                      "Ref": "SpokeSnsRegion"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":event-bus/QuotaMonitorSnsSpokeBus"
+                  ]
+                ]
+              }
+            }
+          ],
+          "Version": "2012-10-17"
+        },
+        "PolicyName": "SpokeSnsRuleEventsRoleDefaultPolicyC16FF840",
+        "Roles": [
+          {
+            "Ref": "SpokeSnsRuleEventsRole851D8C25"
+          }
+        ]
+      },
+      "Metadata": {
+        "aws:cdk:path": "quota-monitor-sq-spoke/SpokeSnsRule/EventsRole/DefaultPolicy/Resource"
+      },
+      "Condition": "SpokeSnsRegionExists"
+    },
     "SQSpokeAppRegistryApplicationB3787B2B": {
       "Type": "AWS::ServiceCatalogAppRegistry::Application",
       "Properties": {
@@ -1282,7 +1497,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-SQ",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.11"
+          "SolutionVersion": "v6.3.0"
         }
       },
       "Metadata": {
@@ -1295,7 +1510,7 @@
         "Attributes": {
           "solutionID": "SO0005-SQ",
           "solutionName": "quota-monitor-for-aws",
-          "version": "v6.2.11",
+          "version": "v6.3.0",
           "applicationType": "AWS-Solutions"
         },
         "Description": "Attribute group for application information",
@@ -1317,7 +1532,7 @@
           "ApplicationType": "AWS-Solutions",
           "SolutionID": "SO0005-SQ",
           "SolutionName": "quota-monitor-for-aws",
-          "SolutionVersion": "v6.2.11"
+          "SolutionVersion": "v6.3.0"
         }
       },
       "Metadata": {

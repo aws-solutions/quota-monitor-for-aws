@@ -1,11 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  IncorrectConfigurationException,
-  logger,
-  OrganizationsHelper,
-} from "solutions-utils";
+import { IncorrectConfigurationException, logger, OrganizationsHelper } from "solutions-utils";
 
 /**
  * @description
@@ -47,8 +43,7 @@ export class PreReqManager {
 
     // checking monitoring account is not same as management account
     if (organization && organization.MasterAccountId !== this.accountId) {
-      const message =
-        "The template must be deployed in Organization Management account";
+      const message = "The template must be deployed in Organization Management account";
       logger.error({
         label: this.moduleName,
         message: message,
@@ -61,9 +56,7 @@ export class PreReqManager {
    * @description enable trusted access for aws services
    */
   async enableTrustedAccess() {
-    await this.orgHelper.enableAWSServiceAccess(
-      "member.org.stacksets.cloudformation.amazonaws.com"
-    );
+    await this.orgHelper.enableAWSServiceAccess("member.org.stacksets.cloudformation.amazonaws.com");
   }
 
   /**
@@ -71,8 +64,7 @@ export class PreReqManager {
    */
   async registerDelegatedAdministrator(monitortingAccountId: string) {
     if (this.accountId === monitortingAccountId) {
-      const message =
-        "Cannot register Management account as a delegated StackSet administrator";
+      const message = "Cannot register Management account as a delegated StackSet administrator";
       logger.error({
         label: this.moduleName,
         message: message,

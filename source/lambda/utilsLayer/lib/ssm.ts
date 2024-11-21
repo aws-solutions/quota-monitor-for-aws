@@ -38,14 +38,10 @@ export class SSMHelper extends ServiceHelper<SSMClient> {
       label: this.moduleName,
       message: `getting ssm parameter ${name}`,
     });
-    const response = await this.client.send(
-      new GetParameterCommand({ Name: name, WithDecryption: withDecrpytion })
-    );
-    if (!response.Parameter || !response.Parameter.Value)
-      throw ParameterNotFound;
+    const response = await this.client.send(new GetParameterCommand({ Name: name, WithDecryption: withDecrpytion }));
+    if (!response.Parameter || !response.Parameter.Value) throw ParameterNotFound;
     else {
-      if (response.Parameter.Type === ParameterType.STRING_LIST)
-        return response.Parameter.Value.split(",");
+      if (response.Parameter.Type === ParameterType.STRING_LIST) return response.Parameter.Value.split(",");
       else return [response.Parameter.Value];
     }
   }

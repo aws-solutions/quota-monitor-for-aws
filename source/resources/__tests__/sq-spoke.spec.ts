@@ -10,8 +10,10 @@ describe("==SQ-Spoke Stack Tests==", () => {
   const app = new App({
     context: TestContext,
   });
-  const stack = new QuotaMonitorSQSpoke(app, "SQSpokeStack", {});
+  const stack = new QuotaMonitorSQSpoke(app, "SQSpokeStackCommercial", { targetPartition: "Commercial" });
+  const stack_cn = new QuotaMonitorSQSpoke(app, "SQSpokeStackChina", { targetPartition: "China" });
   const template = Template.fromStack(stack);
+  const template_cn = Template.fromStack(stack_cn);
 
   describe("sq-spoke stack resources", () => {
     it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
@@ -92,8 +94,7 @@ describe("==SQ-Spoke Stack Tests==", () => {
     });
 
     it(
-      "should have lambda functions for QMListManager, CWPoller, and provider frameworks " +
-        "with nodejs18.x runtime",
+      "should have lambda functions for QMListManager, CWPoller, and provider frameworks " + "with nodejs18.x runtime",
       () => {
         template.resourceCountIs("AWS::Lambda::Function", 3);
         template.hasResourceProperties("AWS::Lambda::Function", {
@@ -103,7 +104,7 @@ describe("==SQ-Spoke Stack Tests==", () => {
     );
 
     it("should have events rules for the pollers", () => {
-      template.resourceCountIs("AWS::Events::Rule", 5);
+      template.resourceCountIs("AWS::Events::Rule", 6);
     });
 
     it("should have DeadLetterQueues for Lambda Functions ", () => {
@@ -122,45 +123,75 @@ describe("==SQ-Spoke Stack Tests==", () => {
     });
 
     it("should have Service Catalog AppRegistry Application, ", () => {
-      template.resourceCountIs(
-        "AWS::ServiceCatalogAppRegistry::Application",
-        1
-      );
+      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::Application", 1);
     });
 
     it("should have Service Catalog AppRegistry AttributeGroup, ", () => {
-      template.resourceCountIs(
-        "AWS::ServiceCatalogAppRegistry::AttributeGroup",
-        1
-      );
+      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroup", 1);
     });
 
     it("should have Service Catalog AppRegistry Resource Association, ", () => {
-      template.resourceCountIs(
-        "AWS::ServiceCatalogAppRegistry::ResourceAssociation",
-        1
-      );
-      template.hasResource(
-        "AWS::ServiceCatalogAppRegistry::ResourceAssociation",
-        {
-          Properties: {
-            Application: {
-              "Fn::GetAtt": ["SQSpokeAppRegistryApplicationB3787B2B", "Id"],
-            },
-            Resource: {
-              Ref: "AWS::StackId",
-            },
-            ResourceType: "CFN_STACK",
+      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::ResourceAssociation", 1);
+      template.hasResource("AWS::ServiceCatalogAppRegistry::ResourceAssociation", {
+        Properties: {
+          Application: {
+            "Fn::GetAtt": ["SQSpokeAppRegistryApplicationB3787B2B", "Id"],
           },
-        }
-      );
+          Resource: {
+            Ref: "AWS::StackId",
+          },
+          ResourceType: "CFN_STACK",
+        },
+      });
     });
 
     it("should have Service Catalog AppRegistry AttributeGroup Association, ", () => {
-      template.resourceCountIs(
-        "AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation",
-        1
-      );
+      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation", 1);
+    });
+
+    it("should have a MonitoringFrequency parameter", () => {
+      template.hasParameter("MonitoringFrequency", {
+        Type: "String",
+        Default: "rate(12 hours)",
+        AllowedValues: ["rate(6 hours)", "rate(12 hours)", "rate(1 day)"],
+      });
+    });
+
+    it("should use the MonitoringFrequency parameter in the CW Poller event rule", () => {
+      template.hasResourceProperties("AWS::Events::Rule", {
+        ScheduleExpression: {
+          Ref: "MonitoringFrequency",
+        },
+      });
+    });
+
+    it("should have a parameter for notification threshold with correct properties", () => {
+      template.hasParameter("NotificationThreshold", {
+        Type: "String",
+        Default: "80",
+        AllowedPattern: "^([1-9]|[1-9][0-9])$",
+        Description: "Threshold percentage for quota utilization alerts (0-100)",
+        ConstraintDescription: "Threshold must be a whole number between 0 and 100",
+      });
+    });
+
+    it("should pass the threshold to the CW Poller Lambda", () => {
+      template.hasResourceProperties("AWS::Lambda::Function", {
+        Environment: Match.objectLike({
+          Variables: Match.objectLike({
+            THRESHOLD: { Ref: "NotificationThreshold" },
+          }),
+        }),
+      });
+    });
+  });
+
+  describe("China partition sq-spoke stack resources", () => {
+    it("should not have Service Catalog AppRegistry resources", () => {
+      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::Application", 0);
+      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroup", 0);
+      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::ResourceAssociation", 0);
+      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation", 0);
     });
   });
 });

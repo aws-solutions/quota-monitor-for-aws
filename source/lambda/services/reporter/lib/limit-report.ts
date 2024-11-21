@@ -35,17 +35,14 @@ export class LimitReport {
    */
   async processMessages() {
     const sqsHelper = new SQSHelper();
-    const messages = await sqsHelper.receiveMessages(
-      <string>process.env.SQS_URL,
-      parseInt(<string>process.env.MAX_MESSAGES) ?? 10
-    );
+    // SQS has a limit of 10 max messages processed
+    let maxMessages = parseInt(<string>process.env.MAX_MESSAGES) || 10;
+    maxMessages = maxMessages > 10 || maxMessages < 0 ? 10 : maxMessages;
+    const messages = await sqsHelper.receiveMessages(<string>process.env.SQS_URL, maxMessages);
     await Promise.allSettled(
       messages.map(async (message) => {
         await this.putUsageItemOnDDB(message);
-        await sqsHelper.deleteMessage(
-          <string>process.env.SQS_URL,
-          <string>message.ReceiptHandle
-        );
+        await sqsHelper.deleteMessage(<string>process.env.SQS_URL, <string>message.ReceiptHandle);
       })
     );
     logger.info({
@@ -67,17 +64,14 @@ export class LimitReport {
     const item = {
       MessageId: message.MessageId,
       AccountId: usageMessage.account,
-      TimeStamp:
-        usageMessage.detail["check-item-detail"]["Timestamp"] ??
-        usageMessage.time,
+      TimeStamp: usageMessage.detail["check-item-detail"]["Timestamp"] ?? usageMessage.time,
       Region: usageMessage.detail["check-item-detail"]["Region"],
       Source: usageMessage.source,
       Service: usageMessage.detail["check-item-detail"]["Service"],
       Resource: usageMessage.detail["check-item-detail"]["Resource"] ?? "",
       LimitCode: usageMessage.detail["check-item-detail"]["Limit Code"] ?? "",
       LimitName: usageMessage.detail["check-item-detail"]["Limit Name"],
-      CurrentUsage:
-        usageMessage.detail["check-item-detail"]["Current Usage"] ?? "0",
+      CurrentUsage: usageMessage.detail["check-item-detail"]["Current Usage"] ?? "0",
       LimitAmount: usageMessage.detail["check-item-detail"]["Limit Amount"],
       Status: usageMessage.detail["status"],
       ExpiryTime: Math.floor((new Date().getTime() + 15 * 24 * 3600 * 1000) / 1000), //1️⃣5️⃣ days

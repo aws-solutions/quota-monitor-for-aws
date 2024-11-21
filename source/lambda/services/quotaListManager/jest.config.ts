@@ -38,12 +38,7 @@ const config: Config = {
   verbose: true,
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
-  collectCoverageFrom: [
-    "**/*.ts",
-    "!**/*.spec.ts",
-    "!./jest.config.ts",
-    "!./jest.setup.ts",
-  ],
+  collectCoverageFrom: ["**/*.ts", "!**/*.spec.ts", "!./jest.config.ts", "!./jest.setup.ts"],
 
   // A list of paths to modules that run some code to configure or set up the testing environment
   setupFiles: ["./jest.setup.ts"],

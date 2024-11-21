@@ -26,10 +26,7 @@ import { KMS } from "./kms.construct";
 /**
  * @description construct for events rule to lambda as target
  */
-export class EventsToLambda<T extends QuotaMonitorEvent>
-  extends Construct
-  implements IRuleToTarget<lambda.Function>
-{
+export class EventsToLambda<T extends QuotaMonitorEvent> extends Construct implements IRuleToTarget<lambda.Function> {
   readonly rule: events.Rule;
   /**
    * @description target lambda function
@@ -42,51 +39,36 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
    * @param {string} id - unique id for the construct
    * @param {RuleTargetProps<T> & LambdaProps} props - constructor props
    */
-  constructor(
-    scope: Stack,
-    id: string,
-    props: RuleTargetProps<T> & LambdaProps
-  ) {
+  constructor(scope: Stack, id: string, props: RuleTargetProps<T> & LambdaProps) {
     super(scope, id);
     this.rule = new events.Rule(this, `${id}-EventsRule`, {
-      description: `${this.node.tryGetContext(
-        "SOLUTION_ID"
-      )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-EventsRule`,
-      schedule:
-        props.eventRule instanceof events.Schedule
-          ? props.eventRule
-          : undefined,
-      eventPattern: !(props.eventRule instanceof events.Schedule)
-        ? props.eventRule
-        : undefined,
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-EventsRule`,
+      schedule: props.eventRule instanceof events.Schedule ? props.eventRule : undefined,
+      eventPattern: !(props.eventRule instanceof events.Schedule) ? props.eventRule : undefined,
       eventBus: props.eventBus,
     });
 
-    const deadLetterQueue = new sqs.Queue(
-      this,
-      `${id}-Lambda-Dead-Letter-Queue`,
-      {
-        encryption: props.encryptionKey
-          ? QueueEncryption.KMS
-          : QueueEncryption.KMS_MANAGED,
-        encryptionMasterKey: props.encryptionKey,
-      }
-    );
+    const deadLetterQueue = new sqs.Queue(this, `${id}-Lambda-Dead-Letter-Queue`, {
+      encryption: props.encryptionKey ? QueueEncryption.KMS : QueueEncryption.KMS_MANAGED,
+      encryptionMasterKey: props.encryptionKey,
+    });
     enforceSSL(deadLetterQueue);
 
     this.target = new lambda.Function(this, `${id}-Lambda`, {
-      description: `${this.node.tryGetContext(
-        "SOLUTION_ID"
-      )} ${this.node.tryGetContext("SOLUTION_NAME")} - ${id}-Lambda`,
+      description: `${this.node.tryGetContext("SOLUTION_ID")} ${this.node.tryGetContext(
+        "SOLUTION_NAME"
+      )} - ${id}-Lambda`,
       runtime: LAMBDA_RUNTIME_NODE,
       code: lambda.Code.fromAsset(<string>props.assetLocation),
       handler: "index.handler",
       environment: {
         ...props.environment,
         LOG_LEVEL: this.node.tryGetContext("LOG_LEVEL") || LOG_LEVEL.INFO, //change as needed
-        CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext(
-          "SOLUTION_ID"
-        )}/${this.node.tryGetContext("SOLUTION_VERSION")}`,
+        CUSTOM_SDK_USER_AGENT: `AwsSolution/${this.node.tryGetContext("SOLUTION_ID")}/${this.node.tryGetContext(
+          "SOLUTION_VERSION"
+        )}`,
         VERSION: this.node.tryGetContext("SOLUTION_VERSION"),
         SOLUTION_ID: this.node.tryGetContext("SOLUTION_ID"),
       },
@@ -103,11 +85,9 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
 
     // permissions to access KMS key
     if (props.encryptionKey) {
-      KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach(
-        (policyStatement) => {
-          this.target.addToRolePolicy(policyStatement);
-        }
-      );
+      KMS.getIAMPolicyStatementsToAccessKey(props.encryptionKey.keyArn).forEach((policyStatement) => {
+        this.target.addToRolePolicy(policyStatement);
+      });
     }
 
     // cdk-nag suppressions
@@ -116,8 +96,7 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
       [
         {
           id: "AwsSolutions-IAM4",
-          reason:
-            "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
+          reason: "AWSLambdaBasicExecutionRole added by cdk only gives write permissions for CW logs",
         },
         {
           id: "AwsSolutions-IAM5",
@@ -132,8 +111,7 @@ export class EventsToLambda<T extends QuotaMonitorEvent>
       [
         {
           id: "AwsSolutions-L1",
-          reason:
-            "GovCloud regions support only up to nodejs 16, risk is tolerable",
+          reason: "GovCloud regions support only up to nodejs 16, risk is tolerable",
         },
       ],
       true
