@@ -16,10 +16,10 @@ describe("==SQ-Spoke Stack Tests==", () => {
   const template_cn = Template.fromStack(stack_cn);
 
   describe("sq-spoke stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs22.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs18.x"],
+        CompatibleRuntimes: ["nodejs22.x"],
       });
     });
 
@@ -94,11 +94,11 @@ describe("==SQ-Spoke Stack Tests==", () => {
     });
 
     it(
-      "should have lambda functions for QMListManager, CWPoller, and provider frameworks " + "with nodejs18.x runtime",
+      "should have lambda functions for QMListManager, CWPoller, and provider frameworks " + "with nodejs22.x runtime",
       () => {
         template.resourceCountIs("AWS::Lambda::Function", 3);
         template.hasResourceProperties("AWS::Lambda::Function", {
-          Runtime: "nodejs18.x",
+          Runtime: "nodejs22.x",
         });
       }
     );

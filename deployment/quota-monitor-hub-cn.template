@@ -635,7 +635,7 @@
       "Type": "AWS::Lambda::LayerVersion",
       "Properties": {
         "CompatibleRuntimes": [
-          "nodejs18.x"
+          "nodejs22.x"
         ],
         "Content": {
           "S3Bucket": {
@@ -764,7 +764,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs22.x",
         "Timeout": 5
       },
       "DependsOn": [
@@ -952,7 +952,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs22.x",
         "Timeout": 900
       },
       "DependsOn": [
@@ -1375,7 +1375,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs22.x",
         "Timeout": 60
       },
       "DependsOn": [
@@ -1791,7 +1791,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs22.x",
         "Timeout": 60
       },
       "DependsOn": [
@@ -2320,7 +2320,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs22.x",
         "Timeout": 10
       },
       "DependsOn": [
@@ -3309,7 +3309,7 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs18.x",
+        "Runtime": "nodejs22.x",
         "Timeout": 60
       },
       "DependsOn": [
