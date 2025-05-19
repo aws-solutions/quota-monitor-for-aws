@@ -11,17 +11,17 @@ describe("==Pre-requisite Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("Pre-requisite stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs22.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs18.x"],
+        CompatibleRuntimes: ["nodejs22.x"],
       });
     });
 
-    it("should have helper, pre-req and provider lambda functions " + "with nodejs18.x runtime", () => {
+    it("should have helper, pre-req and provider lambda functions " + "with nodejs22.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::Function", 4);
       template.hasResourceProperties("AWS::Lambda::Function", {
-        Runtime: "nodejs18.x",
+        Runtime: "nodejs22.x",
       });
     });
 

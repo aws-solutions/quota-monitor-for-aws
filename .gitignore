@@ -13,6 +13,9 @@
 **/npm-debug.log
 **/test-report.xml
 .scannerwork
+internal/scripts/redpencil
+.temp_redpencil
+bom.json
 
 #cdk related files
 *cdk.out*

@@ -131,7 +131,7 @@ export class QuotaMonitorHub extends Stack {
       allowedValues: ["rate(6 hours)", "rate(12 hours)", "rate(1 day)"],
     });
 
-    const sqReportOKNotifications = new CfnParameter(this, "SQReportOKNotifications", {
+    const reportOKNotifications = new CfnParameter(this, "ReportOKNotifications", {
       type: "String",
       default: "No",
       allowedValues: ["Yes", "No"],
@@ -173,6 +173,10 @@ export class QuotaMonitorHub extends Stack {
       expression: Fn.conditionEquals(slackNotification.valueAsString, "Yes"),
     });
 
+    const reportOKNotificationsCondition = new CfnCondition(this, "ReportOKNotificationsCondition", {
+      expression: Fn.conditionEquals(reportOKNotifications.valueAsString, "Yes"),
+    });
+
     const accountDeployCondition = new CfnCondition(this, "AccountDeployCondition", {
       expression: Fn.conditionEquals(deploymentModel, "Hybrid"),
     });
@@ -211,7 +215,7 @@ export class QuotaMonitorHub extends Stack {
             Parameters: [
               "SQNotificationThreshold",
               "SQMonitoringFrequency",
-              "SQReportOKNotifications",
+              "ReportOKNotifications",
               "SageMakerMonitoring",
               "ConnectMonitoring",
             ],
@@ -251,7 +255,7 @@ export class QuotaMonitorHub extends Stack {
           SQMonitoringFrequency: {
             default: "Frequency to monitor quota utilization",
           },
-          SQReportOKNotifications: {
+          ReportOKNotifications: {
             default: "Report OK Notifications",
           },
           SageMakerMonitoring: {
@@ -487,7 +491,7 @@ export class QuotaMonitorHub extends Stack {
      */
     const summarizerRulePattern: events.EventPattern = {
       detail: {
-        status: ["OK", "WARN", "ERROR"],
+        status: Fn.conditionIf(reportOKNotificationsCondition.logicalId, ["OK", "WARN", "ERROR"], ["WARN", "ERROR"]),
       },
       detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR, EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
       source: [EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR, EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
@@ -514,7 +518,9 @@ export class QuotaMonitorHub extends Stack {
         name: "TimeStamp",
         type: dynamodb.AttributeType.STRING,
       },
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
       encryptionKey: kms.key,
@@ -581,6 +587,11 @@ export class QuotaMonitorHub extends Stack {
       },
       capabilities: [CfnCapabilities.ANONYMOUS_IAM],
       callAs: "DELEGATED_ADMIN",
+      operationPreferences: {
+        regionConcurrencyType: stackSetRegionConcurrencyType.valueAsString,
+        maxConcurrentPercentage: stackSetMaxConcurrentPercentage.valueAsNumber,
+        failureTolerancePercentage: stackSetFailureTolerancePercentage.valueAsNumber,
+      },
     });
 
     const qmSQStackSet = new cloudformation.CfnStackSet(this, "QM-SQ-StackSet", {
@@ -615,6 +626,11 @@ export class QuotaMonitorHub extends Stack {
       },
       capabilities: [CfnCapabilities.ANONYMOUS_IAM],
       callAs: "DELEGATED_ADMIN",
+      operationPreferences: {
+        regionConcurrencyType: stackSetRegionConcurrencyType.valueAsString,
+        maxConcurrentPercentage: stackSetMaxConcurrentPercentage.valueAsNumber,
+        failureTolerancePercentage: stackSetFailureTolerancePercentage.valueAsNumber,
+      },
     });
 
     const qmSnsStackSet = new cloudformation.CfnStackSet(this, "QM-SNS-StackSet", {
@@ -695,12 +711,9 @@ export class QuotaMonitorHub extends Stack {
         REGIONS_LIST: regionsListCfnParam.valueAsString,
         QM_REGIONS_LIST_PARAMETER: ssmRegionsList.parameterName.toString(),
         SNS_SPOKE_REGION: snsSpokeRegion.valueAsString,
-        REGIONS_CONCURRENCY_TYPE: stackSetRegionConcurrencyType.valueAsString,
-        MAX_CONCURRENT_PERCENTAGE: stackSetMaxConcurrentPercentage.valueAsString,
-        FAILURE_TOLERANCE_PERCENTAGE: stackSetFailureTolerancePercentage.valueAsString,
         SQ_NOTIFICATION_THRESHOLD: sqNotificationThreshold.valueAsString,
         SQ_MONITORING_FREQUENCY: sqMonitoringFrequency.valueAsString,
-        SQ_REPORT_OK_NOTIFICATIONS: sqReportOKNotifications.valueAsString,
+        REPORT_OK_NOTIFICATIONS: reportOKNotifications.valueAsString,
         SOLUTION_UUID: createUUID.getAttString("UUID"),
         METRICS_ENDPOINT: map.findInMap("Metrics", "MetricsEndpoint"),
         SEND_METRIC: map.findInMap("Metrics", "SendAnonymizedData"),

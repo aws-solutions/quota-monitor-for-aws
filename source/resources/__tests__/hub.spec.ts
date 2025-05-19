@@ -46,9 +46,6 @@ describe("==Hub Stack Tests==", () => {
       expect(allParams).toHaveProperty("SlackNotification");
       expect(allParams).toHaveProperty("DeploymentModel");
       expect(allParams).toHaveProperty("RegionsList");
-      expect(allParams).toHaveProperty("RegionConcurrency");
-      expect(allParams).toHaveProperty("MaxConcurrentPercentage");
-      expect(allParams).toHaveProperty("FailureTolerancePercentage");
       template.hasParameter("*", {
         Type: "String",
         AllowedValues: ["PARALLEL", "SEQUENTIAL"],

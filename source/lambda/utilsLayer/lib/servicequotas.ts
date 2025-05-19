@@ -16,6 +16,10 @@ import { UnsupportedQuotaException } from "./error";
 import { ServiceHelper, sleep } from "./exports";
 import { logger } from "./logger";
 
+export const metricStatRecommendationOverrides: { [key: string]: string } = {
+  "L-D05C8A75": "Maximum",
+};
+
 /**
  * @description helper class for Service Quotas
  */
@@ -385,7 +389,7 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
           }),
         },
         Period: period,
-        Stat: metricInfo.MetricStatisticRecommendation,
+        Stat: metricStatRecommendationOverrides[quotaCode!] ?? metricInfo.MetricStatisticRecommendation,
       },
       ReturnData: false,
     };

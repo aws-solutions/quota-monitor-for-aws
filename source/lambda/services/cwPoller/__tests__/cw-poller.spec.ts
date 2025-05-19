@@ -159,7 +159,7 @@ describe("CWPoller", () => {
     process.env.POLLER_FREQUENCY = "rate(6 hours)";
     process.env.THRESHOLD = "80";
     process.env.AWS_REGION = "us-east-1";
-    process.env.SQ_REPORT_OK_NOTIFICATIONS = "Yes";
+    process.env.REPORT_OK_NOTIFICATIONS = "Yes";
     getMetricDataMock.mockResolvedValue([metric1, metric2]);
     queryQuotasForServiceMock.mockResolvedValue(quotas);
     putEventMock.mockResolvedValue({});
@@ -208,7 +208,7 @@ describe("CWPoller", () => {
   });
 
   it("should create only WARN AND ERROR quota utilization events when REPORT_OK_NOTIFICATIONS = No", () => {
-    process.env.SQ_REPORT_OK_NOTIFICATIONS = "No";
+    process.env.REPORT_OK_NOTIFICATIONS = "No";
     const events = createQuotaUtilizationEvents(metric1, metricQueryIdToQuotaMap);
 
     expect(events).toEqual(utilizationEvents.filter((m) => m.status != QUOTA_STATUS.OK));

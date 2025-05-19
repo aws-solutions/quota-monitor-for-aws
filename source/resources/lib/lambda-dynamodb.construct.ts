@@ -61,7 +61,9 @@ export class LambdaToDDB extends Construct implements LambdaToTarget<dynamodb.Ta
             name: <string>props.sortKey,
             type: dynamodb.AttributeType.STRING,
           },
-          pointInTimeRecovery: true,
+          pointInTimeRecoverySpecification: {
+            pointInTimeRecoveryEnabled: true,
+          },
           readCapacity: 2,
           writeCapacity: 2,
           billingMode: dynamodb.BillingMode.PROVISIONED,

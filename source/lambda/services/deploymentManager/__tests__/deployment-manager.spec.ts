@@ -155,18 +155,10 @@ const getParameterMockGenerator = (testType: TestScenarios) => {
 };
 
 describe("Deployment Manager", () => {
-  const testConcurrncyType = "PARALLEL";
-  const testMaxConcurrentPercentage = 100;
-  const testFailureTolerancePercentage = 10;
   const testSQNotificationThreshold = "80";
   const testSQMonitoringFequency = "rate(12 hours)";
   const testSQReportOKNotifications = "Yes";
 
-  const testStackSetOpsPrefs = {
-    RegionConcurrencyType: testConcurrncyType,
-    MaxConcurrentPercentage: testMaxConcurrentPercentage,
-    FailureTolerancePercentage: testFailureTolerancePercentage,
-  };
   const testSQParameterOverrides = [
     {
       ParameterKey: "NotificationThreshold",
@@ -176,6 +168,13 @@ describe("Deployment Manager", () => {
       ParameterKey: "MonitoringFrequency",
       ParameterValue: testSQMonitoringFequency,
     },
+    {
+      ParameterKey: "ReportOKNotifications",
+      ParameterValue: testSQReportOKNotifications,
+    },
+  ];
+
+  const testTAParameterOverrides = [
     {
       ParameterKey: "ReportOKNotifications",
       ParameterValue: testSQReportOKNotifications,
@@ -201,32 +200,19 @@ describe("Deployment Manager", () => {
     process.env.QM_REGIONS_LIST_PARAMETER = "/QuotaMonitor/RegionsToDeploy";
     process.env.SEND_METRIC = "No";
 
-    process.env.REGIONS_CONCURRENCY_TYPE = testConcurrncyType;
-    process.env.MAX_CONCURRENT_PERCENTAGE = "" + testMaxConcurrentPercentage;
-    process.env.FAILURE_TOLERANCE_PERCENTAGE = "" + testFailureTolerancePercentage;
     process.env.SQ_NOTIFICATION_THRESHOLD = testSQNotificationThreshold;
     process.env.SQ_MONITORING_FREQUENCY = testSQMonitoringFequency;
-    process.env.SQ_REPORT_OK_NOTIFICATIONS = testSQReportOKNotifications;
+    process.env.REPORT_OK_NOTIFICATIONS = testSQReportOKNotifications;
   });
 
   function assertCreateStackInstancesCallOrgIdMode() {
-    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(1, ["r-0000"], [], testStackSetOpsPrefs, undefined);
-    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
-      ["r-0000"],
-      ["us-east-2"],
-      testStackSetOpsPrefs,
-      testSQParameterOverrides
-    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(1, ["r-0000"], [], testTAParameterOverrides);
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(["r-0000"], ["us-east-2"], testSQParameterOverrides);
   }
 
   function assertCreateStackInstancesCallOrgIdModeSelectedRegions() {
-    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(1, ["r-0000"], [], testStackSetOpsPrefs, undefined);
-    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
-      ["r-0000"],
-      ["us-west-2"],
-      testStackSetOpsPrefs,
-      testSQParameterOverrides
-    );
+    expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(1, ["r-0000"], [], testTAParameterOverrides);
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(["r-0000"], ["us-west-2"], testSQParameterOverrides);
   }
 
   function assertCreateStackInstancesCallMultipeOrgOUs() {
@@ -234,27 +220,23 @@ describe("Deployment Manager", () => {
       1,
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-east-1"],
-      testStackSetOpsPrefs,
-      undefined
+      testTAParameterOverrides
     );
     expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
       2,
       ["ou-0000-00000000", "ou-0000-00000001"],
       [],
-      testStackSetOpsPrefs,
-      undefined
+      testTAParameterOverrides
     );
     expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
       3,
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-east-1", "us-east-2"],
-      testStackSetOpsPrefs,
       testSQParameterOverrides
     );
     expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-east-2"],
-      testStackSetOpsPrefs,
       testSQParameterOverrides
     );
   }
@@ -264,27 +246,23 @@ describe("Deployment Manager", () => {
       1,
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-east-1"],
-      testStackSetOpsPrefs,
-      undefined
+      testTAParameterOverrides
     );
     expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
       2,
       ["ou-0000-00000000", "ou-0000-00000001"],
       [],
-      testStackSetOpsPrefs,
-      undefined
+      testTAParameterOverrides
     );
     expect(createStackSetInstancesMock).toHaveBeenNthCalledWith(
       3,
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-east-1", "us-west-2"],
-      testStackSetOpsPrefs,
       testSQParameterOverrides
     );
     expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-west-2"],
-      testStackSetOpsPrefs,
       testSQParameterOverrides
     );
   }
@@ -362,12 +340,7 @@ describe("Deployment Manager", () => {
     expect(createEventBusPolicyMock).toHaveBeenCalledTimes(1);
     expect(getEnabledRegionNamesMock).toHaveBeenCalledTimes(1);
     expect(createStackSetInstancesMock).toHaveBeenCalledTimes(1);
-    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
-      ["r-0000"],
-      ["us-east-2"],
-      testStackSetOpsPrefs,
-      testSQParameterOverrides
-    );
+    expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(["r-0000"], ["us-east-2"], testSQParameterOverrides);
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(1);
     expect(getDeploymentTargetsMock).toHaveBeenCalledTimes(0);
     expect(getDeployedRegionsMock).toHaveBeenCalledTimes(1);
@@ -453,13 +426,11 @@ describe("Deployment Manager", () => {
       1,
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-east-1", "us-east-2"],
-      testStackSetOpsPrefs,
       testSQParameterOverrides
     );
     expect(createStackSetInstancesMock).toHaveBeenLastCalledWith(
       ["ou-0000-00000000", "ou-0000-00000001"],
       ["us-east-2"],
-      testStackSetOpsPrefs,
       testSQParameterOverrides
     );
     expect(deleteStackSetInstancesMock).toHaveBeenCalledTimes(2);

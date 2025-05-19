@@ -14,7 +14,7 @@ import { ILayerVersion } from "aws-cdk-lib/aws-lambda";
 /**
  * @description supported lambda runtime in the solution
  */
-export const LAMBDA_RUNTIME_NODE = lambda.Runtime.NODEJS_18_X;
+export const LAMBDA_RUNTIME_NODE = lambda.Runtime.NODEJS_22_X;
 
 /**
  * @description partition key and sort key for service table

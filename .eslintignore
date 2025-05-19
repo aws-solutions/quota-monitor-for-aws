@@ -7,6 +7,3 @@ dist
 coverage
 *.config.js
 *.eslint*
-
-
-
