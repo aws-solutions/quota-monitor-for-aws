@@ -65,6 +65,12 @@ export class QuotaMonitorHubNoOU extends Stack {
       default: "No",
     });
 
+    const reportOKNotifications = new CfnParameter(this, "ReportOKNotifications", {
+      type: "String",
+      default: "No",
+      allowedValues: ["Yes", "No"],
+    });
+
     //=============================================================================================
     // Mapping & Conditions
     //=============================================================================================
@@ -83,6 +89,10 @@ export class QuotaMonitorHubNoOU extends Stack {
       expression: Fn.conditionEquals(slackNotification.valueAsString, "Yes"),
     });
 
+    const reportOKNotificationsCondition = new CfnCondition(this, "ReportOKNotificationsCondition", {
+      expression: Fn.conditionEquals(reportOKNotifications.valueAsString, "Yes"),
+    });
+
     //=============================================================================================
     // Metadata
     //=============================================================================================
@@ -93,7 +103,7 @@ export class QuotaMonitorHubNoOU extends Stack {
             Label: {
               default: "Notification Configuration",
             },
-            Parameters: ["SNSEmail", "SlackNotification"],
+            Parameters: ["SNSEmail", "SlackNotification", "ReportOKNotifications"],
           },
         ],
         ParameterLabels: {
@@ -102,6 +112,9 @@ export class QuotaMonitorHubNoOU extends Stack {
           },
           SlackNotification: {
             default: "Do you want slack notifications?",
+          },
+          ReportOKNotifications: {
+            default: "Report OK Notifications",
           },
         },
       },
@@ -307,7 +320,7 @@ export class QuotaMonitorHubNoOU extends Stack {
      */
     const summarizerRulePattern: events.EventPattern = {
       detail: {
-        status: ["OK", "WARN", "ERROR"],
+        status: Fn.conditionIf(reportOKNotificationsCondition.logicalId, ["OK", "WARN", "ERROR"], ["WARN", "ERROR"]),
       },
       detailType: [EVENT_NOTIFICATION_DETAIL_TYPE.TRUSTED_ADVISOR, EVENT_NOTIFICATION_DETAIL_TYPE.SERVICE_QUOTA],
       source: [EVENT_NOTIFICATION_SOURCES.TRUSTED_ADVISOR, EVENT_NOTIFICATION_SOURCES.SERVICE_QUOTA],
@@ -334,7 +347,9 @@ export class QuotaMonitorHubNoOU extends Stack {
         name: "TimeStamp",
         type: dynamodb.AttributeType.STRING,
       },
-      pointInTimeRecovery: true,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,
+      },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       encryption: dynamodb.TableEncryption.CUSTOMER_MANAGED,
       encryptionKey: kms.key,

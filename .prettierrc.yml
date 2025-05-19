@@ -9,4 +9,4 @@ tabWidth: 2
 semi: true
 singleQuote: false
 quoteProps: "as-needed"
-printWidth: 80
+printWidth: 120

@@ -1,6 +1,6 @@
 {
   "name": "utils-layer",
-  "version": "6.3.0",
+  "version": "6.3.1",
   "description": "utils layer for aws-solutions",
   "author": {
     "name": "Amazon Web Services",
@@ -18,30 +18,30 @@
     "build:all": "npm run build:clean && npm ci && npm prune --production && npm run build:copy && npm run build:zip"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudformation": "^3.621.0",
-    "@aws-sdk/client-cloudwatch": "^3.621.0",
-    "@aws-sdk/client-cloudwatch-events": "^3.621.0",
-    "@aws-sdk/client-dynamodb": "^3.621.0",
-    "@aws-sdk/client-ec2": "^3.621.0",
-    "@aws-sdk/client-organizations": "^3.621.0",
-    "@aws-sdk/client-service-quotas": "^3.621.0",
-    "@aws-sdk/client-ssm": "^3.621.0",
-    "@aws-sdk/client-sqs": "^3.621.0",
-    "@aws-sdk/client-sns": "^3.621.0",
-    "@aws-sdk/client-support": "^3.621.0",
-    "@aws-sdk/lib-dynamodb": "^3.621.0",
-    "@aws-sdk/client-dynamodb-streams": "^3.621.0",
+    "@aws-sdk/client-cloudformation": "^3.806.0",
+    "@aws-sdk/client-cloudwatch": "^3.806.0",
+    "@aws-sdk/client-cloudwatch-events": "^3.806.0",
+    "@aws-sdk/client-dynamodb": "^3.806.0",
+    "@aws-sdk/client-ec2": "^3.806.0",
+    "@aws-sdk/client-organizations": "^3.806.0",
+    "@aws-sdk/client-service-quotas": "^3.806.0",
+    "@aws-sdk/client-ssm": "^3.806.0",
+    "@aws-sdk/client-sqs": "^3.806.0",
+    "@aws-sdk/client-sns": "^3.806.0",
+    "@aws-sdk/client-support": "^3.806.0",
+    "@aws-sdk/lib-dynamodb": "^3.806.0",
+    "@aws-sdk/client-dynamodb-streams": "^3.806.0",
     "got": "^11.8.6",
-    "winston": "^3.3.3"
+    "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.11",
-    "@types/node": "^18.19.4",
-    "aws-sdk-client-mock": "^3.0.1",
-    "aws-sdk-client-mock-jest": "^3.0.1",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.17",
+    "aws-sdk-client-mock": "^4.1.0",
+    "aws-sdk-client-mock-jest": "^4.1.0",
     "jest": "^29.7.0",
-    "ts-jest": "^29.1.1",
+    "ts-jest": "^29.3.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.8.3"
   }
 }

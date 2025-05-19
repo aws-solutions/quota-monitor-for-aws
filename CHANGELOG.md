@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.1] - 2025-05-19
+
+### Added
+
+- The template parameter ReportOKNotification to TA stack and No OU Hub stack.
+
+### Changed
+
+- Update dependencies and Lambda runtime
+
+### Fixed
+
+- GitHub Issues [#216](https://github.com/aws-solutions/quota-monitor-for-aws/issues/216), [#212](https://github.com/aws-solutions/quota-monitor-for-aws/issues/212), and [#208](https://github.com/aws-solutions/quota-monitor-for-aws/issues/208)
+
+
+
 ## [6.3.0] - 2024-11-22
 
 ### Added

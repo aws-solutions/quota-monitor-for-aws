@@ -10,6 +10,9 @@ import {
   Stack,
   aws_events_targets as targets,
   StackProps,
+  Aspects,
+  CfnCondition,
+  Fn,
 } from "aws-cdk-lib";
 import * as path from "path";
 import { addCfnGuardSuppression } from "./cfn-guard-utils";
@@ -17,6 +20,7 @@ import { EventsToLambda } from "./events-lambda.construct";
 import { TA_CHECKS_SERVICES } from "./exports";
 import { Layer } from "./lambda-layer.construct";
 import { AppRegistryApplication } from "./app-registry-application";
+import { ConditionAspect } from "./condition.utils";
 
 /**
  * @description
@@ -51,6 +55,16 @@ export class QuotaMonitorTASpoke extends Stack {
       description: "The rate at which to refresh Trusted Advisor checks",
     });
 
+    const reportOKNotifications = new CfnParameter(this, "ReportOKNotifications", {
+      type: "String",
+      default: "No",
+      allowedValues: ["Yes", "No"],
+    });
+
+    const reportOKNotificationsCondition = new CfnCondition(this, "ReportOKNotificationsCondition", {
+      expression: Fn.conditionEquals(reportOKNotifications.valueAsString, "Yes"),
+    });
+
     //=============================================================================================
     // Metadata
     //=============================================================================================
@@ -65,9 +79,9 @@ export class QuotaMonitorTASpoke extends Stack {
           },
           {
             Label: {
-              default: "Refresh Configuration",
+              default: "Trusted Advisor Configuration",
             },
-            Parameters: ["TARefreshRate"],
+            Parameters: ["TARefreshRate", "ReportOKNotifications"],
           },
         ],
         ParameterLabels: {
@@ -76,6 +90,9 @@ export class QuotaMonitorTASpoke extends Stack {
           },
           TARefreshRate: {
             default: "Trusted Advisor Refresh Rate",
+          },
+          ReportOKNotifications: {
+            default: "Report OK Notifications",
           },
         },
       },
@@ -135,12 +152,13 @@ export class QuotaMonitorTASpoke extends Stack {
     };
 
     // event rule for TA OK events
-    new events.Rule(this, "TAOkRule", {
+    const TAOKRule = new events.Rule(this, "TAOkRule", {
       description: "Quota Monitor Solution - Spoke - Rule for TA OK events",
       enabled: true,
       eventPattern: TAOKPattern,
       targets: [target],
     });
+    Aspects.of(TAOKRule).add(new ConditionAspect(reportOKNotificationsCondition));
 
     // event rule for TA WARN events
     new events.Rule(this, "TAWarnRule", {

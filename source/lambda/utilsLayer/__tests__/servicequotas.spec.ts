@@ -12,10 +12,11 @@ import {
   MetricInfo,
 } from "@aws-sdk/client-service-quotas";
 
-import { ServiceQuotasHelper } from "../lib/servicequotas";
+import { metricStatRecommendationOverrides, ServiceQuotasHelper } from "../lib/servicequotas";
 import { CloudWatchHelper } from "../lib/cloudwatch";
 import { logger } from "../lib/logger";
 import { UnsupportedQuotaException } from "../lib/error";
+import { MetricDataQuery } from "@aws-sdk/client-cloudwatch";
 
 jest.mock("../lib/cloudwatch", () => {
   const getMetricDataMock = { getMetricData: jest.fn().mockReturnValue([]) };
@@ -598,6 +599,53 @@ describe("Service Quotas Helper", () => {
       };
 
       expect(() => (sqHelper as any).validateQuotaHasUsageMetrics(validQuota)).not.toThrow();
+    });
+  });
+  describe("generate CW metric queries", () => {
+    it("generate CW metric query for a quota", async () => {
+      const quota: ServiceQuota = {
+        QuotaCode: "L-DC2B2D3D",
+        UsageMetric: {
+          MetricNamespace: "AWS/Usage",
+          MetricName: "ResourceCount",
+          MetricDimensions: {
+            Class: "None",
+            Resource: "GeneralPurposeBuckets",
+            Service: "S3",
+            Type: "Resource",
+          },
+          MetricStatisticRecommendation: "Custom",
+        },
+      };
+      const cwQuery = (sqHelper as any).generateCWQuery(quota, 3600);
+      const usageQuery: MetricDataQuery = cwQuery[0];
+      const percentageUsageQuery: MetricDataQuery = cwQuery[1];
+      expect(usageQuery.Id).toEqual("s3_generalpurposebuckets_none_resource_ldc2b2d3d");
+      expect(percentageUsageQuery.Id).toEqual("s3_generalpurposebuckets_none_resource_ldc2b2d3d_pct_utilization");
+      expect(usageQuery.MetricStat?.Stat).toEqual("Custom");
+    });
+    it("generate CW metric query for a quota with overridden stat", async () => {
+      const quotaCode = "L-D05C8A75"; // this quota's stat is overridden
+      const quota: ServiceQuota = {
+        QuotaCode: quotaCode,
+        UsageMetric: {
+          MetricNamespace: "AWS/Usage",
+          MetricName: "ResourceCount",
+          MetricDimensions: {
+            Class: "None",
+            Resource: "vCPU",
+            Service: "EMR Serverless",
+            Type: "Resource",
+          },
+          MetricStatisticRecommendation: metricStatRecommendationOverrides[quotaCode],
+        },
+      };
+      const cwQuery = (sqHelper as any).generateCWQuery(quota, 3600);
+      const usageQuery: MetricDataQuery = cwQuery[0];
+      const percentageUsageQuery: MetricDataQuery = cwQuery[1];
+      expect(usageQuery.Id).toEqual("emrserverless_vcpu_none_resource_ld05c8a75");
+      expect(percentageUsageQuery.Id).toEqual("emrserverless_vcpu_none_resource_ld05c8a75_pct_utilization");
+      expect(usageQuery.MetricStat?.Stat).toEqual(metricStatRecommendationOverrides[quotaCode]);
     });
   });
 });

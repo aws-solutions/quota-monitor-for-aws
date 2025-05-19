@@ -10,10 +10,8 @@ import {
   CreateStackInstancesCommand,
   DeleteStackInstancesCommand,
   DescribeStackSetCommand,
-  StackSetOperationPreferences,
 } from "@aws-sdk/client-cloudformation";
-import { CloudFormationHelper, defaultOpsPercentagePrefs, StackSetOpsPercentagePrefs } from "../lib/cloudformation";
-import { IncorrectConfigurationException } from "../lib/error";
+import { CloudFormationHelper } from "../lib/cloudformation";
 
 describe("Cloud Formation Helper", () => {
   const cfMock = mockClient(CloudFormationClient);
@@ -74,29 +72,6 @@ describe("Cloud Formation Helper", () => {
     expect(cfMock).toHaveReceivedCommandWith(CreateStackInstancesCommand, {
       StackSetName: "stackSetName",
       CallAs: "DELEGATED_ADMIN",
-      OperationPreferences: {
-        ...(<StackSetOperationPreferences>defaultOpsPercentagePrefs),
-      },
-    });
-  });
-
-  it("should call createStackSetInstances with selected percentage preferences", async () => {
-    const target = ["ou-1"];
-    const regions = ["us-east-1", "us-east-2"];
-
-    cfMock.on(CreateStackInstancesCommand).resolves({});
-    const opsPrefs: StackSetOpsPercentagePrefs = {
-      RegionConcurrencyType: "SEQUENTIAL",
-      MaxConcurrentPercentage: 50,
-      FailureTolerancePercentage: 50,
-    };
-
-    await cfHelper.createStackSetInstances(target, regions, opsPrefs);
-    expect(cfMock).toHaveReceivedCommandWith(CreateStackInstancesCommand, {
-      StackSetName: "stackSetName",
-      CallAs: "DELEGATED_ADMIN",
-      OperationPreferences: <StackSetOperationPreferences>opsPrefs,
-      ParameterOverrides: [],
     });
   });
 
@@ -105,11 +80,6 @@ describe("Cloud Formation Helper", () => {
     const regions = ["us-east-1", "us-east-2"];
 
     cfMock.on(CreateStackInstancesCommand).resolves({});
-    const opsPrefs: StackSetOpsPercentagePrefs = {
-      RegionConcurrencyType: "SEQUENTIAL",
-      MaxConcurrentPercentage: 50,
-      FailureTolerancePercentage: 50,
-    };
     const parameterOverrides = [
       {
         ParameterKey: "param1",
@@ -121,69 +91,12 @@ describe("Cloud Formation Helper", () => {
       },
     ];
 
-    await cfHelper.createStackSetInstances(target, regions, opsPrefs, parameterOverrides);
+    await cfHelper.createStackSetInstances(target, regions, parameterOverrides);
     expect(cfMock).toHaveReceivedCommandWith(CreateStackInstancesCommand, {
       StackSetName: "stackSetName",
       CallAs: "DELEGATED_ADMIN",
-      OperationPreferences: <StackSetOperationPreferences>opsPrefs,
       ParameterOverrides: parameterOverrides,
     });
-  });
-
-  it("should throw an exception when invalid stack set operations are given", async () => {
-    const target = ["ou-1"];
-    const regions = ["us-east-1", "us-east-2"];
-
-    cfMock.on(CreateStackInstancesCommand).resolves({});
-    let opsPrefs: StackSetOpsPercentagePrefs = {
-      RegionConcurrencyType: "SEQUENTIAL_WRONG",
-      MaxConcurrentPercentage: 50,
-      FailureTolerancePercentage: 50,
-    };
-    let testCase = async () => {
-      await cfHelper.createStackSetInstances(target, regions, opsPrefs);
-    };
-    await expect(testCase).rejects.toThrow(IncorrectConfigurationException);
-
-    opsPrefs = {
-      RegionConcurrencyType: "SEQUENTIAL",
-      MaxConcurrentPercentage: 0,
-      FailureTolerancePercentage: 0,
-    };
-    testCase = async () => {
-      await cfHelper.createStackSetInstances(target, regions, opsPrefs);
-    };
-    await expect(testCase).rejects.toThrow(IncorrectConfigurationException);
-
-    opsPrefs = {
-      RegionConcurrencyType: "SEQUENTIAL",
-      MaxConcurrentPercentage: 101,
-      FailureTolerancePercentage: 100,
-    };
-    testCase = async () => {
-      await cfHelper.createStackSetInstances(target, regions, opsPrefs);
-    };
-    await expect(testCase).rejects.toThrow(IncorrectConfigurationException);
-
-    opsPrefs = {
-      RegionConcurrencyType: "SEQUENTIAL",
-      MaxConcurrentPercentage: 1,
-      FailureTolerancePercentage: -1,
-    };
-    testCase = async () => {
-      await cfHelper.createStackSetInstances(target, regions, opsPrefs);
-    };
-    await expect(testCase).rejects.toThrow(IncorrectConfigurationException);
-
-    opsPrefs = {
-      RegionConcurrencyType: "SEQUENTIAL",
-      MaxConcurrentPercentage: 1,
-      FailureTolerancePercentage: 101,
-    };
-    testCase = async () => {
-      await cfHelper.createStackSetInstances(target, regions, opsPrefs);
-    };
-    await expect(testCase).rejects.toThrow(IncorrectConfigurationException);
   });
 
   it("should throw an exception when createStackSetInstances fails", async () => {

@@ -7,38 +7,11 @@ import {
   DeleteStackInstancesCommand,
   DescribeStackSetCommand,
   ListStackInstancesCommand,
-  RegionConcurrencyType,
 } from "@aws-sdk/client-cloudformation";
 import { catchDecorator } from "./catch";
 import { ServiceHelper } from "./exports";
 import { logger } from "./logger";
-import { StackSetOperationPreferences, Parameter } from "@aws-sdk/client-cloudformation/dist-types/models/models_0";
-import { IncorrectConfigurationException } from "./error";
-
-export interface StackSetOpsPercentagePrefs {
-  RegionConcurrencyType: string;
-  MaxConcurrentPercentage: number;
-  FailureTolerancePercentage: number;
-}
-
-export const defaultOpsPercentagePrefs: StackSetOpsPercentagePrefs = {
-  RegionConcurrencyType: RegionConcurrencyType.PARALLEL,
-  MaxConcurrentPercentage: 100,
-  FailureTolerancePercentage: 0,
-};
-
-function validateStackSetOpsPercentagePrefs(opsPrefs: StackSetOpsPercentagePrefs) {
-  if (
-    ![<string>RegionConcurrencyType.PARALLEL, <string>RegionConcurrencyType.SEQUENTIAL].includes(
-      opsPrefs.RegionConcurrencyType
-    ) ||
-    opsPrefs.MaxConcurrentPercentage < 1 ||
-    opsPrefs.MaxConcurrentPercentage > 100 ||
-    opsPrefs.FailureTolerancePercentage < 0 ||
-    opsPrefs.FailureTolerancePercentage > 100
-  )
-    throw new IncorrectConfigurationException("Invalid StackSetOperationPreferences");
-}
+import { Parameter } from "@aws-sdk/client-cloudformation/dist-types/models/models_0";
 
 /**
  * @description helper class for Cloudformation
@@ -110,13 +83,7 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
    * @param target - target for creating stackset instances, can either be root-id or ou-ids
    */
   @catchDecorator(CloudFormationServiceException, true)
-  async createStackSetInstances(
-    target: string[],
-    regions: string[],
-    opsPrefs: StackSetOpsPercentagePrefs = defaultOpsPercentagePrefs,
-    paramOverrides: Parameter[] = []
-  ) {
-    validateStackSetOpsPercentagePrefs(opsPrefs);
+  async createStackSetInstances(target: string[], regions: string[], paramOverrides: Parameter[] = []) {
     logger.debug({
       label: this.moduleName,
       message: `creating stackset instances for ${this.stackSetName}; regions: ${JSON.stringify(
@@ -136,7 +103,6 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
         DeploymentTargets: { OrganizationalUnitIds: target },
         CallAs: "DELEGATED_ADMIN",
         Regions: regions,
-        OperationPreferences: opsPrefs as StackSetOperationPreferences,
         ParameterOverrides: paramOverrides,
       })
     );
@@ -147,12 +113,7 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
    * @param target - target for creating stackset instances, can either be root-id or ou-ids
    */
   @catchDecorator(CloudFormationServiceException, true)
-  async deleteStackSetInstances(
-    target: string[],
-    regions: string[],
-    opsPrefs: StackSetOpsPercentagePrefs = defaultOpsPercentagePrefs
-  ) {
-    validateStackSetOpsPercentagePrefs(opsPrefs);
+  async deleteStackSetInstances(target: string[], regions: string[]) {
     logger.debug({
       label: this.moduleName,
       message: `deleting stackset instances for ${this.stackSetName}; regions: ${JSON.stringify(
@@ -173,7 +134,6 @@ export class CloudFormationHelper extends ServiceHelper<CloudFormationClient> {
         CallAs: "DELEGATED_ADMIN",
         Regions: regions,
         RetainStacks: false,
-        OperationPreferences: opsPrefs as StackSetOperationPreferences,
       })
     );
   }

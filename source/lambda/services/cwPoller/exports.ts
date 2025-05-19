@@ -174,7 +174,7 @@ export function createQuotaUtilizationEvents(
 
   const items: IQuotaUtilizationEvent[] = [];
 
-  const sendOKNotifications = stringEqualsIgnoreCase(<string>process.env.SQ_REPORT_OK_NOTIFICATIONS, "Yes");
+  const sendOKNotifications = stringEqualsIgnoreCase(<string>process.env.REPORT_OK_NOTIFICATIONS, "Yes");
   utilizationValues.forEach((value, index) => {
     const quotaEvents: IQuotaUtilizationEvent = {
       status: QUOTA_STATUS.OK,

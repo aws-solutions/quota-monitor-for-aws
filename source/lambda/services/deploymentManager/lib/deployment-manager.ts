@@ -13,7 +13,6 @@ import {
   EC2Helper,
   IncorrectConfigurationException,
   SupportHelper,
-  StackSetOpsPercentagePrefs,
   arrayIncludesIgnoreCase,
   arrayDiff,
   sendAnonymizedMetric,
@@ -39,8 +38,8 @@ export class DeploymentManager {
   private events;
   private ec2;
   private ssm;
-  private stackSetOpsPrefs: StackSetOpsPercentagePrefs;
   private sqParameterOverrides: { [key: string]: string }[];
+  private taParameterOverrides: { [key: string]: string }[];
 
   protected readonly moduleName;
 
@@ -50,11 +49,6 @@ export class DeploymentManager {
     this.ec2 = new EC2Helper();
     this.ssm = new SSMHelper();
     this.moduleName = <string>__filename.split("/").pop();
-    this.stackSetOpsPrefs = {
-      RegionConcurrencyType: <string>process.env.REGIONS_CONCURRENCY_TYPE,
-      MaxConcurrentPercentage: parseInt(<string>process.env.MAX_CONCURRENT_PERCENTAGE, 10),
-      FailureTolerancePercentage: parseInt(<string>process.env.FAILURE_TOLERANCE_PERCENTAGE, 10),
-    };
     this.sqParameterOverrides = [
       {
         ParameterKey: "NotificationThreshold",
@@ -66,7 +60,13 @@ export class DeploymentManager {
       },
       {
         ParameterKey: "ReportOKNotifications",
-        ParameterValue: <string>process.env.SQ_REPORT_OK_NOTIFICATIONS,
+        ParameterValue: <string>process.env.REPORT_OK_NOTIFICATIONS,
+      },
+    ];
+    this.taParameterOverrides = [
+      {
+        ParameterKey: "ReportOKNotifications",
+        ParameterValue: <string>process.env.REPORT_OK_NOTIFICATIONS,
       },
     ];
   }
@@ -207,18 +207,13 @@ export class DeploymentManager {
     } else {
       const { sqRegions, spokeDeploymentMetricData } = await this.getRegionsForDeployment();
 
-      logger.debug({
-        label: `${this.moduleName}/handler/manageStackSets`,
-        message: `StackSet Operation Preferences = ${JSON.stringify(this.stackSetOpsPrefs)}`,
-      });
-
       if (process.env.SNS_SPOKE_REGION) {
         const snsRegion = process.env.SNS_SPOKE_REGION;
         await this.manageStackSetInstances(cfnSns, deploymentTargets, [snsRegion], undefined, []);
       }
       if (isTAAvailable) {
         const taRegions = this.getTARegions(sqRegions);
-        await this.manageStackSetInstances(cfnTA, deploymentTargets, taRegions);
+        await this.manageStackSetInstances(cfnTA, deploymentTargets, taRegions, undefined, this.taParameterOverrides);
       } else {
         logger.info({
           label: `${this.moduleName}/handler/manageStackSets`,
@@ -303,7 +298,7 @@ export class DeploymentManager {
     const deployedRegions = await stackSet.getDeployedRegions();
     const deployedTargets = await stackSet.getDeploymentTargets();
     if (deployedTargets.length > 0 && deployedRegions.length > 0) {
-      await stackSet.deleteStackSetInstances(deployedTargets, deployedRegions, this.stackSetOpsPrefs);
+      await stackSet.deleteStackSetInstances(deployedTargets, deployedRegions);
     }
   }
 
@@ -346,8 +341,8 @@ export class DeploymentManager {
     const sendMetric = stringEqualsIgnoreCase(<string>process.env.SEND_METRIC, "Yes") && spokeDeploymentMetricData;
     if (deploymentTargets[0].match(ORG_REGEX)) {
       const root = await this.org.getRootId();
-      await stackSet.deleteStackSetInstances([root], regionsToRemove, this.stackSetOpsPrefs);
-      await stackSet.createStackSetInstances([root], regionsNetNew, this.stackSetOpsPrefs, parameterOverrides);
+      await stackSet.deleteStackSetInstances([root], regionsToRemove);
+      await stackSet.createStackSetInstances([root], regionsNetNew, parameterOverrides);
       if (sendMetric) {
         spokeDeploymentMetricData.SpokeCount = (await this.org.getNumberOfAccountsInOrg()) - 1; //minus the management account
       }
@@ -363,15 +358,10 @@ export class DeploymentManager {
         label: `${this.moduleName}/handler/manageStackSetInstances ${stackSet.stackSetName}`,
         message: `targetsNetNew: ${JSON.stringify(targetsNetNew)}`,
       });
-      await stackSet.deleteStackSetInstances(targetsToRemove, deployedRegions, this.stackSetOpsPrefs);
-      await stackSet.deleteStackSetInstances(deployedTargets, regionsToRemove, this.stackSetOpsPrefs);
-      await stackSet.createStackSetInstances(targetsNetNew, regions, this.stackSetOpsPrefs, parameterOverrides);
-      await stackSet.createStackSetInstances(
-        deploymentTargets,
-        regionsNetNew,
-        this.stackSetOpsPrefs,
-        parameterOverrides
-      );
+      await stackSet.deleteStackSetInstances(targetsToRemove, deployedRegions);
+      await stackSet.deleteStackSetInstances(deployedTargets, regionsToRemove);
+      await stackSet.createStackSetInstances(targetsNetNew, regions, parameterOverrides);
+      await stackSet.createStackSetInstances(deploymentTargets, regionsNetNew, parameterOverrides);
       if (sendMetric) {
         const allPromises = Promise.allSettled(
           deploymentTargets.map(async (ouId) => {

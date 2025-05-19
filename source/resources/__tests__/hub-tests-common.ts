@@ -4,10 +4,10 @@
 import { Match, Template } from "aws-cdk-lib/assertions";
 
 export function assertCommonHubResources(template: Template) {
-  it("should have a Lambda Utils Layer with nodejs18.x runtime", () => {
+  it("should have a Lambda Utils Layer with nodejs22.x runtime", () => {
     template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
     template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-      CompatibleRuntimes: ["nodejs18.x"],
+      CompatibleRuntimes: ["nodejs22.x"],
     });
   });
 
@@ -35,7 +35,9 @@ export function assertCommonHubResources(template: Template) {
         State: "ENABLED",
         EventPattern: {
           detail: {
-            status: ["OK", "WARN", "ERROR"],
+            status: {
+              "Fn::If": ["ReportOKNotificationsCondition", ["OK", "WARN", "ERROR"], ["WARN", "ERROR"]],
+            },
           },
         },
       },
@@ -63,11 +65,11 @@ export function assertCommonHubResources(template: Template) {
   it(
     "should have lambda functions for SNSPublisher, SlackNotifier, " +
       "Reporter, DeploymentManager, Helper, and provider with " +
-      "nodejs18.x runtime",
+      "nodejs22.x runtime",
     () => {
       template.resourceCountIs("AWS::Lambda::Function", 6);
       template.hasResourceProperties("AWS::Lambda::Function", {
-        Runtime: "nodejs18.x",
+        Runtime: "nodejs22.x",
       });
     }
   );
