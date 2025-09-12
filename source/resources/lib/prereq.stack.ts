@@ -16,16 +16,12 @@ import { addCfnGuardSuppression, addCfnGuardSuppressionToNestedResources } from 
  * @author aws-solutions
  */
 
-interface PreReqStackProps extends StackProps {
-  targetPartition: "Commercial" | "China";
-}
-
 export class PreReqStack extends Stack {
   /**
    * @param {Construct} scope parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props: PreReqStackProps) {
+  constructor(scope: App, id: string, props: StackProps) {
     super(scope, id, props);
 
     //=============================================================================================

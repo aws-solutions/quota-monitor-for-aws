@@ -389,11 +389,28 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
           }),
         },
         Period: period,
-        Stat: metricStatRecommendationOverrides[quotaCode!] ?? metricInfo.MetricStatisticRecommendation,
+        Stat: this.getRecommendedMetricStatistic(metricInfo.MetricName, quotaCode!, metricInfo),
       },
       ReturnData: false,
     };
     return usageQuery;
+  }
+
+  private getRecommendedMetricStatistic(
+    metricName: string | undefined,
+    quotaCode: string,
+    metricInfo: MetricInfo
+  ): string | undefined {
+    const overrides = metricStatRecommendationOverrides[quotaCode];
+    if (overrides) {
+      return overrides;
+    }
+    // Some newly added quotas which are clearly counts are configured with a default "Sum" stat, override it to "Maximum"
+    // eg aws service-quotas get-service-quota --service-code cost-optimization-hub --quota-code L-2D554821 --region us-east-1
+    if (metricName?.toLocaleLowerCase().endsWith("count")) {
+      return "Maximum";
+    }
+    return metricInfo.MetricStatisticRecommendation;
   }
 
   /**

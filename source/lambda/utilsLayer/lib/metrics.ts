@@ -1,7 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import got from "got";
 import { logger } from "./logger";
 
 /**
@@ -16,8 +15,7 @@ export interface IMetric {
 
 export async function sendAnonymizedMetric(endpoint: string, metric: IMetric) {
   try {
-    await got(endpoint, {
-      port: 443,
+    await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

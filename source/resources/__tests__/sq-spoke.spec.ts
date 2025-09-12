@@ -10,10 +10,8 @@ describe("==SQ-Spoke Stack Tests==", () => {
   const app = new App({
     context: TestContext,
   });
-  const stack = new QuotaMonitorSQSpoke(app, "SQSpokeStackCommercial", { targetPartition: "Commercial" });
-  const stack_cn = new QuotaMonitorSQSpoke(app, "SQSpokeStackChina", { targetPartition: "China" });
+  const stack = new QuotaMonitorSQSpoke(app, "SQSpokeStackCommercial", {});
   const template = Template.fromStack(stack);
-  const template_cn = Template.fromStack(stack_cn);
 
   describe("sq-spoke stack resources", () => {
     it("should have a Lambda Utils Layer with nodejs22.x runtime", () => {
@@ -122,33 +120,6 @@ describe("==SQ-Spoke Stack Tests==", () => {
       expect(allParams).toHaveProperty("MonitoringFrequency");
     });
 
-    it("should have Service Catalog AppRegistry Application, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::Application", 1);
-    });
-
-    it("should have Service Catalog AppRegistry AttributeGroup, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroup", 1);
-    });
-
-    it("should have Service Catalog AppRegistry Resource Association, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::ResourceAssociation", 1);
-      template.hasResource("AWS::ServiceCatalogAppRegistry::ResourceAssociation", {
-        Properties: {
-          Application: {
-            "Fn::GetAtt": ["SQSpokeAppRegistryApplicationB3787B2B", "Id"],
-          },
-          Resource: {
-            Ref: "AWS::StackId",
-          },
-          ResourceType: "CFN_STACK",
-        },
-      });
-    });
-
-    it("should have Service Catalog AppRegistry AttributeGroup Association, ", () => {
-      template.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation", 1);
-    });
-
     it("should have a MonitoringFrequency parameter", () => {
       template.hasParameter("MonitoringFrequency", {
         Type: "String",
@@ -183,15 +154,6 @@ describe("==SQ-Spoke Stack Tests==", () => {
           }),
         }),
       });
-    });
-  });
-
-  describe("China partition sq-spoke stack resources", () => {
-    it("should not have Service Catalog AppRegistry resources", () => {
-      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::Application", 0);
-      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroup", 0);
-      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::ResourceAssociation", 0);
-      template_cn.resourceCountIs("AWS::ServiceCatalogAppRegistry::AttributeGroupAssociation", 0);
     });
   });
 });

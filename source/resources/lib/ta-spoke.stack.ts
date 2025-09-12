@@ -19,7 +19,6 @@ import { addCfnGuardSuppression } from "./cfn-guard-utils";
 import { EventsToLambda } from "./events-lambda.construct";
 import { TA_CHECKS_SERVICES } from "./exports";
 import { Layer } from "./lambda-layer.construct";
-import { AppRegistryApplication } from "./app-registry-application";
 import { ConditionAspect } from "./condition.utils";
 
 /**
@@ -29,16 +28,12 @@ import { ConditionAspect } from "./condition.utils";
  * @author aws-solutions
  */
 
-interface QuotaMonitorTASpokeProps extends StackProps {
-  targetPartition: "Commercial" | "China";
-}
-
 export class QuotaMonitorTASpoke extends Stack {
   /**
    * @param {App} scope - parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props: QuotaMonitorTASpokeProps) {
+  constructor(scope: App, id: string, props: StackProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -206,17 +201,6 @@ export class QuotaMonitorTASpoke extends Stack {
         resources: ["*"], // does not allow resource-level permissions
       })
     );
-
-    /**
-     * app registry application for TA stack
-     */
-
-    if (props.targetPartition !== "China") {
-      new AppRegistryApplication(this, "TASpokeAppRegistryApplication", {
-        appRegistryApplicationName: this.node.tryGetContext("APP_REG_TA_SPOKE_APPLICATION_NAME"),
-        solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-TA`,
-      });
-    }
 
     //=============================================================================================
     // Outputs

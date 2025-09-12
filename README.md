@@ -75,7 +75,7 @@ The steps given below can be followed if you are looking to customize the soluti
 
 ### Setup
 
-- Javascript Pre-requisite: node=v16.17.0 | npm=8.15.0
+- Javascript Pre-requisite: node=v22.0.0 | npm=11.0.0
 
 Clone the repository and run the following commands to install dependencies
 

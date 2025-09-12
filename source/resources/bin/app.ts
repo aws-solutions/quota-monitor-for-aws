@@ -10,11 +10,7 @@ import { QuotaMonitorSQSpoke } from "../lib/sq-spoke.stack";
 import { QuotaMonitorHubNoOU } from "../lib/hub-no-ou.stack";
 import { QuotaMonitorSnsSpoke } from "../lib/sns-spoke-stack";
 
-interface AppProps {
-  targetPartition: "Commercial" | "China";
-}
-
-function addAppStacks(app: App, props: AppProps): void {
+function addAppStacks(app: App): void {
   /**
    * MODIFY_TEMPLATES customizes asset handling for orgHub:deploy script:
    * - Uses SOLUTION_BUCKET, disables default encryption, modifies synthesizer.
@@ -30,36 +26,30 @@ function addAppStacks(app: App, props: AppProps): void {
   };
   const synthesizer = new DefaultStackSynthesizer(synthesizerProps);
 
-  new PreReqStack(app, `quota-monitor-prerequisite${props.targetPartition === "China" ? "-cn" : ""}`, {
+  new PreReqStack(app, "quota-monitor-prerequisite", {
     synthesizer,
-    targetPartition: props.targetPartition,
   });
 
-  new QuotaMonitorHub(app, `quota-monitor-hub${props.targetPartition === "China" ? "-cn" : ""}`, {
+  new QuotaMonitorHub(app, "quota-monitor-hub", {
     synthesizer,
-    targetPartition: props.targetPartition,
   });
 
-  new QuotaMonitorHubNoOU(app, `quota-monitor-hub-no-ou${props.targetPartition === "China" ? "-cn" : ""}`, {
+  new QuotaMonitorHubNoOU(app, "quota-monitor-hub-no-ou", {
     synthesizer,
-    targetPartition: props.targetPartition,
   });
 
-  new QuotaMonitorTASpoke(app, `quota-monitor-ta-spoke${props.targetPartition === "China" ? "-cn" : ""}`, {
+  new QuotaMonitorTASpoke(app, "quota-monitor-ta-spoke", {
     synthesizer,
-    targetPartition: props.targetPartition,
     analyticsReporting: false,
   });
 
-  new QuotaMonitorSQSpoke(app, `quota-monitor-sq-spoke${props.targetPartition === "China" ? "-cn" : ""}`, {
+  new QuotaMonitorSQSpoke(app, "quota-monitor-sq-spoke", {
     synthesizer,
-    targetPartition: props.targetPartition,
     analyticsReporting: false,
   });
 
-  new QuotaMonitorSnsSpoke(app, `quota-monitor-sns-spoke${props.targetPartition === "China" ? "-cn" : ""}`, {
+  new QuotaMonitorSnsSpoke(app, "quota-monitor-sns-spoke", {
     synthesizer,
-    targetPartition: props.targetPartition,
     analyticsReporting: false,
   });
 }
@@ -74,8 +64,7 @@ function main(): void {
 
   Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
 
-  addAppStacks(app, { targetPartition: "Commercial" });
-  addAppStacks(app, { targetPartition: "China" });
+  addAppStacks(app);
 }
 
 main();

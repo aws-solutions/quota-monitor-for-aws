@@ -35,7 +35,6 @@ import { StartingPosition } from "aws-cdk-lib/aws-lambda";
 import { applyDependsOn } from "./depends.utils";
 import { NagSuppressions } from "cdk-nag";
 import { IConstruct } from "constructs";
-import { AppRegistryApplication } from "./app-registry-application";
 import { ConditionAspect } from "./condition.utils";
 
 /**
@@ -45,16 +44,12 @@ import { ConditionAspect } from "./condition.utils";
  * @author aws-solutions
  */
 
-interface QuotaMonitorSQSpokeProps extends StackProps {
-  targetPartition: "Commercial" | "China";
-}
-
 export class QuotaMonitorSQSpoke extends Stack {
   /**
    * @param {App} scope - parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props: QuotaMonitorSQSpokeProps) {
+  constructor(scope: App, id: string, props: StackProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -490,16 +485,6 @@ export class QuotaMonitorSQSpoke extends Stack {
     });
 
     Aspects.of(spokeSnsRule).add(new ConditionAspect(spokeSnsRegionExists));
-
-    /**
-     * app registry application for SQ stack
-     */
-    if (props.targetPartition !== "China") {
-      new AppRegistryApplication(this, "SQSpokeAppRegistryApplication", {
-        appRegistryApplicationName: this.node.tryGetContext("APP_REG_SQ_SPOKE_APPLICATION_NAME"),
-        solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-SQ`,
-      });
-    }
 
     // add mode depends on the custom resource so that it fires the lambda function at last
     // Create/Update service list
