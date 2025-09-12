@@ -16,7 +16,6 @@ import path from "path";
 import { addCfnGuardSuppression } from "./cfn-guard-utils";
 import { Layer } from "./lambda-layer.construct";
 import { EVENT_NOTIFICATION_DETAIL_TYPE, EVENT_NOTIFICATION_SOURCES } from "./exports";
-import { AppRegistryApplication } from "./app-registry-application";
 import { EventsToLambdaToSNS } from "./events-lambda-sns.construct";
 
 /**
@@ -26,16 +25,12 @@ import { EventsToLambdaToSNS } from "./events-lambda-sns.construct";
  * @author aws-solutions
  */
 
-interface QuotaMonitorSnsSpokeProps extends StackProps {
-  targetPartition: "Commercial" | "China";
-}
-
 export class QuotaMonitorSnsSpoke extends Stack {
   /**
    * @param {App} scope - parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props: QuotaMonitorSnsSpokeProps) {
+  constructor(scope: App, id: string, props: StackProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -146,16 +141,6 @@ export class QuotaMonitorSnsSpoke extends Stack {
     });
 
     snsPublisher.target.addToRolePolicy(snsPublisherSSMReadPolicy);
-
-    /**
-     * app registry application for spoke SNS stack
-     */
-    if (props.targetPartition !== "China") {
-      new AppRegistryApplication(this, "SpokeSnsAppRegistryApplication", {
-        appRegistryApplicationName: this.node.tryGetContext("APP_REG_SPOKE_SNS_APPLICATION_NAME"),
-        solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-SPOKE-SNS`,
-      });
-    }
 
     new CfnOutput(this, "SpokeSnsEventBus", {
       value: snsSpokeBus.eventBusArn,

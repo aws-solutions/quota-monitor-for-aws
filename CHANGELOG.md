@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.2] - 2025-09-12
+
+### Changed
+
+- Remove App Registry
+- Set default metric stat to be Maximum for count metrics
+- Remove the dependency got and use the built-in fetch
+- Minor dependency updates
+
+### Fixed
+
+- GitHub Issue [#222](https://github.com/aws-solutions/quota-monitor-for-aws/issues/222)
+
 ## [6.3.1] - 2025-05-19
 
 ### Added
@@ -18,8 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - GitHub Issues [#216](https://github.com/aws-solutions/quota-monitor-for-aws/issues/216), [#212](https://github.com/aws-solutions/quota-monitor-for-aws/issues/212), and [#208](https://github.com/aws-solutions/quota-monitor-for-aws/issues/208)
-
-
 
 ## [6.3.0] - 2024-11-22
 
@@ -49,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Add batching to getQuotasWithUtilizationMetrics function
-- Refactor _putMonitoredQuotas function to use batch writes
+- Refactor \_putMonitoredQuotas function to use batch writes
 - Changed the memory allocation for the QMListManager Lambda function to 256 MB
 - Added better error handling for CloudWatch ValidationErrors, with attempt to identify problematic quotas
 

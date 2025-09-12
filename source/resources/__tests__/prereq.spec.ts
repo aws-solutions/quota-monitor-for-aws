@@ -7,7 +7,7 @@ import { App } from "aws-cdk-lib";
 
 describe("==Pre-requisite Stack Tests==", () => {
   const app = new App();
-  const stack = new PreReqStack(app, "PreReqStack", { targetPartition: "Commercial" });
+  const stack = new PreReqStack(app, "PreReqStack", {});
   const template = Template.fromStack(stack);
 
   describe("Pre-requisite stack resources", () => {

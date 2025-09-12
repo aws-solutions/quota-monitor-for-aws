@@ -607,7 +607,7 @@ describe("Service Quotas Helper", () => {
         QuotaCode: "L-DC2B2D3D",
         UsageMetric: {
           MetricNamespace: "AWS/Usage",
-          MetricName: "ResourceCount",
+          MetricName: "MyMetric",
           MetricDimensions: {
             Class: "None",
             Resource: "GeneralPurposeBuckets",
@@ -646,6 +646,31 @@ describe("Service Quotas Helper", () => {
       expect(usageQuery.Id).toEqual("emrserverless_vcpu_none_resource_ld05c8a75");
       expect(percentageUsageQuery.Id).toEqual("emrserverless_vcpu_none_resource_ld05c8a75_pct_utilization");
       expect(usageQuery.MetricStat?.Stat).toEqual(metricStatRecommendationOverrides[quotaCode]);
+    });
+    it("generate CW metric query for a quota with metric name ending in count", async () => {
+      const quotaCode = "MyQuota";
+      const quota: ServiceQuota = {
+        QuotaCode: quotaCode,
+        UsageMetric: {
+          MetricNamespace: "AWS/Usage",
+          MetricName: "CallCount",
+          MetricDimensions: {
+            Class: "None",
+            Resource: "ListEnrollmentStatuses",
+            Service: "CostOptimizationHub",
+            Type: "API",
+          },
+          MetricStatisticRecommendation: "Sum",
+        },
+      };
+      const cwQuery = (sqHelper as any).generateCWQuery(quota, 3600);
+      const usageQuery: MetricDataQuery = cwQuery[0];
+      const percentageUsageQuery: MetricDataQuery = cwQuery[1];
+      expect(usageQuery.Id).toEqual("costoptimizationhub_listenrollmentstatuses_none_api_myquota");
+      expect(percentageUsageQuery.Id).toEqual(
+        "costoptimizationhub_listenrollmentstatuses_none_api_myquota_pct_utilization"
+      );
+      expect(usageQuery.MetricStat?.Stat).toEqual("Maximum");
     });
   });
 });

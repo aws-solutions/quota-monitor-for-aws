@@ -29,7 +29,6 @@ import { EVENT_NOTIFICATION_DETAIL_TYPE, EVENT_NOTIFICATION_SOURCES } from "./ex
 import { Layer } from "./lambda-layer.construct";
 import { EventsToLambdaToSNS } from "./events-lambda-sns.construct";
 import { KMS } from "./kms.construct";
-import { AppRegistryApplication } from "./app-registry-application";
 
 /**
  * @description
@@ -39,16 +38,12 @@ import { AppRegistryApplication } from "./app-registry-application";
  * @author aws-solutions
  */
 
-interface QuotaMonitorHubNoOUProps extends StackProps {
-  targetPartition: "Commercial" | "China";
-}
-
 export class QuotaMonitorHubNoOU extends Stack {
   /**
    * @param {App} scope - parent of the construct
    * @param {string} id - identifier for the object
    */
-  constructor(scope: App, id: string, props: QuotaMonitorHubNoOUProps) {
+  constructor(scope: App, id: string, props: StackProps) {
     super(scope, id, props);
 
     //=============================================================================================
@@ -458,17 +453,6 @@ export class QuotaMonitorHubNoOU extends Stack {
       resources: ["*"], // does not allow resource-level permissions
     });
     deploymentManager.target.addToRolePolicy(taDescribeTrustedAdvisorChecksPolicy);
-
-    /**
-     * app registry application for hub-no-ou-stack
-     */
-
-    if (props.targetPartition !== "China") {
-      new AppRegistryApplication(this, "HubNoOUAppRegistryApplication", {
-        appRegistryApplicationName: this.node.tryGetContext("APP_REG_HUB_NO_OU_APPLICATION_NAME"),
-        solutionId: `${this.node.tryGetContext("SOLUTION_ID")}-NoOU`,
-      });
-    }
 
     //=============================================================================================
     // Outputs
