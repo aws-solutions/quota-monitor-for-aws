@@ -14,10 +14,10 @@ describe("==TA-Spoke Stack Tests==", () => {
   const template = Template.fromStack(stack);
 
   describe("ta-spoke stack resources", () => {
-    it("should have a Lambda Utils Layer with nodejs22.x runtime", () => {
+    it("should have a Lambda Utils Layer with nodejs24.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::LayerVersion", 1);
       template.hasResourceProperties("AWS::Lambda::LayerVersion", {
-        CompatibleRuntimes: ["nodejs22.x"],
+        CompatibleRuntimes: ["nodejs24.x"],
       });
     });
 
@@ -25,10 +25,10 @@ describe("==TA-Spoke Stack Tests==", () => {
       template.resourceCountIs("AWS::Events::Rule", 4);
     });
 
-    it("should have lambda functions for TA-refresher with nodejs22.x runtime", () => {
+    it("should have lambda functions for TA-refresher with nodejs24.x runtime", () => {
       template.resourceCountIs("AWS::Lambda::Function", 1);
       template.hasResourceProperties("AWS::Lambda::Function", {
-        Runtime: "nodejs22.x",
+        Runtime: "nodejs24.x",
       });
     });
 

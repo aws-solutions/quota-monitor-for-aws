@@ -5,11 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.3] - 2026-01-06
+
+### Changed
+
+- Dependency updates
+- Update lambda runtimes to NodeJS 24.x
+
+### Fixed
+
+- GitHub Issue [#226](https://github.com/aws-solutions/quota-monitor-for-aws/issues/226)
+
 ## [6.3.2] - 2025-09-12
 
 ### Changed
 
-- Remove App Registry
+- Remove AppRegistry
 - Set default metric stat to be Maximum for count metrics
 - Remove the dependency got and use the built-in fetch
 - Minor dependency updates
