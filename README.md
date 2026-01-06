@@ -75,7 +75,7 @@ The steps given below can be followed if you are looking to customize the soluti
 
 ### Setup
 
-- Javascript Pre-requisite: node=v22.0.0 | npm=11.0.0
+- Javascript Pre-requisite: node=v24.0.0 | npm=11.0.0
 
 Clone the repository and run the following commands to install dependencies
 
@@ -126,6 +126,7 @@ npm ci
 ```
 
 Bootstrap your CDK environment
+
 - This solution requires that you have bootstrapped your AWS account with CDK using the default stack name. If you haven't done so already, run:
 
 ```
