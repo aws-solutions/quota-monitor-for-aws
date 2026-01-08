@@ -26,3 +26,6 @@ source/test/*.js
 
 #cfn nag related output files
 cfn_nag_suppressions.log
+
+build
+git-info
