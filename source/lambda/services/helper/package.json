@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor-helper",
-  "version": "6.3.3",
+  "version": "6.3.4",
   "description": "microservice with helper modules for quota monitor solution",
   "author": {
     "name": "Amazon Web Services",
@@ -9,12 +9,12 @@
   "license": "Apache-2.0",
   "main": "./index.js",
   "dependencies": {
-    "uuid": "^13.0.0"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.3",
-    "@types/uuid": "^11.0.0",
+    "@types/uuid": "^10.0.0",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
