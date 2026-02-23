@@ -1,7 +1,7 @@
 ---
 id: SO0005
 name: quota-monitor-for-aws
-version: v6.3.5
+version: v6.3.6
 cloudformation_templates:
   - template: quota-monitor-hub.template
     main_template: true

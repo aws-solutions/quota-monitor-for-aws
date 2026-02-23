@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor",
-  "version": "6.3.5",
+  "version": "6.3.6",
   "description": "cdk resources to provision needed infrastructure",
   "author": {
     "name": "Amazon Web Services",
@@ -23,7 +23,7 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.3",
-    "aws-cdk": "^2.1100.1",
+    "aws-cdk": "^2.1106.1",
     "aws-cdk-lib": "^2.233.0",
     "@aws-cdk/aws-servicecatalogappregistry-alpha": "^2.233.0-alpha.0",
     "cdk-nag": "^2.37.55",
