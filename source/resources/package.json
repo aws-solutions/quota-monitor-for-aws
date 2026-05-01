@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor",
-  "version": "6.3.10",
+  "version": "6.3.11",
   "description": "cdk resources to provision needed infrastructure",
   "author": {
     "name": "Amazon Web Services",
@@ -21,11 +21,11 @@
     "orgHub:deploy": "export MODIFY_TEMPLATES=true && export SOLUTION_BUCKET=$(npm run -s get-cdk-bucket) && npm run update-bucket-encryption && rm -rf cdk.out && echo 'fixing stackset template paths for cdk assets by forcing it to synth twice' && npm run synth && npm run deploy"
   },
   "devDependencies": {
+    "@aws-cdk/aws-servicecatalogappregistry-alpha": "^2.246.0-alpha.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.3",
-    "aws-cdk": "^2.1106.1",
-    "aws-cdk-lib": "^2.233.0",
-    "@aws-cdk/aws-servicecatalogappregistry-alpha": "^2.233.0-alpha.0",
+    "aws-cdk": "^2.1115.1",
+    "aws-cdk-lib": "^2.246.0",
     "cdk-nag": "^2.37.55",
     "constructs": "^10.4.4",
     "jest": "^30.2.0",

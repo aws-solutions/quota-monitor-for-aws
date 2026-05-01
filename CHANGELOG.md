@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.11] - 2026-05-01
+
+### Fixed
+
+- Updated dependencies to address [CVE-2026-33671](https://github.com/advisories/CVE-2026-33671)
+- Updated dependencies to address [CVE-2026-33937](https://github.com/advisories/CVE-2026-33937)
+- Updated dependencies to address [CVE-2026-33938](https://github.com/advisories/CVE-2026-33938)
+- Updated dependencies to address [CVE-2026-33939](https://github.com/advisories/CVE-2026-33939)
+- Updated dependencies to address [CVE-2026-33940](https://github.com/advisories/CVE-2026-33940)
+- Updated dependencies to address [CVE-2026-33941](https://github.com/advisories/CVE-2026-33941)
+- Updated dependencies to address [CVE-2026-4926](https://github.com/advisories/CVE-2026-4926)
+
 ## [6.3.10] - 2026-03-25
 
 ### Fixed
