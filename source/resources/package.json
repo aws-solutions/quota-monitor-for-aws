@@ -1,6 +1,6 @@
 {
   "name": "quota-monitor",
-  "version": "6.3.11",
+  "version": "6.3.12",
   "description": "cdk resources to provision needed infrastructure",
   "author": {
     "name": "Amazon Web Services",
@@ -32,5 +32,8 @@
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "fast-uri": "^3.1.2"
   }
 }

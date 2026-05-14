@@ -1,6 +1,6 @@
 {
   "name": "cdk-solution-helper",
-  "version": "0.1.0",
+  "version": "6.3.12",
   "description": "cleans up the template files for release",
   "author": {
     "name": "Amazon Web Services",
