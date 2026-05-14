@@ -29,3 +29,6 @@ cfn_nag_suppressions.log
 
 build
 git-info
+
+# Patch release secrets
+.env
