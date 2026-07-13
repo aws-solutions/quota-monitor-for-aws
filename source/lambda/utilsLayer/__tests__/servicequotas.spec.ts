@@ -647,7 +647,10 @@ describe("Service Quotas Helper", () => {
       expect(percentageUsageQuery.Id).toEqual("emrserverless_vcpu_none_resource_ld05c8a75_pct_utilization");
       expect(usageQuery.MetricStat?.Stat).toEqual(metricStatRecommendationOverrides[quotaCode]);
     });
-    it("generate CW metric query for a quota with metric name ending in count", async () => {
+    it("does not override the statistic for CallCount metrics, even though the name ends in count", async () => {
+      // CallCount is an event-counter metric (one datapoint of value 1 per API call) - "Maximum" over any
+      // period always reads exactly 1 regardless of real call volume, which breaks the percentage-utilization
+      // calculation for every Rate quota backed by it. See https://github.com/aws-solutions/quota-monitor-for-aws/issues/274
       const quotaCode = "MyQuota";
       const quota: ServiceQuota = {
         QuotaCode: quotaCode,
@@ -670,6 +673,26 @@ describe("Service Quotas Helper", () => {
       expect(percentageUsageQuery.Id).toEqual(
         "costoptimizationhub_listenrollmentstatuses_none_api_myquota_pct_utilization"
       );
+      expect(usageQuery.MetricStat?.Stat).toEqual("Sum");
+    });
+    it("still overrides the statistic to Maximum for gauge-style count metrics other than CallCount", async () => {
+      const quotaCode = "MyQuota";
+      const quota: ServiceQuota = {
+        QuotaCode: quotaCode,
+        UsageMetric: {
+          MetricNamespace: "AWS/Usage",
+          MetricName: "ResourceCount",
+          MetricDimensions: {
+            Class: "None",
+            Resource: "MyResource",
+            Service: "MyService",
+            Type: "Resource",
+          },
+          MetricStatisticRecommendation: "Sum",
+        },
+      };
+      const cwQuery = (sqHelper as any).generateCWQuery(quota, 3600);
+      const usageQuery: MetricDataQuery = cwQuery[0];
       expect(usageQuery.MetricStat?.Stat).toEqual("Maximum");
     });
   });
