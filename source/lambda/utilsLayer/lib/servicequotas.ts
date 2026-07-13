@@ -405,9 +405,12 @@ export class ServiceQuotasHelper extends ServiceHelper<ServiceQuotasClient> {
     if (overrides) {
       return overrides;
     }
-    // Some newly added quotas which are clearly counts are configured with a default "Sum" stat, override it to "Maximum"
-    // eg aws service-quotas get-service-quota --service-code cost-optimization-hub --quota-code L-2D554821 --region us-east-1
-    if (metricName?.toLocaleLowerCase().endsWith("count")) {
+    // Some newly added quotas which are clearly gauge-style resource counts (e.g. MetricName "ResourceCount") are
+    // configured with a default "Sum" stat, override it to "Maximum" - but never for "CallCount", which is an
+    // event-counter metric (one datapoint of value 1 per API call) where "Sum" is the correct statistic. Applying
+    // "Maximum" to "CallCount" always reads exactly 1, permanently pinning utilization at ~0% regardless of real
+    // call volume - see https://github.com/aws-solutions/quota-monitor-for-aws/issues/274
+    if (metricName?.toLocaleLowerCase().endsWith("count") && metricName !== "CallCount") {
       return "Maximum";
     }
     return metricInfo.MetricStatisticRecommendation;
