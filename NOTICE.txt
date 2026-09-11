@@ -27,11 +27,10 @@ tslib under the 0BSD license.
 @aws-sdk/core under the Apache-2.0 license.
 @aws-sdk/xml-builder under the Apache-2.0 license.
 @nodable/entities under the MIT license.
-@aws/cloudformation-validate under the Apache-2.0 license.
-xml-naming under the MIT license.
 fast-xml-parser under the MIT license.
 fast-xml-builder under the MIT license.
 path-expression-matcher under the MIT license.
+xml-naming under the MIT license.
 strnum under the MIT license.
 @smithy/core under the Apache-2.0 license.
 @smithy/middleware-serde under the Apache-2.0 license.
@@ -147,7 +146,7 @@ ignore under the MIT license.
 @eslint/object-schema under the Apache-2.0 license.
 debug under the MIT license.
 ms under the MIT license.
-minimatch under the ISC license.
+minimatch under the BlueOak-1.0.0 license.
 brace-expansion under the MIT license.
 balanced-match under the MIT license.
 concat-map under the MIT license.
@@ -179,6 +178,7 @@ prelude-ls under the MIT license.
 type-check under the MIT license.
 @humanfs/node under the Apache-2.0 license.
 @humanfs/core under the Apache-2.0 license.
+@humanfs/types under the Apache-2.0 license.
 @humanwhocodes/retry under the Apache-2.0 license.
 @humanwhocodes/module-importer under the Apache-2.0 license.
 @types/estree under the MIT license.
@@ -235,34 +235,24 @@ prettier-linter-helpers under the MIT license.
 fast-diff under the Apache-2.0 license.
 synckit under the MIT license.
 @pkgr/core under the MIT license.
-aws-cdk under the Apache-2.0 license.
+@aws-cdk/aws-servicecatalogappregistry-alpha under the Apache-2.0 license.
 aws-cdk-lib under the Apache-2.0 license.
 @aws-cdk/cloud-assembly-api under the Apache-2.0 license.
-jsonschema under the MIT license.
 @aws-cdk/cloud-assembly-schema under the Apache-2.0 license.
+jsonschema under the MIT license.
+@aws/cloudformation-validate under the Apache-2.0 license.
 @balena/dockerignore under the Apache-2.0 license.
-ansi-regex under the MIT license.
-astral-regex under the MIT license.
 case under the MIT license.
-emoji-regex under the MIT license.
-fast-uri under the BSD-3-Clause license.
 fs-extra under the MIT license.
-is-fullwidth-code-point under the MIT license.
 jsonfile under the MIT license.
-lodash.truncate under the MIT license.
 mime-db under the MIT license.
 mime-types under the MIT license.
-require-from-string under the MIT license.
-slice-ansi under the MIT license.
-string-width under the MIT license.
-strip-ansi under the MIT license.
-table under the BSD-3-Clause license.
 universalify under the MIT license.
 yaml under the ISC license.
 constructs under the Apache-2.0 license.
 @aws-cdk/asset-awscli-v1 under the Apache-2.0 license.
 @aws-cdk/asset-node-proxy-agent-v6 under the Apache-2.0 license.
-@aws-cdk/aws-servicecatalogappregistry-alpha under the Apache-2.0 license.
+aws-cdk under the Apache-2.0 license.
 cdk-nag under the Apache-2.0 license.
 jest under the MIT license.
 @jest/core under the MIT license.
@@ -292,7 +282,7 @@ electron-to-chromium under the ISC license.
 node-releases under the MIT license.
 update-browserslist-db under the MIT license.
 escalade under the MIT license.
-lru-cache under the ISC license.
+lru-cache under the BlueOak-1.0.0 license.
 yallist under the ISC license.
 @babel/helper-module-transforms under the MIT license.
 @babel/helper-module-imports under the MIT license.
@@ -316,7 +306,7 @@ esprima under the BSD-2-Clause license.
 istanbul-lib-instrument under the BSD-3-Clause license.
 istanbul-lib-coverage under the BSD-3-Clause license.
 test-exclude under the ISC license.
-glob under the ISC license.
+glob under the BlueOak-1.0.0 license.
 fs.realpath under the ISC license.
 inflight under the ISC license.
 once under the ISC license.
@@ -324,7 +314,6 @@ wrappy under the ISC license.
 inherits under the ISC license.
 path-is-absolute under the MIT license.
 jest-haste-map under the MIT license.
-fsevents under the MIT license.
 anymatch under the ISC license.
 normalize-path under the MIT license.
 fb-watchman under the Apache-2.0 license.
@@ -336,6 +325,7 @@ merge-stream under the MIT license.
 walker under the Apache-2.0 license.
 makeerror under the BSD-3-Clause license.
 tmpl under the BSD-3-Clause license.
+fsevents under the MIT license.
 pirates under the MIT license.
 write-file-atomic under the ISC license.
 signal-exit under the ISC license.
@@ -343,7 +333,12 @@ exit-x under the MIT license.
 foreground-child under the ISC license.
 jackspeak under the BlueOak-1.0.0 license.
 @isaacs/cliui under the ISC license.
+string-width under the MIT license.
 eastasianwidth under the MIT license.
+emoji-regex under the MIT license.
+strip-ansi under the MIT license.
+ansi-regex under the MIT license.
+is-fullwidth-code-point under the MIT license.
 wrap-ansi under the MIT license.
 @pkgjs/parseargs under the MIT license.
 minipass under the ISC license.
@@ -566,6 +561,7 @@ pathval under the MIT license.
 https under the ISC license.
 url under the MIT license.
 qs under the BSD-3-Clause license.
+es-define-property under the MIT license.
 side-channel under the MIT license.
 es-errors under the MIT license.
 object-inspect under the MIT license.
@@ -575,7 +571,6 @@ call-bound under the MIT license.
 call-bind-apply-helpers under the MIT license.
 function-bind under the MIT license.
 get-intrinsic under the MIT license.
-es-define-property under the MIT license.
 es-object-atoms under the MIT license.
 get-proto under the MIT license.
 dunder-proto under the MIT license.
@@ -584,19 +579,39 @@ has-symbols under the MIT license.
 hasown under the MIT license.
 math-intrinsics under the MIT license.
 side-channel-weakmap under the MIT license.
+@aws-sdk/signature-v4-multi-region under the Apache-2.0 license.
 @types/aws-lambda under the MIT license.
+@parcel/watcher under the MIT license.
+detect-libc under the Apache-2.0 license.
+node-addon-api under the MIT license.
+@parcel/watcher-android-arm64 under the MIT license.
+@parcel/watcher-darwin-arm64 under the MIT license.
+@parcel/watcher-darwin-x64 under the MIT license.
+@parcel/watcher-freebsd-x64 under the MIT license.
+@parcel/watcher-linux-arm-glibc under the MIT license.
+@parcel/watcher-linux-arm-musl under the MIT license.
+@parcel/watcher-linux-arm64-glibc under the MIT license.
+@parcel/watcher-linux-arm64-musl under the MIT license.
+@parcel/watcher-linux-x64-glibc under the MIT license.
+@parcel/watcher-linux-x64-musl under the MIT license.
+@parcel/watcher-win32-arm64 under the MIT license.
+@parcel/watcher-win32-x64 under the MIT license.
+es-module-lexer under the MIT license.
+@unrs/resolver-binding-linux-loong64-gnu under the MIT license.
+@unrs/resolver-binding-linux-loong64-musl under the MIT license.
+@unrs/resolver-binding-openharmony-arm64 under the MIT license.
 uuid under the MIT license.
 
 ********************
 OPEN SOURCE LICENSES
 ********************
 
-0BSD - https://opensource.org/licenses/0BSD
-Apache-2.0 - https://opensource.org/licenses/Apache-2.0
+0BSD - http://landley.net/toybox/license.html
+Apache-2.0 - https://www.apache.org/licenses/LICENSE-2.0
 BSD-2-Clause - https://opensource.org/licenses/BSD-2-Clause
 BSD-3-Clause - https://opensource.org/licenses/BSD-3-Clause
-CC-BY-4.0 - https://opensource.org/licenses/CC-BY-4.0
-ISC - https://opensource.org/licenses/ISC
-MIT - https://opensource.org/licenses/MIT
-Python-2.0 - https://spdx.org/licenses/Python-2.0.html
 BlueOak-1.0.0 - https://blueoakcouncil.org/license/1.0.0
+CC-BY-4.0 - https://creativecommons.org/licenses/by/4.0/legalcode
+ISC - https://www.isc.org/licenses/
+MIT - https://opensource.org/license/mit/
+Python-2.0 - https://opensource.org/licenses/Python-2.0
