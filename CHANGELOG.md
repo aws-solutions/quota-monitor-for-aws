@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.3.15] - 2026-09-11
+
+### Fixed
+
+- Updated dependencies to address [GHSA-p498-v437-472g](https://github.com/advisories/GHSA-p498-v437-472g)
+- Updated dependencies to address [CVE-2026-84375](https://github.com/advisories/GHSA-2883-xcg3-v3hh)
+- Updated dependencies to address [CVE-2026-45820](https://github.com/advisories/GHSA-px8p-9vwx-vf98)
+- Updated dependencies to address [CVE-2026-82562](https://github.com/advisories/GHSA-x5fp-wj9c-mxmx)
+- Updated dependencies to address [CVE-2026-82417](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g)
+
 ## [6.3.14] - 2026-08-14
 
 ### Fixed

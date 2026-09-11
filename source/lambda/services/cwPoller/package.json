@@ -1,6 +1,6 @@
 {
   "name": "cw-poller",
-  "version": "6.3.14",
+  "version": "6.3.15",
   "description": "microservice to poll for utilization metrics",
   "author": {
     "name": "Amazon Web Services",
