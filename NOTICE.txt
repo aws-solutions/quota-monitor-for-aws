@@ -341,7 +341,7 @@ ansi-regex under the MIT license.
 is-fullwidth-code-point under the MIT license.
 wrap-ansi under the MIT license.
 @pkgjs/parseargs under the MIT license.
-minipass under the ISC license.
+minipass under the BlueOak-1.0.0 license.
 package-json-from-dist under the BlueOak-1.0.0 license.
 path-scurry under the BlueOak-1.0.0 license.
 istanbul-lib-report under the BSD-3-Clause license.
